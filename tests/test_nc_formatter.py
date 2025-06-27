@@ -42,13 +42,17 @@ def test_fix_material_format():
 @pytest.mark.parametrize(
     "input_line, expected",
     [
+        ("(MA/3.3535-4.0)", "(MA/3.3535)"),  # opravit
+        ("(MA/3.3535)", "(MA/3.3535)"),  # ok
+        ("(MA/3.35358.0)", "(MA/3.3535)"),  # opravit
+        ("(MA/3.3535)", "(MA/3.3535)"),  # ok
         ("(MA/1.2345-4.0)", "(MA/1.2345)"),  # opravit
         ("(MA/1.2345 pozink)", "(MA/1.2345 pozink)"),  # OK
         ("(MA/1.2345 brus)", "(MA/1.2345 brus)"),  # OK
         ("(MA/1.2345ALUNOX)", "(MA/1.2345ALUNOX)"),  # OK
         ("(MA/1.2345 OtherStuff)", "(MA/1.2345 OtherStuff)"),  # OK
         ("(MA/1.2345 OtherStuff", "(MA/1.2345 OtherStuff)"),  #  zavorka
-        ("MA/1.2345)", "(MA/1.2345)"),  #  závorky
+        ("MA/1.2345)", "(MA/1.2345)"),  #  závorka
         ("(MA/1.2345@#$%)", "(MA/1.2345)"),  # opravit nesmysl
     ],
 )
