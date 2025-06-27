@@ -1,0 +1,25 @@
+your_project/
+│
+├── app/                        # Application logic
+│   ├── __init__.py
+│   ├── models/                 # Data structures (e.g. ORM or Pydantic models)
+│   ├── services/               # Business logic
+│   ├── api/ or views/          # Input/output layer (e.g. Flask views, FastAPI routers)
+│   ├── schemas/                # Request/response data validation (e.g. Pydantic)
+│   └── utils/                  # Helper functions/utilities
+│
+├── tests/                     # Unit and integration tests
+│   ├── __init__.py
+│   └── ...
+│
+├── configs/                   # Configuration files (JSON/YAML/TOML/etc.)
+│
+├── scripts/                   # One-off scripts (migrations, data import/export)
+│
+├── .env                       # Environment variables
+├── .gitignore
+├── requirements.txt           # Dependencies
+├── pyproject.toml             # Optional: Modern dependency/config (instead of setup.py)
+├── Dockerfile                 # If containerized
+├── README.md
+└── main.py                    # Entry point of the app
