@@ -1,6 +1,8 @@
-import pytest
+"""Pytest testy"""
+
 import re
 from pathlib import Path
+import pytest
 from nc_formatter import access_line_4, fix_material_format, write_line_4
 
 # Regex pattern použitý při kontrole
