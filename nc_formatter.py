@@ -30,12 +30,17 @@ def access_line_4(file_path: Path) -> str | None:
     return None
 
 
+
 def fix_material_format(text: str) -> str:
-    """Opraví formát materiálu podle regexu"""
-    fixed = re.sub(r"\(MA/(\d\.\d{4})[^\s)]*", r"(MA/\1", text)
-    if not fixed.endswith(")"):
-        fixed += ")"
-    return fixed
+    """
+    Vrátí první validní výskyt typu (MA/číslo) nebo (MA/číslo název)
+    Oprava odstraní nevalidní části jako pomlčky nebo špatné znaky.
+    """
+    match = re.search(r"MA/(\d\.\d{4})(?: ?[a-zA-Zčěščřžýáíéůúťň]+)?", text)
+    if match:
+        full = match.group(0)
+        return f"({full})"
+    return ""
 
 
 def write_line_4(file_path: Path, new_line: str) -> None:
