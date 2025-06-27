@@ -1,25 +1,42 @@
 your_project/
 │
-├── app/                        # Application logic
+├── app/                        # Core app package
 │   ├── __init__.py
-│   ├── models/                 # Data structures (e.g. ORM or Pydantic models)
-│   ├── services/               # Business logic
-│   ├── api/ or views/          # Input/output layer (e.g. Flask views, FastAPI routers)
-│   ├── schemas/                # Request/response data validation (e.g. Pydantic)
-│   └── utils/                  # Helper functions/utilities
 │
-├── tests/                     # Unit and integration tests
+│   ├── models/                 # ✅ Model: DB models (SQLAlchemy)
+│   │   └── user.py
+│
+│   ├── viewmodels/             # ✅ ViewModel: App logic, data binding, state
+│   │   └── main_viewmodel.py
+│
+│   ├── views/                  # ✅ View: PyQt UI classes and forms
+│   │   └── main_window.py
+│
+│   ├── services/               # Business services (e.g. file scanning, cleanup logic)
+│   │   └── file_renamer.py
+│
+│   ├── db/                     # DB engine/session init, migrations
+│   │   ├── __init__.py
+│   │   └── session.py
+│
+│   ├── utils/                  # Reusable helpers
+│   │   └── path_utils.py
+│
+│   ├── config/                 # App config logic, .env loading
+│   │   └── settings.py
+│
+│   └── main.py                 # 🔁 App entry point
+│
+├── tests/                     # Unit/integration tests
 │   ├── __init__.py
-│   └── ...
+│   └── test_renamer.py
 │
-├── configs/                   # Configuration files (JSON/YAML/TOML/etc.)
+├── scripts/                   # Data init, migrations, etc.
+│   └── init_db.py
 │
-├── scripts/                   # One-off scripts (migrations, data import/export)
-│
-├── .env                       # Environment variables
+├── .env                       # Environment variables (e.g., DB_URL)
+├── .env.example               # Example config
 ├── .gitignore
-├── requirements.txt           # Dependencies
-├── pyproject.toml             # Optional: Modern dependency/config (instead of setup.py)
-├── Dockerfile                 # If containerized
-├── README.md
-└── main.py                    # Entry point of the app
+├── requirements.txt
+├── pyproject.toml             # Optional: unified config & dependencies
+└── README.md
