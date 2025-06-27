@@ -15,6 +15,7 @@ def get_nc_files(folder: Path) -> Generator[Path, None, None]:
     if not folder.exists() or not folder.is_dir():
         cons.log(f"Adresář {folder} neexistuje nebo není adresář.", style="red")
         sys.exit(1)
+
     for file in folder.iterdir():
         if file.suffix.upper() == ".NC":
             yield file
@@ -40,22 +41,20 @@ def fix_material_format(text: str) -> str:
 def write_line_4(file_path: Path, new_line: str) -> None:
     """Přepíše 4. řádek souboru novým textem"""
     lines = file_path.read_text(encoding="utf-8").splitlines()
-    if len(lines) >= 4:
-        lines[3] = new_line
-        file_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
-    else:
-        cons.log(
-            f"{file_path.name}: Soubor má méně než 4 řádky, nelze upravit.",
-            style="yellow",
-        )
+    lines[3] = new_line
+    file_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
-def process_file(nc_file: Path) -> None:
-    """Zpracuje jeden NC soubor - ověří a případně opraví 4. řádek"""
+def process_file(nc_file: Path) -> bool:
+    """
+    Zpracuje jeden NC soubor - ověří a případně opraví 4. řádek.
+    Vrací True pokud došlo ke změně, jinak False.
+    """
     line_4 = access_line_4(nc_file)
     if line_4:
         if pattern.fullmatch(line_4):
             cons.log(f"{nc_file.name}: {line_4} -> correct", style="green")
+            return False
         else:
             fixed_line = fix_material_format(line_4)
             cons.log(
@@ -63,15 +62,25 @@ def process_file(nc_file: Path) -> None:
                 style="red",
             )
             write_line_4(nc_file, fixed_line)
+            return True
     else:
         cons.log(f"{nc_file.name}: 4. řádek nenalezen", style="yellow")
+        return False
 
 
-def main():
-    cons.rule("[bold blue]Kontrola formátu 4. řádku v NC souborech[/bold blue]")
-    nc_files = get_nc_files(CNCFOLDER)
+def main() -> None:
+    cons.rule("Kontrola formátu 4. řádku v NC souborech", style="blue")
+    nc_files: list = list(get_nc_files(CNCFOLDER))
+    total_files: int = len(nc_files)
+    count_changed: int = 0
+
     for nc_file in nc_files:
-        process_file(nc_file)
+        if process_file(nc_file):
+            count_changed += 1
+
+    cons.rule()
+    cons.log(f"Celkem souborů: {total_files}", style="bold")
+    cons.log(f"Počet změněných souborů: {count_changed}", style="bold green")
     cons.rule()
 
 
