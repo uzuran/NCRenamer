@@ -10,7 +10,7 @@ cons = Console()
 
 CNCFOLDER = Path("./CNCs")
 pattern: re.Pattern[str] = re.compile(
-    r"\(MA/\d\.\d{4}(?: ?[a-zA-Zčěščřžýáíéůúťň]+)?\)?"
+    r"\(MA/\d\.\d{4}(?: ?[a-zA-Zčěšřžýáíéůúťň]+)?\)?"
 )
 
 
@@ -37,7 +37,7 @@ def fix_material_format(text: str) -> Optional[str]:
     Vrátí první validní výskyt typu (MA/číslo) nebo (MA/číslo název)
     Oprava odstraní nevalidní části jako pomlčky nebo špatné znaky.
     """
-    match = re.search(r"MA/(\d\.\d{4})(?: ?[a-zA-Zčěščřžýáíéůúťň]+)?", text)
+    match = re.search(r"MA/(\d\.\d{4})(?: ?[a-zA-Zčěšřžýáíéůúťň]+)?", text)
     if match:
         return f"({match.group(0)})"
     return None
