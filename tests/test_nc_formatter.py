@@ -2,6 +2,8 @@
 
 import re
 from pathlib import Path
+import pandas as pd
+from pandas.conftest import DataFrame
 import pytest
 from nc_formatter import access_line_4, fix_material_format, write_line_4
 
@@ -41,25 +43,20 @@ def test_fix_material_format():
     assert fixed == "(MA/3.3535)"
 
 
-@pytest.mark.parametrize(
-    "input_line, expected",
-    [
-        ("(MA/3.3535-4.0)", "(MA/3.3535)"),  # opravit
-        ("(MA/3.3535)", "(MA/3.3535)"),  # ok
-        ("(MA/3.35358.0)", "(MA/3.3535)"),  # opravit
-        ("(MA/3.3535)", "(MA/3.3535)"),  # ok
-        ("(MA/1.2345-4.0)", "(MA/1.2345)"),  # opravit
-        ("(MA/1.2345 pozink)", "(MA/1.2345 pozink)"),  # OK
-        ("(MA/1.2345 brus)", "(MA/1.2345 brus)"),  # OK
-        ("(MA/1.2345ALUNOX)", "(MA/1.2345ALUNOX)"),  # OK
-        ("(MA/1.2345 OtherStuff)", "(MA/1.2345 OtherStuff)"),  # OK
-        ("(MA/1.2345 OtherStuff", "(MA/1.2345 OtherStuff)"),  #  zavorka
-        ("MA/1.2345)", "(MA/1.2345)"),  #  závorka
-        ("(MA/1.2345@#$%)", "(MA/1.2345)"),  # opravit nesmysl
-    ],
-)
-def test_fix_material_format_parametrized(input_line, expected):
-    assert fix_material_format(input_line) == expected
+# Načti CSV bez hlavičky a vezmi první 2 sloupce
+df: DataFrame = pd.read_csv("data.csv", header=None, usecols=[0, 1])
+
+# Přidej prefix + suffix do prvního sloupce
+df[0] = df[0].apply(lambda x: f"(MA/{x})")
+
+# Vytvoř testovací data jako list dvojic
+test_data = list(zip(df[0], df[1]))
+
+
+@pytest.mark.parametrize("input_line, expected", test_data)
+def test_fix_material_format_parametrized_(input_line, expected):
+    result = fix_material_format(input_line)
+    assert result == expected
 
 
 def test_write_line_4(test_file):
