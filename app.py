@@ -117,6 +117,7 @@ class MainFrame(ctk.CTkFrame):
         self.output_box.delete("1.0", "end")
 
         for i, file in enumerate(self.file_list, start=1):
+            time.sleep(0.2)
             changed = self.formatter.process_file(file)  # True pokud upraveno
 
             if changed:
