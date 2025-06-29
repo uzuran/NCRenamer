@@ -1,10 +1,12 @@
 """CTK app"""
 
 import time
-from tkinter import ANCHOR
+from pathlib import Path
 from rich.console import Console
 import customtkinter as ctk
 from customtkinter import filedialog
+from tkinter import messagebox
+from nc_formatter import NcFormatter
 
 # ---
 cons: Console = Console()
@@ -58,8 +60,14 @@ class App(ctk.CTk):
 class MainFrame(ctk.CTkFrame):
     def __init__(self, master, **kwargs):
         super().__init__(master, **kwargs)
+        self.formatter = NcFormatter()
 
         self.file_list = []
+        # --- Label for selected files
+        self.count_label = ctk.CTkLabel(self, text="Vybráno: 0 souborů")
+        self.count_label.pack(pady=(0, 10))
+
+        
         # --- select_btn
         self.select_btn = ctk.CTkButton(
             self, text="Select NC files", command=self.select_files
@@ -89,8 +97,15 @@ class MainFrame(ctk.CTkFrame):
         self.output_box.configure(state="disabled")
 
     def select_files(self):
-        self.file_list = [f"file_{i}.nc" for i in range(1, 11)]
-        print("Vybrané soubory:", self.file_list)
+        file_paths = filedialog.askopenfilenames(
+            title="Vyberte NC soubory",
+            filetypes=[("NC soubory", "*.NC"), ("Všechny soubory", "*.*")]
+        )
+        
+        self.file_list = [Path(f) for f in file_paths]
+        self.count_label.configure(text=f"Vybráno: {len(self.file_list)} souborů")
+
+
 
     def rename_files(self):
         total = len(self.file_list)
@@ -102,14 +117,19 @@ class MainFrame(ctk.CTkFrame):
         self.output_box.delete("1.0", "end")
 
         for i, file in enumerate(self.file_list, start=1):
-            time.sleep(0.2)  # Simulace
-            new_name = f"{' ' * 25}{file}"
-            self.output_box.insert("end", new_name + "\n")
+            changed = self.formatter.process_file(file)  # True pokud upraveno
+
+            if changed:
+                self.output_box.insert("end", f"✅ Upraveno: {file.name}\n")
+            else:
+                self.output_box.insert("end", f"✔️ Bez změny: {file.name}\n")
 
             self.progressbar.set(i / total)
             self.update_idletasks()
 
         self.output_box.configure(state="disabled")
+
+        messagebox.showinfo(title="Hotovo", message=f"Zpracování dokončeno.\nCelkem souborů: {len(self.file_list)}")
 
 
 if __name__ == "__main__":
