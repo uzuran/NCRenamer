@@ -1,21 +1,21 @@
 """Main code"""
 
 import re
+from typing import Optional
 import sys
 from pathlib import Path
 from rich.console import Console
-from typing import Optional
 
 cons = Console()
 
-CNCFOLDER = Path("./CNCs")
-pattern: re.Pattern[str] = re.compile(
-    r"\(MA/\d\.\d{4}(?: ?[a-zA-Zčěšřžýáíéůúťň]+)?\)?"
-)
+
+CNCFOLDER: Path = Path("./CNCs")
+pattern: re.Pattern[str] = re.compile(r"\(MA/\d\.\d{4}(?: ?[a-zA-Zčěšřžýáíéůúťň]+)?\)?")
 
 
 def get_nc_files(folder: Path) -> list[Path]:
     """Vrací seznam všech .NC souborů v adresáři"""
+
     if not folder.exists() or not folder.is_dir():
         cons.log(f"Adresář {folder} neexistuje nebo není adresář.", style="red")
         sys.exit(1)
@@ -23,7 +23,7 @@ def get_nc_files(folder: Path) -> list[Path]:
     return [file for file in folder.iterdir() if file.suffix.upper() == ".NC"]
 
 
-def access_line_4(file_path: Path) -> Optional[str]:
+def access_line_4(file_path: Path) -> str | None:
     """Načte 4. řádek souboru, nebo vrátí None pokud neexistuje"""
     with file_path.open("r", encoding="utf-8") as f:
         for i, line in enumerate(f, start=1):
@@ -69,7 +69,8 @@ def process_file(nc_file: Path) -> bool:
     if pattern.fullmatch(line_4):
         cons.log(f"{nc_file.name}: {line_4} -> correct", style="green")
         return False
-
+    
+    
     fixed_line = fix_material_format(line_4)
     if fixed_line:
         cons.log(f"{nc_file.name}: {line_4} -> opraveno na: {fixed_line}", style="red")

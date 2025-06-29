@@ -1,7 +1,6 @@
 """CTK app"""
 
 import time
-from tkinter import ANCHOR
 from rich.console import Console
 import customtkinter as ctk
 from customtkinter import filedialog
@@ -90,7 +89,6 @@ class MainFrame(ctk.CTkFrame):
 
     def select_files(self):
         self.file_list = [f"file_{i}.nc" for i in range(1, 11)]
-        print("Vybrané soubory:", self.file_list)
 
     def rename_files(self):
         total = len(self.file_list)
