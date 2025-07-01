@@ -2,10 +2,10 @@
 
 import time
 from pathlib import Path
+from tkinter import messagebox
 from rich.console import Console
 import customtkinter as ctk
 from customtkinter import filedialog
-from tkinter import messagebox
 from nc_formatter import NcFormatter
 
 # ---
@@ -46,28 +46,28 @@ class App(ctk.CTk):
 
     def __init__(self) -> None:
         super().__init__()
-        self.utils = Utils(self)
+        self.utils: Utils = Utils(self)
+        self.formatter: NcFormatter = NcFormatter()
+        self.main_frame: MainFrame = MainFrame(master=self, formatter=self.formatter)
         self.utils.set_appearance("system")
         self.utils.configure_app("NCRenamer", 400, 400)
 
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(0, weight=1)
-
-        self.main_frame = MainFrame(master=self)
+        # ---
         self.main_frame.grid(row=0, column=0, padx=10, pady=10, sticky="nsew")
 
 
 class MainFrame(ctk.CTkFrame):
-    def __init__(self, master, **kwargs):
+    def __init__(self, master, formatter, **kwargs):
         super().__init__(master, **kwargs)
-        self.formatter = NcFormatter()
 
+        self.formatter = formatter
         self.file_list = []
         # --- Label for selected files
         self.count_label = ctk.CTkLabel(self, text="Vybráno: 0 souborů")
         self.count_label.pack(pady=(0, 10))
 
-        
         # --- select_btn
         self.select_btn = ctk.CTkButton(
             self, text="Select NC files", command=self.select_files
@@ -99,13 +99,11 @@ class MainFrame(ctk.CTkFrame):
     def select_files(self):
         file_paths = filedialog.askopenfilenames(
             title="Vyberte NC soubory",
-            filetypes=[("NC soubory", "*.NC"), ("Všechny soubory", "*.*")]
+            filetypes=[("NC soubory", "*.NC"), ("Všechny soubory", "*.*")],
         )
-        
+
         self.file_list = [Path(f) for f in file_paths]
         self.count_label.configure(text=f"Vybráno: {len(self.file_list)} souborů")
-
-
 
     def rename_files(self):
         total = len(self.file_list)
@@ -117,8 +115,8 @@ class MainFrame(ctk.CTkFrame):
         self.output_box.delete("1.0", "end")
 
         for i, file in enumerate(self.file_list, start=1):
-            time.sleep(0.2)
-            changed = self.formatter.process_file(file)  # True pokud upraveno
+            time.sleep(0.25)
+            changed = self.formatter.process_file(file)
 
             if changed:
                 self.output_box.insert("end", f"✅ Upraveno: {file.name}\n")
@@ -130,9 +128,12 @@ class MainFrame(ctk.CTkFrame):
 
         self.output_box.configure(state="disabled")
 
-        messagebox.showinfo(title="Hotovo", message=f"Zpracování dokončeno.\nCelkem souborů: {len(self.file_list)}")
+        messagebox.showinfo(
+            title="Hotovo",
+            message=f"Zpracování dokončeno.\nCelkem souborů: {len(self.file_list)}",
+        )
 
 
 if __name__ == "__main__":
-    app = App()
+    app: App = App()
     app.mainloop()
