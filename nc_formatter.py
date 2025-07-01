@@ -7,7 +7,7 @@ from rich.console import Console
 
 
 class NcFormatter:
-    PATTERN = re.compile(r"\(MA/\d\.\d{4}(?: ?[a-zA-Zčěšřžýáíéůúťň]+)?\)?")
+    PATTERN = re.compile(r"\(MA/(?:\d+\.\d{4}|[a-zA-Z0-9]+)(?: ?[a-zA-Z0-9]+)?\)")
 
     def __init__(self):
         self.pattern = self.PATTERN
@@ -39,9 +39,11 @@ class NcFormatter:
         Vrátí první validní výskyt typu (MA/číslo) nebo (MA/číslo název)
         Oprava odstraní nevalidní části jako pomlčky nebo špatné znaky.
         """
-        match = re.search(r"MA/(\d\.\d{4})(?: ?[a-zA-Zčěšřžýáíéůúťň]+)?", text)
+        match = re.search(
+            r"\(MA/(?:\d+\.\d{4}|[a-zA-Z0-9]+)(?: ?[a-zA-Z0-9]+)?\)", text
+        )
         if match:
-            return f"({match.group(0)})"
+            return match.group(0)
         return None
 
     def write_line_4(self, file_path: Path, new_line: str) -> None:
