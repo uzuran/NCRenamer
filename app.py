@@ -51,7 +51,7 @@ class App(ctk.CTk):
         self.main_frame: MainFrame = MainFrame(master=self, formatter=self.formatter)
         self.utils.set_appearance("system")
         self.utils.configure_app("NCRenamer", 400, 400)
-
+        # grid
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(0, weight=1)
         # ---
