@@ -1,3 +1,5 @@
 .env
 .venv
 /idea
+.~lock.materials_new.csv#
+__pycache__/
