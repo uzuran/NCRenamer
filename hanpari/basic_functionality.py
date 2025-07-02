@@ -1,16 +1,21 @@
 from csv import reader, writer
 from os import walk, write
 from pathlib import Path
+from typing import TypeAlias
 
 # constants
 MATERIAL_TABLE_FILE = Path("CNCs/materials_new.csv")
 NC_PROGRAMS_DIRECTORY = Path("CNCs")
 
 # types
-MATERIALS_TABLE: dict[str, str]
+Original: TypeAlias = str
+Corrected: TypeAlias = str
+Expected: TypeAlias = str
+Source: TypeAlias = str
+MATERIALS_TABLE: dict[Original, Expected]
 NC_PROGRAM_FILES: set[Path]
 
-# region Dummy or Helper functions
+# region Functions
 
 
 def treat_special_cases(rest: str) -> str:
@@ -19,8 +24,8 @@ def treat_special_cases(rest: str) -> str:
     return rest.lower()
 
 
-def correct_material_code(potential_invalid_code: str) -> str:
-    number, rest = potential_invalid_code[:6], potential_invalid_code[6:]
+def correct_material(original: Original) -> Corrected:
+    number, rest = original[:6], original[6:]
     rest, *_ = rest.split("-")
     rest = rest if "." not in rest else ""
     rest = treat_special_cases(rest)
@@ -28,10 +33,19 @@ def correct_material_code(potential_invalid_code: str) -> str:
     return result.strip()
 
 
-def get_nth_line_from_file(file: Path, number_of_line=3):
+def get_nth_line_from_file(file: Path, *, line_number=4) -> str | None:
     with open(file, "r") as f:
-        line = next((line for i, line in enumerate(f) if i == number_of_line), None)
+        line = next((line for i, line in enumerate(f) if i == line_number - 1), None)
     return line.strip() if line else None
+
+
+def extract_original_material(material_line: str) -> Original:
+    """
+    Extracts the material code from a line of text.
+    Example:
+    (MA/1.0037) -> 1.0037
+    """
+    return material_line[4:-1]
 
 
 # endregion
@@ -39,42 +53,50 @@ def get_nth_line_from_file(file: Path, number_of_line=3):
 
 for dirpath, dirnames, filenames in walk(NC_PROGRAMS_DIRECTORY):
     if dirpath == NC_PROGRAMS_DIRECTORY.name:
-        NC_PROGRAM_FILES = set(map(lambda x: NC_PROGRAMS_DIRECTORY / x, filenames))
+        NC_PROGRAM_FILES = set(
+            map(
+                lambda x: NC_PROGRAMS_DIRECTORY / x,
+                filter(lambda x: x.endswith(".NC"), filenames),
+            )
+        )
 
 with open(MATERIAL_TABLE_FILE, "r") as f:
     MATERIALS_TABLE = dict(reader(f, delimiter="\t"))
 
 
-found_exceptional_cases: list[tuple[str, str, str, str]] = []
-counter = 0
-
+found_exceptional_cases: list[tuple[Original, Corrected, Expected, Source]] = []
+processed_original_materials: set[Original] = set()
 
 for file in NC_PROGRAM_FILES:
     material = get_nth_line_from_file(file)
     if not material:
-        raise Exception()
-    original = material[4:-1]
+        raise Exception(f"No material found in file: {file.resolve()}")
+    original = extract_original_material(material)
     material_number, material_rest = original[:6], original[5:]
+    corrected = correct_material(original)
     if original in MATERIALS_TABLE:
-        corrected = correct_material_code(original)
         if MATERIALS_TABLE[original] != corrected:
             expected = MATERIALS_TABLE[original]
-            counter += 1
-            found_exceptional_cases.append(
-                (original, corrected, expected, "NC programs")
-            )
+            found_exceptional_cases.append((original, corrected, expected, file.name))
+            processed_original_materials.add(original)
+    else:
+        found_exceptional_cases.append((original, corrected, "???", file.name))
 
 
 for original in MATERIALS_TABLE:
-    corrected = correct_material_code(original)
+    if original in processed_original_materials:
+        continue
+    corrected = correct_material(original)
     expected = MATERIALS_TABLE[original]
     if expected != corrected:
-        counter += 1
         found_exceptional_cases.append(
             (original, corrected, expected, "Material table")
         )
 
 with open("hanpari/special_cases.csv", "w") as f:
     w = writer(f, delimiter="|")
-    w.writerow(("Original", "Corrected", "Expected"))
+    w.writerow(("Original", "Corrected", "Expected", "Source"))
     w.writerows(found_exceptional_cases)
+
+print(f"Found {len(found_exceptional_cases)} exceptional cases.")
+print("Special cases written to 'hanpari/special_cases.csv'.")
