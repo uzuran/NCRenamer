@@ -72,15 +72,17 @@ for file in NC_PROGRAM_FILES:
     if not material:
         raise Exception(f"No material found in file: {file.resolve()}")
     original = extract_original_material(material)
+    if original in processed_original_materials:
+        continue
     material_number, material_rest = original[:6], original[5:]
     corrected = correct_material(original)
     if original in MATERIALS_TABLE:
         if MATERIALS_TABLE[original] != corrected:
             expected = MATERIALS_TABLE[original]
             found_exceptional_cases.append((original, corrected, expected, file.name))
-            processed_original_materials.add(original)
     else:
         found_exceptional_cases.append((original, corrected, "???", file.name))
+    processed_original_materials.add(original)
 
 
 for original in MATERIALS_TABLE:
