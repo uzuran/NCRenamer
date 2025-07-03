@@ -1,20 +1,19 @@
-"""CTK app"""
-
 import time
 from pathlib import Path
 from tkinter import messagebox
 from rich.console import Console
 import customtkinter as ctk
 from customtkinter import filedialog
-from nc_formatter import NcFormatter
-
-# ---
+from nc_formatter import NcFormatter 
+import webbrowser
+import urllib.parse
+import json
+import os
+from PIL import Image
 cons: Console = Console()
 
 
 class Utils:
-    """Utility pro CTk okno."""
-
     def __init__(self, parent: ctk.CTk) -> None:
         self.parent = parent
 
@@ -42,59 +41,114 @@ class Utils:
 
 
 class App(ctk.CTk):
-    """Hlavní aplikace."""
-
     def __init__(self) -> None:
         super().__init__()
         self.utils: Utils = Utils(self)
         self.formatter: NcFormatter = NcFormatter()
-        self.main_frame: MainFrame = MainFrame(master=self, formatter=self.formatter)
-        self.utils.set_appearance("system")
+        
+        self.settings_file = "app_settings.json"
+        self.settings = {}
+        self._load_app_settings() 
+
+        ctk.set_appearance_mode(self.settings.get("appearance_mode", "System"))
+
+        self.main_frame: MainFrame = MainFrame(master=self, formatter=self.formatter, app_instance=self) 
         self.utils.configure_app("NCRenamer", 400, 400)
-        # grid
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(0, weight=1)
-        # ---
         self.main_frame.grid(row=0, column=0, padx=10, pady=10, sticky="nsew")
+
+    def _load_app_settings(self) -> None:
+        if os.path.exists(self.settings_file):
+            try:
+                with open(self.settings_file, 'r') as f:
+                    self.settings = json.load(f)
+            except (json.JSONDecodeError, KeyError) as e:
+                cons.print(f"[red]Chyba při načítání nastavení ze souboru: {e}. Používám výchozí nastavení.[/red]")
+                self.settings = {}
+        else:
+            self.settings = {}
+
+    def _save_app_settings(self) -> None:
+        try:
+            with open(self.settings_file, 'w') as f:
+                json.dump(self.settings, f, indent=4) 
+        except IOError as e:
+            cons.print(f"[red]Chyba při ukládání nastavení do souboru: {e}[/red]")
 
 
 class MainFrame(ctk.CTkFrame):
-    def __init__(self, master, formatter, **kwargs):
+    def __init__(self, master, formatter, app_instance, **kwargs):
         super().__init__(master, **kwargs)
 
         self.formatter = formatter
+        self.app_instance = app_instance 
         self.file_list = []
-        # --- Label for selected files
+
+        self.counter_file = "email_counter.json" 
+        self.email_counter = self._load_counter() 
+        self.settings_window = None 
+
+        self.settings_btn = ctk.CTkButton(
+            self, text="settings", command=self.open_settings_window
+        )
+        self.settings_btn.pack(pady=(10, 10), padx=20, side="top")
+
+        # Zobrazení počítadla e-mailů
+        self.email_counter_label = ctk.CTkLabel(self, text=f"Počet hlášení chyb: {self.email_counter}")
+        self.email_counter_label.pack(pady=(0, 10))
+
         self.count_label = ctk.CTkLabel(self, text="Vybráno: 0 souborů")
         self.count_label.pack(pady=(0, 10))
 
-        # --- select_btn
         self.select_btn = ctk.CTkButton(
             self, text="Select NC files", command=self.select_files
         )
         self.select_btn.pack(pady=(10, 0))
-        # --- progress bar
         self.progressbar = ctk.CTkProgressBar(self)
         self.progressbar.pack(pady=(10, 10), fill="x", padx=20)
         self.progressbar.configure(corner_radius=5)
         self.progressbar.set(0)
-        # --- rename btn
         self.rename_btn = ctk.CTkButton(
             self, text="Rename NC files", command=self.rename_files
         )
         self.rename_btn.pack(pady=(0, 10))
-        # --- report Bug btn
         self.reportbug_btn = ctk.CTkButton(
-            self, text="Report Bug", command=self.rename_files
+            self, text="Report Bug", command=self.set_email
         )
         self.reportbug_btn.pack(pady=(0, 10))
-        # --- Label
         self.output_label = ctk.CTkLabel(self, text="Renamed NCs", anchor="w")
         self.output_label.pack(pady=0, padx=25, fill="x")
-        # --- Textbox
+
         self.output_box = ctk.CTkTextbox(self)
         self.output_box.pack(padx=20, pady=(0, 10), fill="both", expand=True)
         self.output_box.configure(state="disabled")
+
+
+    def _load_counter(self) -> int:
+        if os.path.exists(self.counter_file):
+            try:
+                with open(self.counter_file, 'r') as f:
+                    data = json.load(f)
+                    return data.get("counter", 0)
+            except (json.JSONDecodeError, KeyError) as e:
+                cons.print(f"[red]Chyba při načítání počítadla ze souboru: {e}. Resetuji počítadlo na 0.[/red]")
+                return 0
+        return 0 
+
+    def _save_counter(self) -> None:
+        try:
+            with open(self.counter_file, 'w') as f:
+                json.dump({"counter": self.email_counter}, f)
+        except IOError as e:
+            cons.print(f"[red]Chyba při ukládání počítadla do souboru: {e}[/red]")
+
+    def _reset_email_counter(self) -> None:
+        self.email_counter = 0
+        self._save_counter() 
+        self.email_counter_label.configure(text=f"Počet hlášení chyb: {self.email_counter}")
+        messagebox.showinfo(title="Počítadlo resetováno", message="Počítadlo hlášení chyb bylo resetováno na 0.")
+
 
     def select_files(self):
         file_paths = filedialog.askopenfilenames(
@@ -132,6 +186,121 @@ class MainFrame(ctk.CTkFrame):
             title="Hotovo",
             message=f"Zpracování dokončeno.\nCelkem souborů: {len(self.file_list)}",
         )
+
+    def set_email(self):
+        self.email_counter += 1
+        self._save_counter()
+        self.email_counter_label.configure(text=f"Počet hlášení chyb: {self.email_counter}") 
+
+        recipient_email = "else.artem@gmail.com"
+        subject = f"Report bug_{self.email_counter}"
+
+        mailto_url = f"mailto:{recipient_email}?subject={urllib.parse.quote(subject)}"
+
+        try:
+            webbrowser.open(mailto_url)
+        except Exception as e:
+            cons.print(f"[red]Nepodařilo se otevřít e-mailového klienta: {e}[/red]")
+            messagebox.showerror(title="Chyba", message="Nepodařilo se otevřít výchozí e-mailový klient. Ujistěte se, že máte nějaký nastavený.")
+
+    def open_settings_window(self):
+        if self.settings_window is None or not self.settings_window.winfo_exists():
+            self.settings_window = SettingsWindow(master=self, app_instance=self.app_instance, main_frame_instance=self)
+            self.settings_window.focus()
+        else:
+            self.settings_window.focus()
+
+
+class SettingsWindow(ctk.CTkToplevel):
+    def __init__(self, master=None, app_instance=None, main_frame_instance=None, **kwargs):
+        super().__init__(master, **kwargs)
+        self.title("Nastavení aplikace")
+        self.geometry("500x500")
+        self.transient(master) 
+        self.protocol("WM_DELETE_WINDOW", self._on_closing) 
+
+        self.app_instance = app_instance 
+        self.main_frame_instance = main_frame_instance 
+        self.setting_label = ctk.CTkLabel(self, text="Změnit režim vzhledu", anchor="w")
+        self.setting_label.pack(pady=0, padx=25)
+
+        self.light_icon = ctk.CTkImage(Image.open("light-mode.png"), size=(34, 34))
+        self.dark_icon = ctk.CTkImage(Image.open("night-mode.png"), size=(34, 34))
+
+        self.restart_icon = ctk.CTkImage(Image.open("restart.png"), size=(24, 24))
+
+        self.color_button = ctk.CTkButton(
+            self, 
+            text="",
+            image=self.light_icon,
+            command=self._change_mode_and_save,
+            width=100,
+            height=30,
+            fg_color="white"
+        )
+        self.color_button.pack(pady=10, padx=25)
+        self._update_button_icon()
+
+
+        # Tlačítko pro resetování počítadla e-mailů
+        self.reset_counter_btn = ctk.CTkButton(
+            self, image=self.restart_icon, text="",fg_color="white",  width=100, height=38, command=self._prompt_for_password_and_reset
+        )
+        self.reset_counter_btn.pack(pady=(20, 10))
+
+        self.close_button = ctk.CTkButton(self, text="Zavřít", fg_color="white", text_color="black",  command=self.destroy)
+        self.close_button.pack(pady=10, padx=25, fill="x", side="bottom")
+        
+    def _change_mode_and_save(self):
+    
+        current_mode = ctk.get_appearance_mode()
+        new_mode = ""
+
+        if current_mode == "Dark":
+            new_mode = "Light"
+        elif current_mode == "Light":
+            new_mode = "Dark"
+        else: 
+            new_mode = "Dark" 
+
+        ctk.set_appearance_mode(new_mode) 
+
+        if self.app_instance:
+            self.app_instance.settings["appearance_mode"] = new_mode
+            self.app_instance._save_app_settings() 
+
+        self._update_button_icon() 
+
+    def _update_button_icon(self): 
+     
+        current_mode = ctk.get_appearance_mode()
+        if current_mode == "Dark":
+            self.color_button.configure(image=self.light_icon, text="") 
+        else:
+            self.color_button.configure(image=self.dark_icon, text="")
+    
+    def _prompt_for_password_and_reset(self) -> None:
+        entered_password = ctk.CTkInputDialog(
+            text="Zadejte heslo pro resetování počítadla:",
+            title="Vyžadováno heslo"
+        ).get_input()
+
+        CORRECT_PASSWORD = "aejkvhl68" 
+
+        if entered_password is None:
+            return
+
+        if entered_password == CORRECT_PASSWORD:
+            if self.main_frame_instance:
+                self.main_frame_instance._reset_email_counter()
+            else:
+                messagebox.showerror("Chyba", "Nelze resetovat počítadlo. Instance MainFrame není k dispozici.")
+        else:
+            messagebox.showerror("Chybné heslo", "Zadané heslo je nesprávné.")
+
+    def _on_closing(self):
+        self.grab_release() 
+        self.destroy()
 
 
 if __name__ == "__main__":
