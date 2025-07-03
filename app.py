@@ -113,7 +113,7 @@ class MainFrame(ctk.CTkFrame):
         self.output_box.configure(state="disabled")
 
 
-    def _reset_email_counter(self) -> None:
+    def reset_email_counter(self) -> None:
         self.email.email_counter = 0
         self.email.save_counter()
         self.email_counter_label.configure(
