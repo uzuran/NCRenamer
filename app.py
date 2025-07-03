@@ -50,11 +50,16 @@ class App(ctk.CTk):
         self.email: EmailBugTracker = EmailBugTracker()
 
         self.app_settings: Settings = Settings()
-        
-        ctk.set_appearance_mode(self.app_settings.settings.get("appearance_mode", "System"))
+
+        ctk.set_appearance_mode(
+            self.app_settings.settings.get("appearance_mode", "System")
+        )
 
         self.main_frame: MainFrame = MainFrame(
-            master=self, formatter=self.formatter, email=self.email, app_instance=self, 
+            master=self,
+            formatter=self.formatter,
+            email=self.email,
+            app_instance=self,
         )
         # Instance SettingsFrame, která bude přepínána
         self.settings_frame: SettingsFrame = SettingsFrame(
@@ -64,7 +69,7 @@ class App(ctk.CTk):
         self.utils.configure_app("NCRenamer", 400, 400)
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(0, weight=1)
-        
+
         # Na začátku zobrazíme hlavní rámec
         self.show_main_content()
 
@@ -88,11 +93,18 @@ class MainFrame(ctk.CTkFrame):
         # self.settings_window = None # Tuto proměnnou už nepotřebujeme
         self.settings_icon = ctk.CTkImage(Image.open("setting.png"), size=(24, 24))
         self.settings_btn = ctk.CTkButton(
-            self, image=self.settings_icon, text="", command=self.open_settings_window, fg_color="white", width=30
+            self,
+            image=self.settings_icon,
+            text="",
+            command=self.open_settings_window,
+            fg_color="white",
+            width=30,
         )
         self.settings_btn.pack(pady=(10, 10), padx=20, side="top", anchor="ne")
 
-        self.email_counter_label = ctk.CTkLabel(self, text=f"Počet hlášení chyb: {self.email.email_counter}")
+        self.email_counter_label = ctk.CTkLabel(
+            self, text=f"Počet hlášení chyb: {self.email.email_counter}"
+        )
         self.email_counter_label.pack(pady=(0, 10))
 
         self.count_label = ctk.CTkLabel(self, text="Vybráno: 0 souborů")
@@ -120,7 +132,6 @@ class MainFrame(ctk.CTkFrame):
         self.output_box = ctk.CTkTextbox(self)
         self.output_box.pack(padx=20, pady=(0, 10), fill="both", expand=True)
         self.output_box.configure(state="disabled")
-
 
     def _reset_email_counter(self) -> None:
         self.email.email_counter = 0
@@ -190,12 +201,12 @@ class MainFrame(ctk.CTkFrame):
                 title="Chyba",
                 message="Nepodařilo se otevřít výchozí e-mailový klient. Ujistěte se, že máte nějaký nastavený.",
             )
-    
+
     def open_settings_window(self):
         self.app_instance.show_settings_content()
 
 
-class SettingsFrame(ctk.CTkFrame): # Změna z CTkToplevel na CTkFrame
+class SettingsFrame(ctk.CTkFrame):  # Změna z CTkToplevel na CTkFrame
     def __init__(
         self, master=None, app_instance=None, main_frame_instance=None, **kwargs
     ):
@@ -241,7 +252,7 @@ class SettingsFrame(ctk.CTkFrame): # Změna z CTkToplevel na CTkFrame
             text="Zavřít",
             fg_color="white",
             text_color="black",
-            command=self._return_to_main_content, # Změna na metodu pro návrat
+            command=self._return_to_main_content,  # Změna na metodu pro návrat
         )
         self.close_button.pack(pady=10, padx=25, fill="x", side="bottom")
 
@@ -253,7 +264,7 @@ class SettingsFrame(ctk.CTkFrame): # Změna z CTkToplevel na CTkFrame
 
         if self.app_instance:
             self.app_instance.app_settings.settings["appearance_mode"] = new_mode
-            self.app_instance.app_settings.save_settings()
+            self.app_instance.app_settings.save_app_settings()
 
         self._update_button_icon()
 
@@ -286,7 +297,7 @@ class SettingsFrame(ctk.CTkFrame): # Změna z CTkToplevel na CTkFrame
         else:
             messagebox.showerror("Chybné heslo", "Zadané heslo je nesprávné.")
 
-    def _return_to_main_content(self): # Nová metoda pro návrat do hlavního obsahu
+    def _return_to_main_content(self):  # Nová metoda pro návrat do hlavního obsahu
         if self.app_instance:
             self.app_instance.show_main_content()
 
@@ -297,9 +308,11 @@ if __name__ == "__main__":
     for icon_name in ["light-mode.png", "night-mode.png", "restart.png"]:
         if not Path(icon_name).exists():
             try:
-                Image.new('RGB', (34, 34), color = 'gray').save(icon_name)
+                Image.new("RGB", (34, 34), color="gray").save(icon_name)
             except ImportError:
-                print(f"Chyba: Pillow není nainstalován. Nelze vytvořit zástupný soubor '{icon_name}'.")
+                print(
+                    f"Chyba: Pillow není nainstalován. Nelze vytvořit zástupný soubor '{icon_name}'."
+                )
 
     app: App = App()
     app.mainloop()
