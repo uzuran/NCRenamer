@@ -54,10 +54,9 @@ def extract_original_material(material_line: str) -> Original:
 for dirpath, dirnames, filenames in walk(NC_PROGRAMS_DIRECTORY):
     if dirpath == NC_PROGRAMS_DIRECTORY.name:
         NC_PROGRAM_FILES = set(
-            map(
-                lambda x: NC_PROGRAMS_DIRECTORY / x,
-                filter(lambda x: x.endswith(".NC"), filenames),
-            )
+            NC_PROGRAMS_DIRECTORY / Path(filename)
+            for filename in filenames
+            if filename.endswith(".NC")
         )
 
 with open(MATERIAL_TABLE_FILE, "r") as f:
