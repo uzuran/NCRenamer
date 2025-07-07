@@ -1,11 +1,20 @@
+"""
+This script identifies exceptional cases in the material codes used in CN programs.
+It compares the material codes found in the NC program files against a predefined materials table.
+If discrepancies are found, they are recorded in a CSV file for further review.
+By special cases, we mean inconsistencies in the material codes that do not match the expected format or values.
+"""
+
 from csv import reader, writer
-from os import walk, write
+from os import walk
 from pathlib import Path
 from typing import TypeAlias
+
 
 # constants
 MATERIAL_TABLE_FILE = Path("CNCs/materials_new.csv")
 NC_PROGRAMS_DIRECTORY = Path("CNCs")
+SPECIAL_CASE_CSV_FILE = Path(__file__).parent.resolve() / "special_cases.csv"
 
 # types
 Original: TypeAlias = str
@@ -13,7 +22,7 @@ Corrected: TypeAlias = str
 Expected: TypeAlias = str
 Source: TypeAlias = str
 MATERIALS_TABLE: dict[Original, Expected]
-NC_PROGRAM_FILES: set[Path]
+NC_PROGRAM_FILES: list[Path] = []
 
 # region Functions
 
@@ -52,12 +61,14 @@ def extract_original_material(material_line: str) -> Original:
 
 
 for dirpath, dirnames, filenames in walk(NC_PROGRAMS_DIRECTORY):
-    if dirpath == NC_PROGRAMS_DIRECTORY.name:
-        NC_PROGRAM_FILES = set(
+    if Path(dirpath) == NC_PROGRAMS_DIRECTORY:
+        NC_PROGRAM_FILES = list(
             NC_PROGRAMS_DIRECTORY / Path(filename)
             for filename in filenames
             if filename.endswith(".NC")
         )
+
+assert NC_PROGRAM_FILES, "No NC program files found in the directory."
 
 with open(MATERIAL_TABLE_FILE, "r") as f:
     MATERIALS_TABLE = dict(reader(f, delimiter="\t"))
@@ -84,20 +95,21 @@ for file in NC_PROGRAM_FILES:
     processed_original_materials.add(original)
 
 
-for original in MATERIALS_TABLE:
+for original, expected in MATERIALS_TABLE.items():
     if original in processed_original_materials:
         continue
     corrected = correct_material(original)
-    expected = MATERIALS_TABLE[original]
     if expected != corrected:
         found_exceptional_cases.append(
             (original, corrected, expected, "Material table")
         )
 
-with open("hanpari/special_cases.csv", "w") as f:
+
+with open(SPECIAL_CASE_CSV_FILE, "w") as f:
     w = writer(f, delimiter="|")
     w.writerow(("Original", "Corrected", "Expected", "Source"))
-    w.writerows(found_exceptional_cases)
+    w.writerows(sorted(found_exceptional_cases, key=lambda x: (x[3], x[1])))
 
-print(f"Found {len(found_exceptional_cases)} exceptional cases.")
-print("Special cases written to 'hanpari/special_cases.csv'.")
+
+print(f"Found {len(found_exceptional_cases)} exceptional cases were written to:")
+print(f"{SPECIAL_CASE_CSV_FILE}")
