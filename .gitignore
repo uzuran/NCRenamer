@@ -4,3 +4,4 @@
 .~lock.materials_new.csv#
 __pycache__/
 .idea
+.__pycache__
