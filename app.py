@@ -297,7 +297,8 @@ class SettingsFrame(ctk.CTkFrame):  # Změna z CTkToplevel na CTkFrame
         else:
             messagebox.showerror("Chybné heslo", "Zadané heslo je nesprávné.")
 
-    def return_to_main_content(self):  # Nová metoda pro návrat do hlavního obsahu
+    def return_to_main_content(self):
+        """Návrat do hlavního obsahu aplikace."""
         if self.app_instance:
             self.app_instance.show_main_content()
 
