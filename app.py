@@ -133,7 +133,7 @@ class MainFrame(ctk.CTkFrame):
         self.output_box.pack(padx=20, pady=(0, 10), fill="both", expand=True)
         self.output_box.configure(state="disabled")
 
-    def _reset_email_counter(self) -> None:
+    def reset_email_counter(self) -> None:
         self.email.email_counter = 0
         self.email.save_counter()
         self.email_counter_label.configure(
@@ -252,7 +252,7 @@ class SettingsFrame(ctk.CTkFrame):  # Změna z CTkToplevel na CTkFrame
             text="Zavřít",
             fg_color="white",
             text_color="black",
-            command=self._return_to_main_content,  # Změna na metodu pro návrat
+            command=self.return_to_main_content,  # Změna na metodu pro návrat
         )
         self.close_button.pack(pady=10, padx=25, fill="x", side="bottom")
 
@@ -287,7 +287,7 @@ class SettingsFrame(ctk.CTkFrame):  # Změna z CTkToplevel na CTkFrame
 
         if entered_password == CORRECT_PASSWORD:
             if self.main_frame_instance:
-                self.main_frame_instance._reset_email_counter()
+                self.main_frame_instance.reset_email_counter()
                 messagebox.showinfo("Úspěch", "Počítadlo bylo resetováno.")
             else:
                 messagebox.showerror(
@@ -297,7 +297,7 @@ class SettingsFrame(ctk.CTkFrame):  # Změna z CTkToplevel na CTkFrame
         else:
             messagebox.showerror("Chybné heslo", "Zadané heslo je nesprávné.")
 
-    def _return_to_main_content(self):  # Nová metoda pro návrat do hlavního obsahu
+    def return_to_main_content(self):  # Nová metoda pro návrat do hlavního obsahu
         if self.app_instance:
             self.app_instance.show_main_content()
 
