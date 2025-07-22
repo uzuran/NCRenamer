@@ -1,7 +1,7 @@
 import os
 import json
 from rich.console import Console
-
+CORRECT_PASSWORD = "aejkvhl68"
 cons: Console = Console()
 
 class Settings:
@@ -35,3 +35,23 @@ class Settings:
         except IOError as e:
             cons.print(f"[red]Chyba při ukládání nastavení do souboru: {e}[/red]")
 
+    def _prompt_for_password_and_reset(self) -> None:
+        entered_password = ctk.CTkInputDialog(
+            text="Zadejte heslo pro resetování počítadla:", title="Vyžadováno heslo"
+        ).get_input()
+
+
+        if entered_password is None:
+            return
+
+        if entered_password == CORRECT_PASSWORD:
+            if self.main_frame_instance:
+                self.main_frame_instance._reset_email_counter()
+                messagebox.showinfo("Úspěch", "Počítadlo bylo resetováno.")
+            else:
+                messagebox.showerror(
+                    "Chyba",
+                    "Nelze resetovat počítadlo. Instance MainFrame není k dispozici.",
+                )
+        else:
+            messagebox.showerror("Chybné heslo", "Zadané heslo je nesprávné.")
