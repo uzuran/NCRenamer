@@ -1,16 +1,22 @@
 import os
 import json
 from rich.console import Console
+import customtkinter as ctk
+from tkinter import messagebox  # Chybělo pro zobrazování dialogů
+
+
 CORRECT_PASSWORD = "aejkvhl68"
 cons: Console = Console()
+
 
 class Settings:
     """This is settings for the application."""
 
-    def __init__(self):
+    def __init__(self, main_frame_instance=None):
         """Initialize the settings."""
         self.settings_file = "app_settings.json"
         self.settings: dict[str, object] = {}
+        self.main_frame_instance = main_frame_instance  # Definujeme instanci
         self.load_app_settings()
 
     def load_app_settings(self) -> None:
@@ -36,22 +42,23 @@ class Settings:
             cons.print(f"[red]Chyba při ukládání nastavení do souboru: {e}[/red]")
 
     def _prompt_for_password_and_reset(self) -> None:
+        """Prompt for password and reset the email counter if correct."""
         entered_password = ctk.CTkInputDialog(
-            text="Zadejte heslo pro resetování počítadla:", title="Vyžadováno heslo"
+            text="Zadejte heslo pro resetování počítadla:", 
+            title="Vyžadováno heslo"
         ).get_input()
-
 
         if entered_password is None:
             return
 
         if entered_password == CORRECT_PASSWORD:
-            if self.main_frame_instance:
+            if self.main_frame_instance and hasattr(self.main_frame_instance, "_reset_email_counter"):
                 self.main_frame_instance._reset_email_counter()
                 messagebox.showinfo("Úspěch", "Počítadlo bylo resetováno.")
             else:
                 messagebox.showerror(
                     "Chyba",
-                    "Nelze resetovat počítadlo. Instance MainFrame není k dispozici.",
+                    "Nelze resetovat počítadlo. Instance MainFrame není k dispozici nebo chybí metoda.",
                 )
         else:
             messagebox.showerror("Chybné heslo", "Zadané heslo je nesprávné.")

@@ -7,17 +7,18 @@ from PIL import Image
 from rich.console import Console
 import customtkinter as ctk
 from customtkinter import filedialog
-import json 
+import json
+import csv
 
 from nc_formatter import NcFormatter
 from email_bug_tracker import EmailBugTracker
-from settings import Settings, CORRECT_PASSWORD 
-from password import PasswordManager 
-from translations import LANGUAGES, LANGUAGE_NAMES # Importujeme slovníky jazyků
+from settings import Settings
+from password import PasswordManager
+from translations import LANGUAGES, LANGUAGE_NAMES  # Importujeme slovníky jazyků
 
 cons: Console = Console()
 
-HISTORY_FILE = "history.json"
+INCCORECT_MATERIALS = "CNCs/materials_new.csv"
 
 
 class Utils:
@@ -55,35 +56,46 @@ class App(ctk.CTk):
         self.email: EmailBugTracker = EmailBugTracker()
 
         self.app_settings: Settings = Settings()
-        
+
         # Překlad aplikace do zvoleného jazyka - čeština je výchozí
         self.current_language_code = self.app_settings.settings.get("language", "cs")
-        self.texts = LANGUAGES[self.current_language_code] 
+        self.texts = LANGUAGES[str(self.current_language_code)]
 
-        ctk.set_appearance_mode(self.app_settings.settings.get("appearance_mode", "System"))
+        ctk.set_appearance_mode(
+            self.app_settings.settings.get("appearance_mode", "System")
+        )
 
         self.main_frame: MainFrame = MainFrame(
-            master=self, formatter=self.formatter, email=self.email, app_instance=self, texts=self.texts
+            master=self,
+            formatter=self.formatter,
+            email=self.email,
+            app_instance=self,
+            texts=self.texts,
         )
         self.settings_frame: SettingsFrame = SettingsFrame(
-            master=self, app_instance=self, main_frame_instance=self.main_frame, texts=self.texts
+            master=self,
+            app_instance=self,
+            main_frame_instance=self.main_frame,
+            texts=self.texts,
         )
         self.materials_frame: MaterialsFrame = MaterialsFrame(
-            master=self, app_instance=self, main_frame_instance=self.main_frame, texts=self.texts
+            master=self,
+            app_instance=self,
+            main_frame_instance=self.main_frame,
+            texts=self.texts,
         )
 
-        self.utils.configure_app(self.texts["app_title"], 400, 400) 
+        self.utils.configure_app(self.texts["app_title"], 400, 400)
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(0, weight=1)
-        
+
         self.show_main_content()
         self.protocol("WM_DELETE_WINDOW", self.on_closing)
 
     def on_closing(self):
         """Metoda volaná při zavírání okna aplikace pro uložení historie."""
         if self.main_frame:
-            self.main_frame.save_history()
-        self.destroy()
+            self.destroy()
 
     def set_language(self, lang_code: str):
         """Nastaví nový jazyk a aktualizuje všechny texty v aplikaci."""
@@ -93,14 +105,12 @@ class App(ctk.CTk):
             self.app_settings.settings["language"] = lang_code
             self.app_settings.save_app_settings()
 
-          
             self.utils.configure_app(self.texts["app_title"], 400, 400)
 
             # Texty se aktualizují ve všech frames
             self.main_frame.update_texts(self.texts)
             self.settings_frame.update_texts(self.texts)
             self.materials_frame.update_texts(self.texts)
-
 
     def show_main_content(self) -> None:
         self.settings_frame.grid_forget()
@@ -113,11 +123,9 @@ class App(ctk.CTk):
 
     def show_materials_content(self, content: str = "") -> None:
         self.main_frame.grid_forget()
-        self.settings_frame.grid_forget() 
+        self.settings_frame.grid_forget()
         self.materials_frame.grid(row=0, column=0, padx=10, pady=10, sticky="nsew")
-        self.materials_frame.update_output_content(content) 
-
-    
+        self.materials_frame.update_output_content(content)
 
 
 class MainFrame(ctk.CTkFrame):
@@ -127,26 +135,42 @@ class MainFrame(ctk.CTkFrame):
         self.formatter = formatter
         self.email = email
         self.app_instance = app_instance
-        self.texts = texts 
+        self.texts = texts
         self.file_list = []
-        self.processed_files_history = self.load_history() 
+        self.processed_files_history = self.load_history()
 
         self.settings_icon = ctk.CTkImage(Image.open("setting.png"), size=(24, 24))
         self.settings_btn = ctk.CTkButton(
-            self, image=self.settings_icon, text="", command=self.open_settings_window, fg_color="white", width=30
+            self,
+            image=self.settings_icon,
+            text="",
+            command=self.open_settings_window,
+            fg_color="white",
+            width=30,
         )
         self.settings_btn.pack(pady=(10, 10), padx=20, side="right", anchor="ne")
 
         self.history_icon = ctk.CTkImage(Image.open("box.png"), size=(24, 24))
         self.history_materials_btn = ctk.CTkButton(
-            self,image=self.history_icon, text="", command=self.show_processed_materials_history, fg_color="white", width=30
+            self,
+            image=self.history_icon,
+            text="",
+            fg_color="white",
+            width=30,
+            command=self.show_processed_materials_history,
         )
-        self.history_materials_btn.pack(pady=(10, 10), padx=10, side="left", anchor="nw")
-       
-        self.email_counter_label = ctk.CTkLabel(self, text=self.texts["email_count"].format(self.email.email_counter))
+        self.history_materials_btn.pack(
+            pady=(10, 10), padx=10, side="left", anchor="nw"
+        )
+
+        self.email_counter_label = ctk.CTkLabel(
+            self, text=self.texts["email_count"].format(self.email.email_counter)
+        )
         self.email_counter_label.pack(pady=(0, 10))
 
-        self.count_label = ctk.CTkLabel(self, text=self.texts["selected_files"].format(0))
+        self.count_label = ctk.CTkLabel(
+            self, text=self.texts["selected_files"].format(0)
+        )
         self.count_label.pack(pady=(0, 10))
 
         self.select_btn = ctk.CTkButton(
@@ -165,7 +189,9 @@ class MainFrame(ctk.CTkFrame):
             self, text=self.texts["report_bug"], command=self.set_email
         )
         self.reportbug_btn.pack(pady=(0, 10))
-        self.output_label = ctk.CTkLabel(self, text=self.texts["renamed_ncs"], anchor="w")
+        self.output_label = ctk.CTkLabel(
+            self, text=self.texts["renamed_ncs"], anchor="w"
+        )
         self.output_label.pack(pady=0, padx=25, fill="x")
 
         self.output_box = ctk.CTkTextbox(self)
@@ -175,34 +201,35 @@ class MainFrame(ctk.CTkFrame):
     def update_texts(self, new_texts: dict):
         """Aktualizuje texty všech widgetů v tomto rámci."""
         self.texts = new_texts
-        self.email_counter_label.configure(text=self.texts["email_count"].format(self.email.email_counter))
-        self.count_label.configure(text=self.texts["selected_files"].format(len(self.file_list)))
+        self.email_counter_label.configure(
+            text=self.texts["email_count"].format(self.email.email_counter)
+        )
+        self.count_label.configure(
+            text=self.texts["selected_files"].format(len(self.file_list))
+        )
         self.select_btn.configure(text=self.texts["select_nc_files"])
         self.rename_btn.configure(text=self.texts["rename_nc_files"])
         self.reportbug_btn.configure(text=self.texts["report_bug"])
         self.output_label.configure(text=self.texts["renamed_ncs"])
 
-    def load_history(self) -> list:
-        """Načte historii z JSON souboru."""
-        if Path(HISTORY_FILE).exists():
-            try:
-                with open(HISTORY_FILE, "r", encoding="utf-8") as f:
-                    return json.load(f)
-            except json.JSONDecodeError:
-                cons.print(f"[yellow]Soubor historie '{HISTORY_FILE}' je poškozený, vytvářím nový.[/yellow]")
-                return []
-            except Exception as e:
-                cons.print(f"[red]Chyba při načítání historie: {e}[/red]")
-                return []
-        return []
-
-    def save_history(self) -> None:
-        """Uloží historii do JSON souboru."""
-        try:
-            with open(HISTORY_FILE, "w", encoding="utf-8") as f:
-                json.dump(self.processed_files_history, f, indent=4)
-        except Exception as e:
-            cons.print(f"[red]Chyba při ukládání historie: {e}[/red]")
+    def load_history(self):
+        """Načte historii z CSV souboru a vrátí jako string."""
+        if Path(INCCORECT_MATERIALS).exists():
+            with open(INCCORECT_MATERIALS, "r", encoding="utf-8") as f:
+                reader = csv.reader(f)
+                rows = list(reader)  # Convert iterator to a list
+                # Turn each row into "col1, col2, col3" and join with newlines
+                return "\n".join([", ".join(row) for row in rows])
+        return ""
+    
+    # save new inccorect material.
+    # def save_history(self) -> None:
+    #   """Uloží historii do JSON souboru."""
+    #    try:
+    #        with open(INCCORECT_MATERIALS, "w", encoding="utf-8") as f:
+    #            json.dump(self.processed_files_history, f, indent=4)
+    #    except Exception as e:
+    #        cons.print(f"[red]Chyba při ukládání historie: {e}[/red]")
 
     def _reset_email_counter(self) -> None:
         self.email.email_counter = 0
@@ -222,12 +249,16 @@ class MainFrame(ctk.CTkFrame):
         )
 
         self.file_list = [Path(f) for f in file_paths]
-        self.count_label.configure(text=self.texts["selected_files"].format(len(self.file_list)))
+        self.count_label.configure(
+            text=self.texts["selected_files"].format(len(self.file_list))
+        )
 
     def rename_files(self):
         total = len(self.file_list)
         if total == 0:
-            messagebox.showinfo(title=self.texts["done_title"], message=self.texts["no_files_to_rename"])
+            messagebox.showinfo(
+                title=self.texts["done_title"], message=self.texts["no_files_to_rename"]
+            )
             return
 
         self.output_box.configure(state="normal")
@@ -242,14 +273,11 @@ class MainFrame(ctk.CTkFrame):
                 message = self.texts["file_modified"].format(file.name)
             else:
                 message = self.texts["file_no_change"].format(file.name)
-            
+
             self.output_box.insert("end", f"{message}\n")
-            self.processed_files_history.append(message)
 
             self.progressbar.set(i / total)
             self.update_idletasks()
-        
-        self.save_history()
 
         self.output_box.configure(state="disabled")
 
@@ -257,12 +285,21 @@ class MainFrame(ctk.CTkFrame):
             title=self.texts["done_title"],
             message=self.texts["done_message"].format(len(self.file_list)),
         )
-
+    
     def show_processed_materials_history(self):
-        history_content = "\n".join(self.processed_files_history)
+        history_rows = self.processed_files_history or []  # Fallback to empty list if None
 
+        # Build a string even if history_rows is empty
+        history_content = "\n".join(
+            [", ".join(map(str, row)) for row in history_rows]
+        ) if history_rows else "No history available."
+
+        # Always pass a string to show_materials_content
         if self.app_instance:
-            self.app_instance.show_materials_content(history_content)
+            self.app_instance.show_materials_content(str(history_content))
+
+        return history_content  # Also return it if you need to use it elsewhere
+
 
     def set_email(self):
         self.email.email_counter += 1
@@ -284,43 +321,53 @@ class MainFrame(ctk.CTkFrame):
                 title=self.texts["email_error_title"],
                 message=self.texts["email_error_message"],
             )
-    
+
     def open_settings_window(self):
         self.app_instance.show_settings_content()
 
-    def open_incorrect_materials_window(self): # Tato metoda je nyní duplicitní, ale ponechána pro kompatibilitu
-        output_content = self.output_box.get("1.0", "end-1c") 
+    def open_incorrect_materials_window(
+        self,
+    ):  # Tato metoda je nyní duplicitní, ale ponechána pro kompatibilitu
+        output_content = self.output_box.get("1.0", "end-1c")
         if self.app_instance:
             self.app_instance.show_materials_content(output_content)
 
+
 class MaterialsFrame(ctk.CTkFrame):
-       def __init__(
-        self, master=None, app_instance=None, main_frame_instance=None, texts=None, **kwargs
+    def __init__(
+        self,
+        master=None,
+        app_instance=None,
+        main_frame_instance=None,
+        texts=None,
+        **kwargs,
     ):
         super().__init__(master, **kwargs)
 
         self.app_instance = app_instance
         self.main_frame_instance = main_frame_instance
-        self.texts = texts 
+        self.texts = texts
         self.full_history_content = ""
 
-        self.materials_output_label = ctk.CTkLabel(self, text=self.texts["processed_history"], anchor="w")
+        self.materials_output_label = ctk.CTkLabel(
+            self, text=self.texts["processed_history"], anchor="w"
+        )
         self.materials_output_label.pack(pady=(10, 0), padx=25, fill="x")
 
         self.search_frame = ctk.CTkFrame(self)
-        self.search_frame.pack(pady=(10, 5), padx=20, fill="x") 
+        self.search_frame.pack(pady=(10, 5), padx=20, fill="x")
 
         self.search_entry = ctk.CTkEntry(
             self.search_frame,
             placeholder_text=self.texts["search_placeholder"],
-            width=250 
+            width=250,
         )
         self.search_entry.pack(side="left", fill="x", expand=True, padx=(0, 5))
 
         self.search_button = ctk.CTkButton(
             self.search_frame,
             text=self.texts["search_button"],
-           command=self.search_function
+            command=self.search_function,
         )
         self.search_button.pack(side="right", padx=(5, 0))
 
@@ -328,72 +375,72 @@ class MaterialsFrame(ctk.CTkFrame):
         self.materials_output_box.pack(padx=20, pady=(0, 10), fill="both", expand=True)
         self.materials_output_box.configure(state="disabled")
 
-
         self.close_button = ctk.CTkButton(
             self,
             text=self.texts["back_button"],
             fg_color="white",
             text_color="black",
-            command=self.return_to_main_content, 
+            command=self.return_to_main_content,
         )
         self.close_button.pack(pady=10, padx=25, fill="x", side="bottom")
-       
-       def update_texts(self, new_texts: dict):
-           """Aktualizuje texty všech widgetů v tomto rámci."""
-           self.texts = new_texts
-           self.materials_output_label.configure(text=self.texts["processed_history"])
-           self.search_entry.configure(placeholder_text=self.texts["search_placeholder"])
-           self.search_button.configure(text=self.texts["search_button"])
-           self.close_button.configure(text=self.texts["back_button"])
 
+    def update_texts(self, new_texts: dict):
+        """Aktualizuje texty všech widgetů v tomto rámci."""
+        self.texts = new_texts
+        self.materials_output_label.configure(text=self.texts["processed_history"])
+        self.search_entry.configure(placeholder_text=self.texts["search_placeholder"])
+        self.search_button.configure(text=self.texts["search_button"])
+        self.close_button.configure(text=self.texts["back_button"])
 
-       def search_function(self):
-         query = self.search_entry.get().strip().lower()
-         
-         if not query:
-             self.update_output_box_display(self.full_history_content)
-             return
+    def search_function(self):
+        query = self.search_entry.get().strip().lower()
 
-         filtered_lines = []
-         for line in self.full_history_content.splitlines():
-             if query in line.lower():
-                 filtered_lines.append(line)
-         
-         self.update_output_box_display("\n".join(filtered_lines))
+        if not query:
+            self.update_output_box_display(self.full_history_content)
+            return
 
+        filtered_lines = []
+        for line in self.full_history_content.splitlines():
+            if query in line.lower():
+                filtered_lines.append(line)
 
-       def update_output_content(self, content: str) -> None:
+        self.update_output_box_display("\n".join(filtered_lines))
+
+    def update_output_content(self, content: str) -> None:
         self.full_history_content = content
         self.update_output_box_display(content)
 
-
-       def update_output_box_display(self, content_to_display: str) -> None:
+    def update_output_box_display(self, content_to_display: str) -> None:
         self.materials_output_box.configure(state="normal")
         self.materials_output_box.delete("1.0", "end")
         self.materials_output_box.insert("end", content_to_display)
         self.materials_output_box.configure(state="disabled")
 
-
-       def return_to_main_content(self):
+    def return_to_main_content(self):
         if self.app_instance:
             self.app_instance.show_main_content()
-
-        
 
 
 class SettingsFrame(ctk.CTkFrame):
     def __init__(
-        self, master=None, app_instance=None, main_frame_instance=None, texts=None, **kwargs
+        self,
+        master=None,
+        app_instance=None,
+        main_frame_instance=None,
+        texts=None,
+        **kwargs,
     ):
         super().__init__(master, **kwargs)
 
         self.app_instance = app_instance
         self.main_frame_instance = main_frame_instance
         self.texts = texts
-        
+
         self.password_manager = PasswordManager(self.main_frame_instance)
 
-        self.setting_label = ctk.CTkLabel(self, text=self.texts["appearance_mode_setting"], anchor="w")
+        self.setting_label = ctk.CTkLabel(
+            self, text=self.texts["appearance_mode_setting"], anchor="w"
+        )
         self.setting_label.pack(pady=0, padx=25)
 
         self.light_icon = ctk.CTkImage(Image.open("light-mode.png"), size=(34, 34))
@@ -413,20 +460,23 @@ class SettingsFrame(ctk.CTkFrame):
         self.color_button.pack(pady=10, padx=25)
         self._update_button_icon()
 
-       #Label a option menu pro výběř jazyka
-        self.language_label = ctk.CTkLabel(self, text=self.texts["language_setting"], anchor="w")
+        # Label a option menu pro výběř jazyka
+        self.language_label = ctk.CTkLabel(
+            self, text=self.texts["language_setting"], anchor="w"
+        )
         self.language_label.pack(pady=(20, 0), padx=25)
 
         self.language_optionmenu = ctk.CTkOptionMenu(
-            self,
-            values=list(LANGUAGE_NAMES.keys()), 
-            command=self.change_language
+            self, values=list(LANGUAGE_NAMES.keys()), command=self.change_language
         )
-        
-        current_lang_name = next(name for name, code in LANGUAGE_NAMES.items() if code == self.app_instance.current_language_code)
+
+        current_lang_name = next(
+            name
+            for name, code in LANGUAGE_NAMES.items()
+            if code == self.app_instance.current_language_code
+        )
         self.language_optionmenu.set(current_lang_name)
         self.language_optionmenu.pack(pady=10, padx=25)
-
 
         self.reset_counter_btn = ctk.CTkButton(
             self,
@@ -435,7 +485,7 @@ class SettingsFrame(ctk.CTkFrame):
             fg_color="white",
             width=100,
             height=38,
-            command=self.password_manager.prompt_for_password_and_reset, 
+            command=self.password_manager.prompt_for_password_and_reset,
         )
         self.reset_counter_btn.pack(pady=(20, 10))
 
@@ -444,7 +494,7 @@ class SettingsFrame(ctk.CTkFrame):
             text=self.texts["back_button"],
             fg_color="white",
             text_color="black",
-            command=self.return_to_main_content, 
+            command=self.return_to_main_content,
         )
         self.close_button.pack(pady=10, padx=25, fill="x", side="bottom")
 
@@ -455,9 +505,12 @@ class SettingsFrame(ctk.CTkFrame):
         self.language_label.configure(text=self.texts["language_setting"])
         self.close_button.configure(text=self.texts["back_button"])
 
-        current_lang_name = next(name for name, code in LANGUAGE_NAMES.items() if code == self.app_instance.current_language_code)
+        current_lang_name = next(
+            name
+            for name, code in LANGUAGE_NAMES.items()
+            if code == self.app_instance.current_language_code
+        )
         self.language_optionmenu.set(current_lang_name)
-
 
     def _change_mode_and_save(self):
         current_mode = ctk.get_appearance_mode()
@@ -483,7 +536,7 @@ class SettingsFrame(ctk.CTkFrame):
         new_lang_code = LANGUAGE_NAMES.get(new_lang_display_name)
         if new_lang_code:
             self.app_instance.set_language(new_lang_code)
-    
+
     def return_to_main_content(self):
         if self.app_instance:
             self.app_instance.show_main_content()
