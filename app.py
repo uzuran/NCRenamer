@@ -212,16 +212,15 @@ class MainFrame(ctk.CTkFrame):
         self.reportbug_btn.configure(text=self.texts["report_bug"])
         self.output_label.configure(text=self.texts["renamed_ncs"])
 
+    
     def load_history(self):
-        """Načte historii z CSV souboru a vrátí jako string."""
+        """Načte historii z CSV souboru a vrátí jako seznam seznamů."""
         if Path(INCCORECT_MATERIALS).exists():
             with open(INCCORECT_MATERIALS, "r", encoding="utf-8") as f:
                 reader = csv.reader(f)
-                rows = list(reader)  # Convert iterator to a list
-                # Turn each row into "col1, col2, col3" and join with newlines
-                return "\n".join([", ".join(row) for row in rows])
-        return ""
-    
+                rows = list(reader)
+                return rows 
+        return [] 
     # save new inccorect material.
     # def save_history(self) -> None:
     #   """Uloží historii do JSON souboru."""
@@ -241,7 +240,7 @@ class MainFrame(ctk.CTkFrame):
             title=self.texts["reset_counter_title"],
             message=self.texts["reset_counter_message"],
         )
-
+#load_history
     def select_files(self):
         file_paths = filedialog.askopenfilenames(
             title=self.texts["select_nc_files"],
@@ -287,18 +286,16 @@ class MainFrame(ctk.CTkFrame):
         )
     
     def show_processed_materials_history(self):
-        history_rows = self.processed_files_history or []  # Fallback to empty list if None
 
-        # Build a string even if history_rows is empty
-        history_content = "\n".join(
-            [", ".join(map(str, row)) for row in history_rows]
-        ) if history_rows else "No history available."
+        if self.processed_files_history:
+            history_content = "\n".join([", ".join(row) for row in self.processed_files_history])
+        else:
+            history_content = self.texts["no_history_available"] 
 
-        # Always pass a string to show_materials_content
         if self.app_instance:
-            self.app_instance.show_materials_content(str(history_content))
+            self.app_instance.show_materials_content(history_content)
 
-        return history_content  # Also return it if you need to use it elsewhere
+        return history_content
 
 
     def set_email(self):
