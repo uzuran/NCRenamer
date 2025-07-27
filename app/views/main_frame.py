@@ -89,9 +89,7 @@ class MainFrame(
         self.output_box = ctk.CTkTextbox(self, height=150, width=400, state="disabled")
         self.output_box.pack(pady=5)
 
-        self.email_counter_label = ctk.CTkLabel(
-            self, text=self.texts["email_count"].format(0)
-        )
+        self.email_counter_label = ctk.CTkLabel(self, text=f"Number of bug reports: {self.vm.email.email_counter}")
         self.email_counter_label.pack(pady=5)
 
         # Report bug button.
