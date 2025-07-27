@@ -9,9 +9,9 @@ class MainViewModel:
         self.email = email_model
         self.formatter = formatter_model
         self.file_list = []
-        self.processed_files_history = self.load_history()
+        self.processed_files_history = self.load_nc_files()
 
-    def load_history(self):
+    def load_nc_files(self):
         path = Path("CNCs/materials_new.csv")
         if path.exists():
             with open(path, "r", encoding="utf-8") as f:

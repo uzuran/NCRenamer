@@ -8,7 +8,7 @@ from app.views.materials_frame import MaterialsFrame
 from translations import LANGUAGES
 
 
-class App(ctk.CTk):
+class App(ctk.CTk): # TODO: Missing function or method docstringPylintC0116:missing-function-docstring
     def __init__(self):
         super().__init__()
         self.title("NC Renamer")  # Optional title

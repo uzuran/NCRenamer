@@ -7,7 +7,7 @@ from PIL import Image
 cons = Console()
 
 
-class MainFrame(ctk.CTkFrame):
+class MainFrame(ctk.CTkFrame): # TODO: Missing function or method docstringPylintC0116:missing-function-docstring
     def __init__(self, master, viewmodel, texts, app_instance, **kwargs):
         super().__init__(master, **kwargs)
 
@@ -60,9 +60,19 @@ class MainFrame(ctk.CTkFrame):
         )
         self.count_label.pack(pady=5)
 
-        self.progressbar = ctk.CTkProgressBar(self, width=400)
-        self.progressbar.pack(pady=5)
+        # File selection button.
+        self.select_btn = ctk.CTkButton(
+            self, text=self.texts["select_nc_files"], command=self.select_files
+        )
+        self.select_btn.pack(pady=(10, 0))
+        
+        self.progressbar = ctk.CTkProgressBar(self)
+        self.progressbar.pack(pady=(10, 10), fill="x", padx=20)
+        self.progressbar.configure(corner_radius=5)
         self.progressbar.set(0)
+        self.rename_btn = ctk.CTkButton(
+            self, text=self.texts["rename_nc_files"], command=self.rename_files
+        )
 
         self.output_box = ctk.CTkTextbox(self, height=150, width=400, state="disabled")
         self.output_box.pack(pady=5)
@@ -72,7 +82,7 @@ class MainFrame(ctk.CTkFrame):
         )
         self.email_counter_label.pack(pady=5)
 
-    def select_files(self):
+    def select_files(self): # TODO: Missing function or method docstringPylintC0116:missing-function-docstring
         files = filedialog.askopenfilenames(
             title=self.texts["select_nc_files"],
             filetypes=[("NC soubory", "*.NC"), ("Všechny soubory", "*.*")],
@@ -82,7 +92,7 @@ class MainFrame(ctk.CTkFrame):
             text=self.texts["selected_files"].format(len(self.vm.file_list))
         )
 
-    def rename_files(self):
+    def rename_files(self): # TODO: Missing function or method docstringPylintC0116:missing-function-docstring
         results = self.vm.rename_files()
         total = len(results)
         if total == 0:
@@ -110,7 +120,7 @@ class MainFrame(ctk.CTkFrame):
             message=self.texts["done_message"].format(total),
         )
 
-    def set_email(self):
+    def set_email(self): # TODO: Missing function or method docstringPylintC0116:missing-function-docstring
         self.vm.increment_email_counter()
         self.email_counter_label.configure(
             text=self.texts["email_count"].format(self.vm.email.email_counter)

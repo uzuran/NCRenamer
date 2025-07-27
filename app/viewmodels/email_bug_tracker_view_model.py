@@ -1,3 +1,4 @@
+"""Email Bug Tracker ViewModel Module"""
 from rich.console import Console
 from app.models.email_bug_tracker_model import EmailBugTrackerModel
 
