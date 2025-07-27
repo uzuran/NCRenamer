@@ -2,7 +2,7 @@ from pathlib import Path
 import csv
 import time
 import urllib.parse
-import webbrowser
+
 
 class MainViewModel:
     def __init__(self, email_model, formatter_model):
@@ -36,7 +36,7 @@ class MainViewModel:
         for file in self.file_list:
             changed = self.formatter.process_file(file)
             results.append((file.name, changed))
-            time.sleep(0.25)
+            time.sleep(0.10)
         return results
 
     def get_mailto_url(self):
