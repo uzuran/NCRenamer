@@ -44,16 +44,17 @@ class SettingsService:
     def _prompt_for_password_and_reset(self) -> None:
         """Prompt for password and reset the email counter if correct."""
         entered_password = ctk.CTkInputDialog(
-            text="Zadejte heslo pro resetování počítadla:", 
-            title="Vyžadováno heslo"
+            text="Zadejte heslo pro resetování počítadla:", title="Vyžadováno heslo"
         ).get_input()
 
         if entered_password is None:
             return
 
         if entered_password == CORRECT_PASSWORD:
-            if self.main_frame_instance and hasattr(self.main_frame_instance, "_reset_email_counter"):
-                self.main_frame_instance._reset_email_counter()
+            if self.main_frame_instance and hasattr(
+                self.main_frame_instance, "reset_email_counter"
+            ):
+                self.main_frame_instance.reset_email_counter()
                 messagebox.showinfo("Úspěch", "Počítadlo bylo resetováno.")
             else:
                 messagebox.showerror(
