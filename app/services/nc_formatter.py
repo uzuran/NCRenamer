@@ -69,12 +69,14 @@ class NcFormatter:
             text (str): Line text potentially containing the material code.
 
         Returns:
-            str | None: Corrected material code (e.g., '1.2345') if found,
+            str | None: Corrected material code (e.g., '(MA/1.2345)') if found,
                         otherwise None.
         """
-        match = re.search(r"MA/(\d\.\d{4})(?: ?[a-zA-Z]+)?", text)
+        # Match the number part only
+        match = re.search(r"(\d\.\d{4})", text)
         if match:
-            return match.group(1)
+            # Rebuild the whole correct format
+            return f"(MA/{match.group(1)})"
         return None
 
     def write_line_4(self, file_path: Path, new_line: str) -> None:

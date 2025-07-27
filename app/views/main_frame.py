@@ -74,6 +74,15 @@ class MainFrame(ctk.CTkFrame): # TODO: Missing function or method docstringPylin
             self, text=self.texts["rename_nc_files"], command=self.rename_files
         )
 
+        # Rename button.
+        self.rename_btn = ctk.CTkButton(
+            self, text=self.texts["rename_nc_files"], command=self.rename_files
+        )
+        self.rename_btn.pack(pady=(0, 10))
+        self.reportbug_btn = ctk.CTkButton(
+            self, text=self.texts["report_bug"], command=self.set_email
+        )
+
         self.output_box = ctk.CTkTextbox(self, height=150, width=400, state="disabled")
         self.output_box.pack(pady=5)
 
