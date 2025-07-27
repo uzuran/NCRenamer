@@ -12,7 +12,7 @@ class App(ctk.CTk): # TODO: Missing function or method docstringPylintC0116:miss
     def __init__(self):
         super().__init__()
         self.title("NC Renamer")  # Optional title
-        self.geometry("400x400")  # Optional size
+        self.geometry("400x500")  # Optional size
 
         # Pick default language (must match keys in translations.py)
         self.current_language_code = "en"
