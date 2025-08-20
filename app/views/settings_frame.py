@@ -2,9 +2,11 @@
 
 import customtkinter as ctk
 from PIL import Image
-from password import PasswordManager
 from translations import LANGUAGE_NAMES
 from ..viewmodels.settings_view_model import SettingsViewModel
+from app.viewmodels.password_view_model import PasswordViewModel
+from app.models.password_model import PasswordModel
+from settings import CORRECT_PASSWORD
 
 
 class SettingsFrame(
@@ -28,7 +30,11 @@ class SettingsFrame(
         if app_instance:
             self.viewmodel = SettingsViewModel(app_instance)
 
-        self.password_manager = PasswordManager(self.main_frame_instance)
+        # Use PasswordViewModel with PasswordModel (MVVM-consistent)
+        self.password_vm = PasswordViewModel(
+            main_frame_instance=self.app_instance.main_viewmodel if self.app_instance else None,
+            password_model=PasswordModel(CORRECT_PASSWORD),
+        )
 
         self.setting_label = ctk.CTkLabel(
             self,
@@ -76,7 +82,7 @@ class SettingsFrame(
             fg_color="white",
             width=100,
             height=38,
-            command=self.password_manager.prompt_for_password_and_reset,
+            command=self.password_vm.prompt_for_password_and_reset,
         )
         self.reset_counter_btn.pack(pady=(20, 10))
 
