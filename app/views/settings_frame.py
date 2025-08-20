@@ -2,11 +2,12 @@
 
 import customtkinter as ctk
 from PIL import Image
-from translations import LANGUAGE_NAMES
-from ..viewmodels.settings_view_model import SettingsViewModel
 from app.viewmodels.password_view_model import PasswordViewModel
 from app.models.password_model import PasswordModel
-from settings import CORRECT_PASSWORD
+from app.services.settings_service import CORRECT_PASSWORD
+
+from translations import LANGUAGE_NAMES
+from ..viewmodels.settings_view_model import SettingsViewModel
 
 
 class SettingsFrame(

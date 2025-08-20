@@ -5,7 +5,7 @@ import customtkinter as ctk
 from tkinter import messagebox  # Chybělo pro zobrazování dialogů
 
 
-CORRECT_PASSWORD = "aejkvhl68"
+CORRECT_PASSWORD = "amada"
 cons: Console = Console()
 
 
