@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+
+# Virtual environment
+.venv/
+env/
+venv/
+
+# IDE & tools
+.idea/
+.vscode/
+.mypy_cache/
+.pytest_cache/
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# Logs & temp
+*.log
+*.tmp
+
+# Compiled / build
+dist/
+build/
+*.egg-info/
+
+# Secrets (pokud máš)
+*.env
+*.secret.json
+
+# Ignore user-specific configs
+app_settings.json
+history.json
+email_counter.json
+
+# Images & assets (pokud se generují dynamicky)
+assets/generated/
