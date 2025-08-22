@@ -9,16 +9,15 @@ cons = Console()
 
 class MainFrame(
     ctk.CTkFrame
-):  # TODO: Missing function or method docstringPylintC0116:missing-function-docstring
+):
     def __init__(self, master, viewmodel, texts, app_instance, **kwargs):
         super().__init__(master, **kwargs)
 
-        self.vm = viewmodel  # ViewModel
+        self.vm = viewmodel 
         self.texts = texts
         self.app_instance = app_instance
+        self.email_counter_label = None 
 
-        # --- Build UI as before ---
-        # (buttons, labels, etc. unchanged, just no logic inside)
 
         # Create a top bar for the two buttons
         self.top_bar = ctk.CTkFrame(self, fg_color="transparent")
@@ -26,9 +25,9 @@ class MainFrame(
 
         # History / Materials Button (left corner)
         try:
-            self.history_icon = ctk.CTkImage(Image.open("box.png"), size=(24, 24))
+            self.history_icon = ctk.CTkImage(Image.open("img/box.png"), size=(24, 24))
         except FileNotFoundError:
-            self.history_icon = None  # Fallback if missing
+            self.history_icon = None  
 
         self.history_materials_btn = ctk.CTkButton(
             self.top_bar,
@@ -42,9 +41,9 @@ class MainFrame(
 
         # Settings Button (right corner)
         try:
-            self.settings_icon = ctk.CTkImage(Image.open("setting.png"), size=(24, 24))
+            self.settings_icon = ctk.CTkImage(Image.open("img/setting.png"), size=(24, 24))
         except FileNotFoundError:
-            self.settings_icon = None  # Avoid crash if image missing
+            self.settings_icon = None  
 
         self.settings_btn = ctk.CTkButton(
             self.top_bar,
@@ -72,35 +71,32 @@ class MainFrame(
         self.progressbar.pack(pady=(10, 10), fill="x", padx=20)
         self.progressbar.configure(corner_radius=5)
         self.progressbar.set(0)
-        self.rename_btn = ctk.CTkButton(
-            self, text=self.texts["rename_nc_files"], command=self.rename_files
-        )
-
+        
         # Rename button.
         self.rename_btn = ctk.CTkButton(
             self, text=self.texts["rename_nc_files"], command=self.rename_files
         )
         self.rename_btn.pack(pady=(0, 10))
-        self.reportbug_btn = ctk.CTkButton(
-            self, text=self.texts["report_bug"], command=self.set_email
-        )
 
-        # Report bug counter.
+        # Output box.
         self.output_box = ctk.CTkTextbox(self, height=150, width=400, state="disabled")
         self.output_box.pack(pady=5)
-
-        self.email_counter_label = ctk.CTkLabel(self, text=f"Number of bug reports: {self.vm.email.email_counter}")
-        self.email_counter_label.pack(pady=5)
-
+        
         # Report bug button.
         self.reportbug_btn = ctk.CTkButton(
             self, text=self.texts["report_bug"], command=self.set_email
         )
         self.reportbug_btn.pack(pady=(0, 10))
 
+    def post_init(self):
+        """Inicializuje widgety, které potřebují ViewModel."""
+        # Report bug counter.
+        self.email_counter_label = ctk.CTkLabel(self, text=f"Number of bug reports: {self.vm.email_model.email_counter}")
+        self.email_counter_label.pack(pady=5)
+
     def select_files(
         self,
-    ):  # TODO: Missing function or method docstringPylintC0116:missing-function-docstring
+    ):
         files = filedialog.askopenfilenames(
             title=self.texts["select_nc_files"],
             filetypes=[("NC soubory", "*.NC"), ("Všechny soubory", "*.*")],
@@ -112,7 +108,7 @@ class MainFrame(
 
     def rename_files(
         self,
-    ):  # TODO: Missing function or method docstringPylintC0116:missing-function-docstring
+    ):
         results = self.vm.rename_files()
         total = len(results)
         if total == 0:
@@ -142,15 +138,14 @@ class MainFrame(
 
     def set_email(
         self,
-    ):  # TODO: Missing function or method docstringPylintC0116:missing-function-docstring
+    ):
         self.vm.increment_email_counter()
         self.email_counter_label.configure(
-            text=self.texts["email_count"].format(self.vm.email.email_counter)
+            text=self.texts["email_count"].format(self.vm.email_model.email_counter)
         )
         try:
             webbrowser.open(self.vm.get_mailto_url())
         except webbrowser.Error as e:
-            cons.print(f"[red]Failed to open mail client: {e}[/red]")
             messagebox.showerror(
                 title=self.texts["email_error_title"],
                 message=self.texts["email_error_message"],
@@ -165,3 +160,15 @@ class MainFrame(
         """Opens the MaterialsFrame (or switches view)."""
         if self.app_instance:
             self.app_instance.show_materials_content()
+            
+    def update_email_counter_label(self):
+        """Aktualizuje text popisku počítadla na základě aktuální hodnoty z ViewModelu."""
+        self.email_counter_label.configure(text=f"Number of bug reports: {self.vm.email_model.email_counter}")
+
+    def update_texts(self, new_texts: dict):
+        """Aktualizuje texty všech widgetů ve framu."""
+        self.texts = new_texts
+        self.count_label.configure(text=self.texts["selected_files"].format(len(self.vm.file_list)))
+        self.select_btn.configure(text=self.texts["select_nc_files"])
+        self.rename_btn.configure(text=self.texts["rename_nc_files"])
+        self.reportbug_btn.configure(text=self.texts["report_bug"])

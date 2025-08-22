@@ -1,5 +1,3 @@
-"Settings Frame Module"
-
 import customtkinter as ctk
 from PIL import Image
 from app.viewmodels.password_view_model import PasswordViewModel
@@ -10,13 +8,12 @@ from translations import LANGUAGE_NAMES
 from ..viewmodels.settings_view_model import SettingsViewModel
 
 
-class SettingsFrame(
-    ctk.CTkFrame
-):  # TODO: Missing function or method docstringPylintC0116:missing-function-docstring
+class SettingsFrame(ctk.CTkFrame):
     def __init__(
         self,
         master=None,
         app_instance=None,
+        app_settings=None,
         main_frame_instance=None,
         texts=None,
         **kwargs,
@@ -24,29 +21,24 @@ class SettingsFrame(
         super().__init__(master, **kwargs)
 
         self.app_instance = app_instance
-        self.main_frame_instance = main_frame_instance
         self.texts = texts or {}
-
         self.viewmodel = None
         if app_instance:
-            self.viewmodel = SettingsViewModel(app_instance)
+            self.viewmodel = SettingsViewModel(app_instance, app_settings)
 
-        # Use PasswordViewModel with PasswordModel (MVVM-consistent)
         self.password_vm = PasswordViewModel(
-            main_frame_instance=self.app_instance.main_viewmodel if self.app_instance else None,
-            password_model=PasswordModel(CORRECT_PASSWORD),
-        )
+        main_view_model=self.app_instance.main_viewmodel if self.app_instance else None,
+        password_model=PasswordModel(CORRECT_PASSWORD),
+)
 
         self.setting_label = ctk.CTkLabel(
-            self,
-            text=self.texts.get("appearance_mode_setting", "Appearance Mode"),
-            anchor="w",
+            self, text=self.texts.get("appearance_mode_setting", "Appearance Mode"), anchor="w"
         )
         self.setting_label.pack(pady=0, padx=25)
 
-        self.light_icon = ctk.CTkImage(Image.open("light-mode.png"), size=(34, 34))
-        self.dark_icon = ctk.CTkImage(Image.open("night-mode.png"), size=(34, 34))
-        self.restart_icon = ctk.CTkImage(Image.open("restart.png"), size=(24, 24))
+        self.light_icon = ctk.CTkImage(Image.open("img/light-mode.png"), size=(34, 34))
+        self.dark_icon = ctk.CTkImage(Image.open("img/night-mode.png"), size=(34, 34))
+        self.restart_icon = ctk.CTkImage(Image.open("img/restart.png"), size=(24, 24))
 
         self.color_button = ctk.CTkButton(
             self,
@@ -86,7 +78,7 @@ class SettingsFrame(
             command=self.password_vm.prompt_for_password_and_reset,
         )
         self.reset_counter_btn.pack(pady=(20, 10))
-
+        
         self.close_button = ctk.CTkButton(
             self,
             text=self.texts.get("back_button", "Back"),
@@ -96,9 +88,7 @@ class SettingsFrame(
         )
         self.close_button.pack(pady=10, padx=25, fill="x", side="bottom")
 
-    def update_texts(
-        self, new_texts: dict
-    ):  # TODO: Missing function or method docstringPylintC0116:missing-function-docstring
+    def update_texts(self, new_texts: dict):
         self.texts = new_texts
         self.setting_label.configure(
             text=self.texts.get("appearance_mode_setting", "Appearance Mode")
@@ -126,14 +116,10 @@ class SettingsFrame(
         else:
             self.color_button.configure(image=self.dark_icon, text="")
 
-    def change_language(
-        self, new_lang_display_name: str
-    ):  # TODO: Missing function or method docstringPylintC0116:missing-function-docstring
+    def change_language(self, new_lang_display_name: str):
         if self.viewmodel:
-            self.viewmodel.change_language(new_lang_display_name, LANGUAGE_NAMES)
+            self.viewmodel.change_language(new_lang_display_name)
 
-    def return_to_main_content(
-        self,
-    ):  # TODO: Missing function or method docstringPylintC0116:missing-function-docstring
+    def return_to_main_content(self):
         if self.app_instance:
             self.app_instance.show_main_content()

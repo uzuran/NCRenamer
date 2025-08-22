@@ -2,7 +2,7 @@ import os
 import json
 from rich.console import Console
 import customtkinter as ctk
-from tkinter import messagebox  # Chybělo pro zobrazování dialogů
+from tkinter import messagebox 
 
 
 CORRECT_PASSWORD = "amada"
@@ -16,7 +16,7 @@ class SettingsService:
         """Initialize the settings."""
         self.settings_file = "app_settings.json"
         self.settings: dict[str, object] = {}
-        self.main_frame_instance = main_frame_instance  # Definujeme instanci
+        self.main_frame_instance = main_frame_instance  
         self.load_app_settings()
 
     def load_app_settings(self) -> None:
@@ -26,10 +26,11 @@ class SettingsService:
                 with open(self.settings_file, "r", encoding="utf-8") as f:
                     self.settings = json.load(f)
             except (json.JSONDecodeError, KeyError) as e:
-                cons.print(
-                    f"[red]Chyba při načítání nastavení ze souboru: {e}. Používám výchozí nastavení.[/red]"
-                )
-                self.settings = {}
+             messagebox.showerror(
+                title="Settings Error",
+                message=f"Error loading settings from file: {e}. Using default settings."
+            )
+            self.settings = {}
         else:
             self.settings = {}
 
@@ -39,7 +40,10 @@ class SettingsService:
             with open(self.settings_file, "w", encoding="utf-8") as f:
                 json.dump(self.settings, f, indent=4)
         except IOError as e:
-            cons.print(f"[red]Chyba při ukládání nastavení do souboru: {e}[/red]")
+         messagebox.showerror(
+            title="Chyba při ukládání",
+            message=f"Došlo k chybě při ukládání nastavení: {e}"
+        )
 
     def _prompt_for_password_and_reset(self) -> None:
         """Prompt for password and reset the email counter if correct."""

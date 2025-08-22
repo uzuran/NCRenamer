@@ -7,7 +7,7 @@ from rich.console import Console
 cons: Console = Console()
 
 
-class EmailBugTrackerModel:
+class EmailModel:
     """Class that allows users to send bug reports and tracks the number of reports."""
 
     def __init__(self, counter_file="email_counter.json"):
@@ -29,3 +29,13 @@ class EmailBugTrackerModel:
         """Save the email counter to a JSON file."""
         with open(self.counter_file, "w", encoding="utf-8") as f:
             json.dump({"counter": self.email_counter}, f)
+            
+    def increment_counter(self) -> None:
+        """Increments the email counter by one and saves the change."""
+        self.email_counter += 1
+        self.save_counter()
+
+    def reset_counter(self) -> None:
+        """Resets the email counter to 0 and saves the change."""
+        self.email_counter = 0
+        self.save_counter()
