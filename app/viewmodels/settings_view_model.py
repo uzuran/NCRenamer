@@ -1,4 +1,6 @@
 import customtkinter as ctk
+from translations import LANGUAGE_NAMES
+
 from app.translations.translations import LANGUAGE_NAMES
 
 

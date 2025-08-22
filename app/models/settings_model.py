@@ -3,6 +3,8 @@ import os
 
 
 class AppSettings:
+    def __init__(self, settings_file="app_settings.json"):
+class AppSettings:
     def __init__(self, settings_file="json/app_settings.json"):
         self.settings_file = settings_file
         self.settings = {}
