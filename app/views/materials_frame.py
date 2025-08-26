@@ -62,7 +62,7 @@ class MaterialsFrame(
                 "incorrect_correct_materials",
                 "Incorrect and correct materials formats:",
             )
-        )  # TODO: Rename this label for correct and incorrect materials
+        )
         self.search_entry.configure(
             placeholder_text=self.texts.get("search_placeholder", "Search...")
         )
@@ -95,3 +95,4 @@ class MaterialsFrame(
     ):  # TODO: Missing function or method docstringPylintC0116:missing-function-docstring
         if self.app_instance:
             self.app_instance.show_main_content()
+
