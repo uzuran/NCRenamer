@@ -2,7 +2,7 @@ from pathlib import Path
 import csv
 import time
 import urllib.parse
-from app.models.email_bug_tracker_model import EmailModel
+
 
 class MainViewModel:
     def __init__(self, main_frame_instance, email_model, formatter_model):
@@ -11,7 +11,7 @@ class MainViewModel:
         self.formatter = formatter_model
         self.file_list = []
         self.history = self.load_nc_files()
-    
+
     def load_nc_files(self):
         """Načítá historii ze souboru CSV a vrací ji jako seznam."""
         path = Path("CNCs/materials_new.csv")
@@ -28,7 +28,7 @@ class MainViewModel:
     def process_data(self, data):
         """Zpracuje data a přidá je do historie."""
         processed_data = self.formatter.format(data)
-        self.history.append([processed_data]) 
+        self.history.append([processed_data])
         self.main_frame_instance.update_output(processed_data)
         return processed_data
 
