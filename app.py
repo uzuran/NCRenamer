@@ -4,7 +4,7 @@ from app.viewmodels.main_view_model import MainViewModel
 from app.views.main_frame import MainFrame
 from app.views.settings_frame import SettingsFrame
 from app.views.materials_frame import MaterialsFrame
-from translations import LANGUAGES
+from app.translations.translations import LANGUAGES
 import customtkinter as ctk
 
 from app.models.settings_model import AppSettings
