@@ -61,15 +61,6 @@ class MainViewModel:
         subject = f"Report bug_{self.email_model.email_counter}"
         return f"mailto:{recipient_email}?subject={urllib.parse.quote(subject)}"
 
-    def get_history_content(self):
-        if self.processed_files_history:
-            return "\n".join([", ".join(row) for row in self.processed_files_history])
-        return ""
-
-    def update_email_counter_label(self):
-        """Metoda, která říká View (MainFrame), aby se aktualizoval."""
-        if self.main_frame_instance:
-            self.main_frame_instance.update_email_counter_label()
     def update_email_counter_label(self):
         """Metoda, která říká View (MainFrame), aby se aktualizoval."""
         if self.main_frame_instance:
