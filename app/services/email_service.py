@@ -17,7 +17,7 @@ class EmailService:
     Provides persistence and management for the email bug report counter.
     """
 
-    def __init__(self, file_path: str = "email_counter.json"):
+    def __init__(self, file_path: str = "json/email_counter.json"):
         """
         Initialize the service with a file for storing the counter.
 

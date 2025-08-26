@@ -14,7 +14,7 @@ class SettingsService:
 
     def __init__(self, main_frame_instance=None):
         """Initialize the settings."""
-        self.settings_file = "app_settings.json"
+        self.settings_file = "json/app_settings.json"
         self.settings: dict[str, object] = {}
         self.main_frame_instance = main_frame_instance  
         self.load_app_settings()

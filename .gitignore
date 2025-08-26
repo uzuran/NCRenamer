@@ -34,7 +34,7 @@ build/
 *.secret.json
 
 # Ignore user-specific configs
-app_settings.json
+/json/app_settings.json
 history.json
 email_counter.json
 

@@ -10,7 +10,7 @@ cons: Console = Console()
 class EmailModel:
     """Class that allows users to send bug reports and tracks the number of reports."""
 
-    def __init__(self, counter_file="email_counter.json"):
+    def __init__(self, counter_file="json/email_counter.json"):
         self.counter_file = counter_file
         self.email_counter = self.load_counter()
 

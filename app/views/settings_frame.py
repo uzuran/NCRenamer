@@ -4,7 +4,7 @@ from app.viewmodels.password_view_model import PasswordViewModel
 from app.models.password_model import PasswordModel
 from app.services.settings_service import CORRECT_PASSWORD
 
-from translations import LANGUAGE_NAMES
+from app.translations.translations import LANGUAGE_NAMES
 from ..viewmodels.settings_view_model import SettingsViewModel
 
 
