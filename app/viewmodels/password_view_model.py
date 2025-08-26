@@ -1,31 +1,29 @@
-"""Password ViewModel Module"""
-
-from tkinter import messagebox
 import customtkinter as ctk
-from app.models.password_model import PasswordModel  # import the model
+from tkinter import messagebox
+from app.models.password_model import PasswordModel
+from app.viewmodels.main_view_model import MainViewModel
 
 
-class PasswordViewModel: # TODO: Missing function or method docstringPylintC0116:missing-function-docstring
-    def __init__(self, main_frame_instance, password_model: PasswordModel):
-        self.main_frame_instance = main_frame_instance
+class PasswordViewModel:
+    def __init__(self, main_view_model: MainViewModel, password_model: PasswordModel):
+        self.main_view_model = main_view_model
         self.password_model = password_model
 
-    def prompt_for_password_and_reset(self) -> None: # TODO: Missing function or method docstringPylintC0116:missing-function-docstring
+    def prompt_for_password_and_reset(self) -> None:
         entered_password = ctk.CTkInputDialog(
             text="Zadejte heslo pro resetování počítadla:", title="Vyžadováno heslo"
+            
         ).get_input()
 
         if entered_password is None:
             return
 
         if self.password_model.verify_password(entered_password):
-            if self.main_frame_instance:
-                self.main_frame_instance.reset_email_counter()
-                messagebox.showinfo("Úspěch", "Počítadlo bylo resetováno.")
-            else:
-                messagebox.showerror(
-                    "Chyba",
-                    "Nelze resetovat počítadlo. Instance MainFrame není k dispozici.",
-                )
+            self.main_view_model.reset_email_counter()
+            
+    
+            self.main_view_model.update_email_counter_label()
+            
+            messagebox.showinfo("Úspěch", "Počítadlo bylo resetováno.")
         else:
             messagebox.showerror("Chybné heslo", "Zadané heslo je nesprávné.")

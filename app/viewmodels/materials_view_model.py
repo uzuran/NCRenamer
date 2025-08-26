@@ -15,3 +15,5 @@ class MaterialsViewModel: # TODO: Missing function or method docstringPylintC011
             if query in line.lower()
         ]
         return "\n".join(filtered_lines)
+    
+    

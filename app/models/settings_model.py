@@ -1,13 +1,11 @@
-import os
 import json
+import os
 
 
-class Settings:
-    """Pure data model for application settings."""
-
-    def __init__(self, settings_file="app_settings.json"):
+class AppSettings:
+    def __init__(self, settings_file="json/app_settings.json"):
         self.settings_file = settings_file
-        self.settings: dict[str, object] = {}
+        self.settings = {}
         self.load_app_settings()
 
     def load_app_settings(self) -> None:
