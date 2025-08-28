@@ -140,12 +140,13 @@ class MainFrame(
         self,
     ):
         self.vm.increment_email_counter()
-        self.email_counter_label.configure(
-            text=self.texts["email_count"].format(self.vm.email_model.email_counter)
-        )
+        if self.email_counter_label is not None:
+            self.email_counter_label.configure(
+                text=self.texts["email_count"].format(self.vm.email_model.email_counter)
+            )
         try:
             webbrowser.open(self.vm.get_mailto_url())
-        except webbrowser.Error as e:
+        except webbrowser.Error:
             messagebox.showerror(
                 title=self.texts["email_error_title"],
                 message=self.texts["email_error_message"],
@@ -160,10 +161,10 @@ class MainFrame(
         """Opens the MaterialsFrame (or switches view)."""
         if self.app_instance:
             self.app_instance.show_materials_content()
-            
     def update_email_counter_label(self):
         """Aktualizuje text popisku počítadla na základě aktuální hodnoty z ViewModelu."""
-        self.email_counter_label.configure(text=f"Number of bug reports: {self.vm.email_model.email_counter}")
+        if self.email_counter_label is not None:
+            self.email_counter_label.configure(text=f"Number of bug reports: {self.vm.email_model.email_counter}")
 
     def update_texts(self, new_texts: dict):
         """Aktualizuje texty všech widgetů ve framu."""
