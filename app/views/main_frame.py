@@ -71,6 +71,7 @@ class MainFrame(
         self.progressbar.pack(pady=(10, 10), fill="x", padx=20)
         self.progressbar.configure(corner_radius=5)
         self.progressbar.set(0)
+        self.progressbar.update()
         
         # Rename button.
         self.rename_btn = ctk.CTkButton(
@@ -109,8 +110,12 @@ class MainFrame(
     def rename_files(
         self,
     ):
-        results = self.vm.rename_files()
-        total = len(results)
+        # Reset progress bar to 0 before starting
+        self.progressbar.set(0)
+        self.progressbar.update()
+        
+        files_to_process = self.vm.list_of_nc_files()
+        total = len(files_to_process)
         if total == 0:
             messagebox.showinfo(
                 title=self.texts["done_title"], message=self.texts["no_files_to_rename"]
@@ -120,16 +125,32 @@ class MainFrame(
         self.output_box.configure(state="normal")
         self.output_box.delete("1.0", "end")
 
-        for i, (name, changed) in enumerate(results, start=1):
+        # Process files one by one with real-time progress bar updates
+        for i, file_path in enumerate(files_to_process, start=1):
+            # Process the file and get result
+            name, changed = self.vm.process_single_file(file_path)
+            
+            # Update output box
             text = (
                 self.texts["file_modified"].format(name)
                 if changed
                 else self.texts["file_no_change"].format(name)
             )
             self.output_box.insert("end", f"{text}\n")
-            self.progressbar.set(i / total)
+            
+            # Update progress bar with proper UI refresh
+            progress_value = i / total
+            self.progressbar.set(progress_value)
+            self.progressbar.update()
             self.update_idletasks()
+            
+            # Force a small delay to make progress visible
+            self.after(10)
 
+        # Ensure progress bar shows 100% completion
+        self.progressbar.set(1.0)
+        self.progressbar.update()
+        
         self.output_box.configure(state="disabled")
         messagebox.showinfo(
             title=self.texts["done_title"],

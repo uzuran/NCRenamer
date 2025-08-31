@@ -47,14 +47,14 @@ class MainViewModel:
     def select_files(self, file_paths):
         self.file_list = [Path(f) for f in file_paths]
 
-    def rename_files(self):
-        total = len(self.file_list)
-        results = []
-        for file in self.file_list:
-            changed = self.formatter.process_file(file)
-            results.append((file.name, changed))
-            time.sleep(0.10)
-        return results
+    def list_of_nc_files(self): #TODO: rename this function in the 
+        """Returns the file list for processing in the UI."""
+        return self.file_list
+
+    def process_single_file(self, file_path: Path) -> tuple[str, bool]:
+        """Process a single file and return (filename, changed_status)."""
+        changed = self.formatter.process_file(file_path)
+        return (file_path.name, changed)
 
     def get_mailto_url(self):
         recipient_email = "else.artem@gmail.com"
