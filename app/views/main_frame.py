@@ -27,13 +27,11 @@ class MainFrame(
         try:
             self.history_icon = ctk.CTkImage(Image.open("img/box.png"), size=(24, 24))
         except FileNotFoundError:
-            self.history_icon = None  
-
+            self.history_icon = None
         self.history_materials_btn = ctk.CTkButton(
             self.top_bar,
             image=self.history_icon,
             text="",
-            fg_color="white",
             width=30,
             command=self.open_materials_frame,
         )
@@ -50,7 +48,6 @@ class MainFrame(
             image=self.settings_icon,
             text="",
             command=self.open_settings_window,
-            fg_color="white",
             width=30,
         )
         self.settings_btn.pack(side="right", anchor="e")
@@ -92,7 +89,8 @@ class MainFrame(
     def post_init(self):
         """Inicializuje widgety, které potřebují ViewModel."""
         # Report bug counter.
-        self.email_counter_label = ctk.CTkLabel(self, text=f"Number of bug reports: {self.vm.email_model.email_counter}")
+        self.email_counter_label = ctk.CTkLabel(
+            self, text=f"Number of bug reports: {self.vm.email_model.email_counter}")
         self.email_counter_label.pack(pady=5)
 
     def select_files(

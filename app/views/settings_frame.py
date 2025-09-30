@@ -14,7 +14,6 @@ class SettingsFrame(ctk.CTkFrame):
         master=None,
         app_instance=None,
         app_settings=None,
-        main_frame_instance=None,
         texts=None,
         **kwargs,
     ):
@@ -47,7 +46,6 @@ class SettingsFrame(ctk.CTkFrame):
             command=self._change_mode_and_save,
             width=100,
             height=30,
-            fg_color="white",
         )
         self.color_button.pack(pady=10, padx=25)
         self._update_button_icon()
@@ -72,7 +70,6 @@ class SettingsFrame(ctk.CTkFrame):
             self,
             image=self.restart_icon,
             text="",
-            fg_color="white",
             width=100,
             height=38,
             command=self.password_vm.prompt_for_password_and_reset,
@@ -82,7 +79,6 @@ class SettingsFrame(ctk.CTkFrame):
         self.close_button = ctk.CTkButton(
             self,
             text=self.texts.get("back_button", "Back"),
-            fg_color="white",
             text_color="black",
             command=self.return_to_main_content,
         )
@@ -106,7 +102,7 @@ class SettingsFrame(ctk.CTkFrame):
 
     def _change_mode_and_save(self):
         if self.viewmodel:
-            new_mode = self.viewmodel.toggle_appearance_mode()
+            self.viewmodel.toggle_appearance_mode()
             self._update_button_icon()
 
     def _update_button_icon(self):

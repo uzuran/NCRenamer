@@ -48,7 +48,6 @@ class MaterialsFrame(
         self.close_button = ctk.CTkButton(
             self,
             text=self.texts.get("back_button", "Back"),
-            fg_color="white",
             text_color="black",
             command=self.return_to_main_content,
         )
