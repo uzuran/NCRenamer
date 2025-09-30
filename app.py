@@ -1,3 +1,4 @@
+import os
 import customtkinter as ctk
 
 from app.models.email_bug_tracker_model import EmailModel
@@ -24,6 +25,10 @@ class App(ctk.CTk):
         self.geometry("400x500")
 
         ctk.set_appearance_mode(self.app_settings.settings.get("appearance_mode", "System"))
+
+        folder = os.path.dirname(self.app_settings.settings_file)
+        if folder and not os.path.exists(folder):
+            os.makedirs(folder, exist_ok=True)
 
         # Models & services
         self.email_model = EmailModel()
