@@ -18,5 +18,9 @@ class AppSettings:
             self.settings = {}
 
     def save_app_settings(self) -> None:
+        folder = os.path.dirname(self.settings_file)
+        if folder and not os.path.exists(folder):
+            os.makedirs(folder, exist_ok=True)
+
         with open(self.settings_file, "w", encoding="utf-8") as f:
             json.dump(self.settings, f, indent=4)
