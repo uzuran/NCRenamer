@@ -15,9 +15,6 @@ class PasswordViewModel:
             
         ).get_input()
 
-        if entered_password is None:
-            return
-
         if self.password_model.verify_password(entered_password):
             self.main_view_model.reset_email_counter()
             

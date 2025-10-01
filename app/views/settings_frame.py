@@ -1,3 +1,5 @@
+"""A frame for application settings, including appearance mode and language selection."""
+
 import customtkinter as ctk
 from PIL import Image
 from app.viewmodels.password_view_model import PasswordViewModel
@@ -9,6 +11,7 @@ from ..viewmodels.settings_view_model import SettingsViewModel
 
 
 class SettingsFrame(ctk.CTkFrame):
+    """A frame for application settings, including appearance mode and language selection."""
     def __init__(
         self,
         master=None,
@@ -43,12 +46,12 @@ class SettingsFrame(ctk.CTkFrame):
             self,
             text="",
             image=self.light_icon,
-            command=self._change_mode_and_save,
+            command=self.change_mode_and_save,
             width=100,
             height=30,
         )
         self.color_button.pack(pady=10, padx=25)
-        self._update_button_icon()
+        self.update_button_icon()
 
         self.language_label = ctk.CTkLabel(
             self, text=self.texts.get("language_setting", "Language"), anchor="w"
@@ -85,6 +88,7 @@ class SettingsFrame(ctk.CTkFrame):
         self.close_button.pack(pady=10, padx=25, fill="x", side="bottom")
 
     def update_texts(self, new_texts: dict):
+        """Update the texts in the settings frame."""
         self.texts = new_texts
         self.setting_label.configure(
             text=self.texts.get("appearance_mode_setting", "Appearance Mode")
@@ -100,12 +104,14 @@ class SettingsFrame(ctk.CTkFrame):
         )
         self.language_optionmenu.set(current_lang_name)
 
-    def _change_mode_and_save(self):
+    def change_mode_and_save(self):
+        """Toggle between light and dark mode and save the preference."""
         if self.viewmodel:
             self.viewmodel.toggle_appearance_mode()
-            self._update_button_icon()
+            self.update_button_icon()
 
-    def _update_button_icon(self):
+    def update_button_icon(self):
+        """Update the icon of the appearance mode button based on the current mode."""
         current_mode = ctk.get_appearance_mode()
         if current_mode == "Dark":
             self.color_button.configure(image=self.light_icon, text="")
@@ -113,9 +119,11 @@ class SettingsFrame(ctk.CTkFrame):
             self.color_button.configure(image=self.dark_icon, text="")
 
     def change_language(self, new_lang_display_name: str):
+        """Change the application language."""
         if self.viewmodel:
             self.viewmodel.change_language(new_lang_display_name)
 
     def return_to_main_content(self):
+        """Return to the main content frame."""
         if self.app_instance:
             self.app_instance.show_main_content()

@@ -1,7 +1,7 @@
 import os
 import customtkinter as ctk
 
-from app.models.email_bug_tracker_model import EmailModel
+from app.models.email_model import EmailModel
 from app.services.nc_formatter import NcFormatter
 from app.viewmodels.main_view_model import MainViewModel
 from app.views.main_frame import MainFrame
@@ -11,22 +11,23 @@ from app.translations.translations import LANGUAGES
 from app.views.materials_frame import MaterialsFrame
 from app.viewmodels.materials_view_model import MaterialsViewModel
 from app.services.settings_service import SettingsService
+from app.models.settings_model import AppSettingsModel
 
 
 class App(ctk.CTk):
     def __init__(self):
         super().__init__()
-        
-        self.app_settings_service = SettingsService()
-        self.current_language_code = self.app_settings_service.settings.get("language", "cs")
+        model = AppSettingsModel()  # Create the model
+        self.app_settings_service = SettingsService(model=model)
+        self.current_language_code = self.app_settings_service.model.settings.get("language", "cs")
         self.texts = LANGUAGES[self.current_language_code]
         self.formatter_model = NcFormatter()
         self.title(self.texts.get("app_title", "NC Renamer"))
         self.geometry("400x500")
 
-        ctk.set_appearance_mode(self.app_settings_service.settings.get("appearance_mode", "System"))
+        ctk.set_appearance_mode(self.app_settings_service.model.settings.get("appearance_mode", "System"))
 
-        folder = os.path.dirname(self.app_settings_service.settings_file)
+        folder = os.path.dirname(self.app_settings_service.model.settings_file)
         if folder and not os.path.exists(folder):
             os.makedirs(folder, exist_ok=True)
 

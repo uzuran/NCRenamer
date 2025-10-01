@@ -1,6 +1,5 @@
 from pathlib import Path
 import csv
-import time
 import urllib.parse
 
 

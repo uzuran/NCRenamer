@@ -1,7 +1,10 @@
 """Email Bug Tracker ViewModel Module"""
-from rich.console import Console
-from app.models.email_bug_tracker_model import EmailModel
+
 from tkinter import messagebox
+from rich.console import Console
+from app.models.email_model import EmailModel
+
+
 class EmailBugTrackerViewModel:
     """Initialize the ViewModel with the model and console for UI output."""
     def __init__(self, model:EmailModel, console: Console):
