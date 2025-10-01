@@ -73,8 +73,8 @@ class App(ctk.CTk):
         if self.current_language_code != lang_code:
             self.current_language_code = lang_code
             self.texts = LANGUAGES[lang_code]
-            self.app_settings.settings["language"] = lang_code
-            self.app_settings.save_app_settings()
+            self.app_settings_service.model.settings["language"] = lang_code
+            self.app_settings_service.save_app_settings()
 
             self.title(self.texts.get("app_title", "NC Renamer"))
             self.main_frame.update_texts(self.texts)
