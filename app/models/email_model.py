@@ -2,9 +2,9 @@
 
 import os
 import json
-from rich.console import Console
 
-cons: Console = Console()
+
+CORRECT_PASSWORD = "amada"
 
 
 class EmailModel:

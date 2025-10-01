@@ -7,9 +7,11 @@ from app.translations.translations import LANGUAGE_NAMES
 
 class SettingsViewModel:
     """ViewModel for managing application settings and interactions."""
-    def __init__(self, app_instance, app_settings):
+    def __init__(self, app_instance, settings_model):
         self.app = app_instance
-        self.app_settings = app_settings
+        self.model = settings_model
+        self.model.load()
+
 
     def toggle_appearance_mode(self):
         """Toggle between Light and Dark appearance modes."""
@@ -17,8 +19,8 @@ class SettingsViewModel:
         new_mode = "Light" if current_mode == "Dark" else "Dark"
         ctk.set_appearance_mode(new_mode)
         if self.app:
-            self.app_settings.model.settings["appearance_mode"] = new_mode
-            self.app_settings.save_app_settings()
+            self.model.set("appearance_mode", new_mode)
+            self.model.save()
         return new_mode
 
     def get_current_language_name(self, language_names: dict) -> str:
