@@ -29,7 +29,7 @@ class EmailModel:
         """Save the email counter to a JSON file."""
         with open(self.counter_file, "w", encoding="utf-8") as f:
             json.dump({"counter": self.email_counter}, f)
-            
+                  
     def increment_counter(self) -> None:
         """Increments the email counter by one and saves the change."""
         self.email_counter += 1

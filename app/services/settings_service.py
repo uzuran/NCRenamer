@@ -26,24 +26,29 @@ class SettingsService:
                 with open(self.settings_file, "r", encoding="utf-8") as f:
                     self.settings = json.load(f)
             except (json.JSONDecodeError, KeyError) as e:
-             messagebox.showerror(
-                title="Settings Error",
-                message=f"Error loading settings from file: {e}. Using default settings."
-            )
-            self.settings = {}
+                messagebox.showerror(
+                    title="Settings Error",
+                    message=f"Error loading settings from file: {e}. Using default settings."
+                )
+                self.settings = {}
         else:
             self.settings = {}
 
     def save_app_settings(self) -> None:
         """Save the application settings to a JSON file."""
         try:
+            # Ensure the directory exists
+            os.makedirs(os.path.dirname(self.settings_file), exist_ok=True)
+
+            # Save settings to the file
             with open(self.settings_file, "w", encoding="utf-8") as f:
                 json.dump(self.settings, f, indent=4)
         except IOError as e:
-         messagebox.showerror(
-            title="Chyba při ukládání",
-            message=f"Došlo k chybě při ukládání nastavení: {e}"
-        )
+            messagebox.showerror(
+                title="Chyba při ukládání",
+                message=f"Došlo k chybě při ukládání nastavení: {e}"
+            )
+
 
     def _prompt_for_password_and_reset(self) -> None:
         """Prompt for password and reset the email counter if correct."""

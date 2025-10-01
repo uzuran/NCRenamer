@@ -10,23 +10,23 @@ from app.views.settings_frame import SettingsFrame
 from app.translations.translations import LANGUAGES
 from app.views.materials_frame import MaterialsFrame
 from app.viewmodels.materials_view_model import MaterialsViewModel
-from app.models.settings_model import AppSettings
+from app.services.settings_service import SettingsService
 
 
 class App(ctk.CTk):
     def __init__(self):
         super().__init__()
         
-        self.app_settings = AppSettings()
-        self.current_language_code = self.app_settings.settings.get("language", "cs")
+        self.app_settings_service = SettingsService()
+        self.current_language_code = self.app_settings_service.settings.get("language", "cs")
         self.texts = LANGUAGES[self.current_language_code]
         self.formatter_model = NcFormatter()
         self.title(self.texts.get("app_title", "NC Renamer"))
         self.geometry("400x500")
 
-        ctk.set_appearance_mode(self.app_settings.settings.get("appearance_mode", "System"))
+        ctk.set_appearance_mode(self.app_settings_service.settings.get("appearance_mode", "System"))
 
-        folder = os.path.dirname(self.app_settings.settings_file)
+        folder = os.path.dirname(self.app_settings_service.settings_file)
         if folder and not os.path.exists(folder):
             os.makedirs(folder, exist_ok=True)
 
@@ -54,7 +54,7 @@ class App(ctk.CTk):
         self.settings_frame = SettingsFrame(
             master=self,
             app_instance=self,
-            app_settings=self.app_settings,
+            app_settings=self.app_settings_service,
             texts=self.texts,
         )
 

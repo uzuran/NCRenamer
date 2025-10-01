@@ -20,7 +20,7 @@ class MaterialsFrame(
             text=self.texts.get(
                 "incorrect_correct_materials", "Incorect and correct materials formats"
             ),
-            anchor="w",  # TODO: Rename this label for correct and incorrect materials
+            anchor="w",
         )
         self.materials_output_label.pack(pady=(10, 0), padx=25, fill="x")
 
