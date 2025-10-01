@@ -49,7 +49,6 @@ class SettingsService:
                 message=f"Došlo k chybě při ukládání nastavení: {e}"
             )
 
-
     def _prompt_for_password_and_reset(self) -> None:
         """Prompt for password and reset the email counter if correct."""
         entered_password = ctk.CTkInputDialog(
