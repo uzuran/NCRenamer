@@ -20,10 +20,3 @@ class AppSettingsModel:
         os.makedirs(os.path.dirname(self.settings_file), exist_ok=True)
         with open(self.settings_file, "w", encoding="utf-8") as f:
             json.dump(self.settings, f, indent=4)
-
-    def reset_email_counter(self):
-        """Reset the email counter in settings to zero."""
-        if "email_counter" in self.settings:
-            self.settings["email_counter"] = 0
-        else:
-            raise KeyError("email_counter not found in settings")
