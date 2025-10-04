@@ -13,7 +13,7 @@ class SettingsModel:
         settings (dict): Dictionary containing the loaded settings.
     """
 
-    def __init__(self, path="resources/json/app_settings.json"):
+    def __init__(self, path="resources/app_settings.json"):
         self.path = path
         self.settings = {}
 
