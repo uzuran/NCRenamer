@@ -2,7 +2,7 @@ import os
 import customtkinter as ctk
 
 from app.models.email_model import EmailModel
-from app.services.nc_formatter import NcFormatter
+from app.models.formatter_model import FormatterModel
 from app.viewmodels.main_view_model import MainViewModel
 from app.views.main_frame import MainFrame
 from app.views.settings_frame import SettingsFrame
@@ -21,11 +21,14 @@ class App(ctk.CTk):
         model = SettingsModel()  
         self.settings_model = model
 
+        self.email_model = EmailModel()
+        self.formatter_model = FormatterModel()
+
         self.settings_model.load()
 
         self.current_language_code = self.settings_model.settings.get("language", "cs")
         self.texts = LANGUAGES[self.current_language_code]
-        self.formatter_model = NcFormatter()
+
         self.title(self.texts.get("app_title", "NC Renamer"))
         self.geometry("400x500")
 
@@ -34,10 +37,6 @@ class App(ctk.CTk):
         folder = os.path.dirname(self.settings_model.path)
         if folder and not os.path.exists(folder):
             os.makedirs(folder, exist_ok=True)
-
-        # Models & services
-        self.email_model = EmailModel()
-        self.formatter_model = NcFormatter()
         
         self.main_frame = MainFrame(
             master=self,
