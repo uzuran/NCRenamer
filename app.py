@@ -23,6 +23,7 @@ class App(ctk.CTk):
 
         self.email_model = EmailModel()
         self.formatter_model = FormatterModel()
+        self.material_viewmodel = MaterialsViewModel()
 
         self.settings_model.load()
 
@@ -97,7 +98,7 @@ class App(ctk.CTk):
         self._hide_all_frames()
         # Získání obsahu od MainViewModel
         # Předpokládejme, že MainViewModel má metodu get_processed_history()
-        processed_content = self.main_viewmodel.get_processed_history() 
+        processed_content = self.materials_viewmodel.get_processed_history() 
 
         # Aktualizace MaterialsFrame s daty z ViewModel
         self.materials_frame.update_output_content(processed_content)

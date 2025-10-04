@@ -9,33 +9,6 @@ class MainViewModel:
         self.email_model = email_model
         self.formatter = formatter_model
         self.file_list = []
-        self.history = self.load_nc_files()
-
-    def load_nc_files(self):
-        """Načítá historii ze souboru CSV a vrací ji jako seznam."""
-        path = Path("CNCs/materials_new.csv")
-        if path.exists():
-            try:
-                with open(path, "r", encoding="utf-8") as f:
-                    reader = csv.reader(f)
-                    return list(reader)
-            except Exception as e:
-                print(f"Chyba při načítání souboru: {e}")
-                return []
-        return []
-
-    def process_data(self, data):
-        """Zpracuje data a přidá je do historie."""
-        processed_data = self.formatter.format(data)
-        self.history.append([processed_data])
-        self.main_frame_instance.update_output(processed_data)
-        return processed_data
-
-    def get_processed_history(self):
-        """Převede historii ze seznamu na formátovaný text."""
-        if self.history:
-            return "\n".join([", ".join(row) for row in self.history])
-        return ""
 
     def reset_email_counter(self):
         self.email_model.reset_counter()
