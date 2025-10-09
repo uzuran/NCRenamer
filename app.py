@@ -17,9 +17,8 @@ from app.models.settings_model import SettingsModel
 class App(ctk.CTk):
     def __init__(self):
         super().__init__()
-        model = SettingsModel()  
-        self.settings_model = model
 
+        self.settings_model = SettingsModel()  
         self.email_model = EmailModel()
         self.formatter_model = FormatterModel()
         self.material_view_model = MaterialsViewModel()
@@ -30,7 +29,7 @@ class App(ctk.CTk):
         self.texts = LANGUAGES[self.current_language_code]
 
         self.title(self.texts.get("app_title", "NC Renamer"))
-        self.geometry("400x500")
+        self.geometry("420x550")
 
         ctk.set_appearance_mode(self.settings_model.settings.get("appearance_mode", "System"))
 
