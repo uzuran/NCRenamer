@@ -13,6 +13,7 @@ class MaterialsFrame(
         super().__init__(master, **kwargs)
 
         self.view_model = view_model
+        
         self.texts = texts or {}
         self.app_instance = app_instance
 

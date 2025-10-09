@@ -17,13 +17,12 @@ from app.models.settings_model import SettingsModel
 class App(ctk.CTk):
     def __init__(self):
         super().__init__()
-
         model = SettingsModel()  
         self.settings_model = model
 
         self.email_model = EmailModel()
         self.formatter_model = FormatterModel()
-        self.material_viewmodel = MaterialsViewModel()
+        self.material_view_model = MaterialsViewModel()
 
         self.settings_model.load()
 
@@ -46,13 +45,13 @@ class App(ctk.CTk):
             viewmodel=None, 
         )
 
-        self.main_viewmodel = MainViewModel(
+        self.main_view_model = MainViewModel(
             main_frame_instance=self.main_frame,
             email_model=self.email_model,
             formatter_model=self.formatter_model
         )
         
-        self.main_frame.vm = self.main_viewmodel
+        self.main_frame.vm = self.main_view_model
         self.main_frame.post_init()
         self.main_frame.pack(fill="both", expand=True)
 
@@ -64,11 +63,11 @@ class App(ctk.CTk):
         )
 
         # Musíte předat ViewModel, aby měl materials_frame přístup k datům
-        self.materials_viewmodel = MaterialsViewModel()
+        self.materials_view_model = MaterialsViewModel()
         self.materials_frame = MaterialsFrame(
             master=self,
             app_instance=self,
-            viewmodel=self.materials_viewmodel,
+            view_model=self.material_view_model,
         )
 
         self.show_main_content()
@@ -96,7 +95,7 @@ class App(ctk.CTk):
 
     def show_materials_content(self):
         self._hide_all_frames()
-        processed_content = self.materials_viewmodel.get_processed_nc_files() 
+        processed_content = self.materials_view_model.get_processed_nc_files() 
 
         # Aktualizace MaterialsFrame s daty z ViewModel
         self.materials_frame.update_output_content(processed_content)

@@ -29,7 +29,7 @@ class SettingsFrame(ctk.CTkFrame):
             self.viewmodel = SettingsViewModel(app_instance, app_settings)
 
         self.password_vm = PasswordViewModel(
-        main_view_model=self.app_instance.main_viewmodel if self.app_instance else None,
+        main_view_model=self.app_instance.main_view_model if self.app_instance else None,
         password_model=PasswordModel(CORRECT_PASSWORD),
 )
 
