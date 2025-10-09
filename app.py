@@ -96,9 +96,7 @@ class App(ctk.CTk):
 
     def show_materials_content(self):
         self._hide_all_frames()
-        # Získání obsahu od MainViewModel
-        # Předpokládejme, že MainViewModel má metodu get_processed_history()
-        processed_content = self.materials_viewmodel.get_processed_history() 
+        processed_content = self.materials_viewmodel.get_processed_nc_files() 
 
         # Aktualizace MaterialsFrame s daty z ViewModel
         self.materials_frame.update_output_content(processed_content)

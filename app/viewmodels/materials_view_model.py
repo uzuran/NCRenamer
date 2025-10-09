@@ -1,15 +1,16 @@
 from pathlib import Path
 import csv
 
-class MaterialsViewModel:  # TODO: Missing function or method docstringPylintC0116:missing-function-docstring
+class MaterialsViewModel:
+    """ViewModel pro MaterialsFrame."""
     def __init__(self, formatter_model=None, main_frame_instance=None):
         self.materials_content = ""
         self.formatter = formatter_model
         self.main_frame_instance = main_frame_instance
-        self.history = self.load_nc_files()
+        self.nc_files = self.load_nc_files()
 
     def load_nc_files(self):
-        """Načítá historii ze souboru CSV a vrací ji jako seznam."""
+        """Load NC files from a CSV file."""
         path = Path("CNCs/materials_new.csv")
         if path.exists():
             try:
@@ -17,22 +18,22 @@ class MaterialsViewModel:  # TODO: Missing function or method docstringPylintC01
                     reader = csv.reader(f)
                     return list(reader)
             except Exception as e:
-                print(f"Chyba při načítání souboru: {e}")
+                print(f"Error while loading file: {e}")
                 return []
         return []
     
 
     def process_data(self, data):
-        """Zpracuje data a přidá je do historie."""
+        """Process data using the formatter model."""
         processed_data = self.formatter.format(data)
-        self.history.append([processed_data])
+        self.nc_files.append([processed_data])
         self.main_frame_instance.update_output(processed_data)
         return processed_data
 
-    def get_processed_history(self):
+    def get_processed_nc_files(self):
         """Převede historii ze seznamu na formátovaný text."""
-        if self.history:
-            return "\n".join([", ".join(row) for row in self.history])
+        if self.nc_files:
+            return "\n".join([", ".join(row) for row in self.nc_files])
         return ""
 
     def set_content(

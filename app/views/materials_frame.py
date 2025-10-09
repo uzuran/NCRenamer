@@ -5,13 +5,14 @@ import customtkinter as ctk
 
 class MaterialsFrame(
     ctk.CTkFrame
-):  # TODO: Missing function or method docstringPylintC0116:missing-function-docstring
+):
+    """Frame for displaying and managing materials."""
     def __init__(
-        self, master=None, viewmodel=None, texts=None, app_instance=None, **kwargs
-    ):
+        self, master=None, view_model=None, texts=None, app_instance=None, **kwargs
+    ):  
         super().__init__(master, **kwargs)
 
-        self.viewmodel = viewmodel
+        self.view_model = view_model
         self.texts = texts or {}
         self.app_instance = app_instance
 
@@ -54,7 +55,7 @@ class MaterialsFrame(
         self.close_button.pack(pady=10, padx=25, fill="x", side="bottom")
 
     def update_texts(self, new_texts: dict):
-        """Update UI texts when language or content changes."""
+        """Update UI texts when language changes."""
         self.texts = new_texts
         self.materials_output_label.configure(
             text=self.texts.get(
@@ -70,20 +71,23 @@ class MaterialsFrame(
 
     def search_function(
         self,
-    ):  # TODO: Missing function or method docstringPylintC0116:missing-function-docstring
+    ):
+        """Search function to filter materials based on user input."""
         query = self.search_entry.get()
-        filtered_content = self.viewmodel.search(query)
+        filtered_content = self.view_model.search(query)
         self.update_output_box_display(filtered_content)
 
     def update_output_content(
         self, content: str
-    ) -> None:  # TODO: Missing function or method docstringPylintC0116:missing-function-docstring
-        self.viewmodel.set_content(content)
+    ) -> None:
+        """Update the content displayed in the output box."""
+        self.view_model.set_content(content)
         self.update_output_box_display(content)
 
     def update_output_box_display(
         self, content_to_display: str
-    ) -> None:  # TODO: Missing function or method docstringPylintC0116:missing-function-docstring
+    ) -> None:
+        """Update the output box display with new content."""
         self.materials_output_box.configure(state="normal")
         self.materials_output_box.delete("1.0", "end")
         self.materials_output_box.insert("end", content_to_display)
@@ -91,6 +95,7 @@ class MaterialsFrame(
 
     def return_to_main_content(
         self,
-    ):  # TODO: Missing function or method docstringPylintC0116:missing-function-docstring
+    ):
+        """Return to the main content view."""
         if self.app_instance:
             self.app_instance.show_main_content()
