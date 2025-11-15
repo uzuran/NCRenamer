@@ -42,7 +42,7 @@ class SettingsFrame(ctk.CTkFrame):
         self.dark_icon = ctk.CTkImage(Image.open("img/night-mode.png"), size=(34, 34))
         self.restart_icon = ctk.CTkImage(Image.open("img/restart.png"), size=(24, 24))
 
-        self.color_button = ctk.CTkButton(
+        self.change_color_button = ctk.CTkButton(
             self,
             text="",
             image=self.light_icon,
@@ -50,7 +50,7 @@ class SettingsFrame(ctk.CTkFrame):
             width=100,
             height=30,
         )
-        self.color_button.pack(pady=10, padx=25)
+        self.change_color_button.pack(pady=10, padx=25)
         self.update_button_icon()
 
         self.language_label = ctk.CTkLabel(
@@ -114,9 +114,9 @@ class SettingsFrame(ctk.CTkFrame):
         """Update the icon of the appearance mode button based on the current mode."""
         current_mode = ctk.get_appearance_mode()
         if current_mode == "Dark":
-            self.color_button.configure(image=self.light_icon, text="")
+            self.change_color_button.configure(image=self.light_icon, text="")
         else:
-            self.color_button.configure(image=self.dark_icon, text="")
+            self.change_color_button.configure(image=self.dark_icon, text="")
 
     def change_language(self, new_lang_display_name: str):
         """Change the application language."""

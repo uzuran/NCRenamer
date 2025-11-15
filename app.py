@@ -29,7 +29,7 @@ class App(ctk.CTk):
         self.texts = LANGUAGES[self.current_language_code]
 
         self.title(self.texts.get("app_title", "NC Renamer"))
-        self.geometry("420x550")
+        self.geometry("300x450")
 
         ctk.set_appearance_mode(self.settings_model.settings.get("appearance_mode", "System"))
 
@@ -78,7 +78,7 @@ class App(ctk.CTk):
             self.settings_model.set("language", lang_code)
             self.settings_model.save()
 
-            self.title(self.texts.get("app_title", "NC Renamer"))
+            self.title(self.texts.get("app_title", "NC Formatter"))
             self.main_frame.update_texts(self.texts)
             self.settings_frame.update_texts(self.texts)
             self.materials_frame.update_texts(self.texts)
@@ -94,10 +94,13 @@ class App(ctk.CTk):
 
     def show_materials_content(self):
         self._hide_all_frames()
-        processed_content = self.materials_view_model.get_processed_nc_files() 
+        # get loaded CSV directly
+        processed_content = self.materials_view_model.nc_files  
+        self.materials_frame.update_treeview_display(processed_content)
+        self.materials_frame.pack(fill="both", expand=True)
 
         # Aktualizace MaterialsFrame s daty z ViewModel
-        self.materials_frame.update_output_content(processed_content)
+        self.materials_frame.update_treeview_display(processed_content)
 
         self.materials_frame.pack(fill="both", expand=True)
         
