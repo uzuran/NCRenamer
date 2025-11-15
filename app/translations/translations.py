@@ -2,7 +2,8 @@
 
 # Slovník pro češtinu
 cs = {
-    "app_title": "NCRenamer",
+    "number_of_bugs": "Počet nahlášených bugů",
+    "app_title": "NC Formatter",
     "select_nc_files": "Vyberte NC soubory",
     "rename_nc_files": "Přejmenovat NC soubory",
     "report_bug": "Nahlásit chybu",
@@ -30,7 +31,8 @@ cs = {
 
 # Slovník pro angličtinu
 en = {
-    "app_title": "NCRenamer",
+    "number_of_bugs": "Number of bugs",
+    "app_title": "NC Formatter",
     "select_nc_files": "Select NC files",
     "rename_nc_files": "Rename NC files",
     "report_bug": "Report Bug",

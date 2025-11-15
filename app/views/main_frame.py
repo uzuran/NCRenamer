@@ -10,7 +10,7 @@ cons = Console()
 class MainFrame(
     ctk.CTkFrame
 ):
-    def __init__(self, master, viewmodel, texts, app_instance, **kwargs):
+    def __init__(self, master=None, viewmodel=None, texts=None, app_instance=None, **kwargs):
         super().__init__(master, **kwargs)
 
         self.vm = viewmodel 
@@ -81,16 +81,16 @@ class MainFrame(
         self.output_box.pack(pady=5)
         
         # Report bug button.
-        self.reportbug_btn = ctk.CTkButton(
+        self.report_bug_btn = ctk.CTkButton(
             self, text=self.texts["report_bug"], command=self.set_email
         )
-        self.reportbug_btn.pack(pady=(0, 10))
+        self.report_bug_btn.pack(pady=(0, 10))
 
     def post_init(self):
         """Inicializuje widgety, které potřebují ViewModel."""
         # Report bug counter.
         self.email_counter_label = ctk.CTkLabel(
-            self, text=f"Number of bug reports: {self.vm.email_model.email_counter}")
+            self, text=f"{self.texts["number_of_bugs"]} {self.vm.email_model.email_counter}")
         self.email_counter_label.pack(pady=5)
 
     def select_files(
@@ -183,7 +183,7 @@ class MainFrame(
     def update_email_counter_label(self):
         """Aktualizuje text popisku počítadla na základě aktuální hodnoty z ViewModelu."""
         if self.email_counter_label is not None:
-            self.email_counter_label.configure(text=f"Number of bug reports: {self.vm.email_model.email_counter}")
+            self.email_counter_label.configure(text=f"{self.texts["number_of_bugs"]} {self.vm.email_model.email_counter}")
 
     def update_texts(self, new_texts: dict):
         """Aktualizuje texty všech widgetů ve framu."""
@@ -191,4 +191,5 @@ class MainFrame(
         self.count_label.configure(text=self.texts["selected_files"].format(len(self.vm.file_list)))
         self.select_btn.configure(text=self.texts["select_nc_files"])
         self.rename_btn.configure(text=self.texts["rename_nc_files"])
-        self.reportbug_btn.configure(text=self.texts["report_bug"])
+        self.report_bug_btn.configure(text=self.texts["report_bug"])
+        self.email_counter_label.configure(text=self.texts["number_of_bugs"])
