@@ -6,7 +6,8 @@ import csv
 class MaterialsViewModel:
     """Simple ViewModel to load CSV data for materials."""
 
-    def __init__(self, csv_path="CNCs/materials_new.csv"):
+    def __init__(self, app_instance, csv_path="CNCs/materials_new.csv"):
+        self.app = app_instance
         self.csv_path = Path(csv_path)
         self.nc_files = self.load_nc_files()
 
@@ -23,3 +24,11 @@ class MaterialsViewModel:
         except Exception as e:
             print(f"Error loading CSV: {e}")
             return []
+
+    def get_current_language_name(self, language_names: dict) -> str:
+        """Get the display name of the current language."""
+        code = self.app.current_language_code
+        for name, lang_code in language_names.items():
+            if lang_code == code:
+                return name
+        return "Czech"

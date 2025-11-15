@@ -24,9 +24,9 @@ class SettingsFrame(ctk.CTkFrame):
 
         self.app_instance = app_instance
         self.texts = texts or {}
-        self.viewmodel = None
+        self.view_model = None
         if app_instance:
-            self.viewmodel = SettingsViewModel(app_instance, app_settings)
+            self.view_model = SettingsViewModel(app_instance, app_settings)
 
         self.password_vm = PasswordViewModel(
         main_view_model=self.app_instance.main_view_model if self.app_instance else None,
@@ -62,8 +62,8 @@ class SettingsFrame(ctk.CTkFrame):
             self, values=list(LANGUAGE_NAMES.keys()), command=self.change_language
         )
         current_lang_name = (
-            self.viewmodel.get_current_language_name(LANGUAGE_NAMES)
-            if self.viewmodel
+            self.view_model.get_current_language_name(LANGUAGE_NAMES)
+            if self.view_model
             else "Czech"
         )
         self.language_optionmenu.set(current_lang_name)
@@ -79,13 +79,13 @@ class SettingsFrame(ctk.CTkFrame):
         )
         self.reset_counter_btn.pack(pady=(20, 10))
         
-        self.close_button = ctk.CTkButton(
+        self.back_button = ctk.CTkButton(
             self,
             text=self.texts.get("back_button", "Back"),
             text_color="black",
             command=self.return_to_main_content,
         )
-        self.close_button.pack(pady=10, padx=25, fill="x", side="bottom")
+        self.back_button.pack(pady=10, padx=25, fill="x", side="bottom")
 
     def update_texts(self, new_texts: dict):
         """Update the texts in the settings frame."""
@@ -96,18 +96,18 @@ class SettingsFrame(ctk.CTkFrame):
         self.language_label.configure(
             text=self.texts.get("language_setting", "Language")
         )
-        self.close_button.configure(text=self.texts.get("back_button", "Back"))
+        self.back_button.configure(text=self.texts.get("back_button", "Back"))
         current_lang_name = (
-            self.viewmodel.get_current_language_name(LANGUAGE_NAMES)
-            if self.viewmodel
+            self.view_model.get_current_language_name(LANGUAGE_NAMES)
+            if self.view_model
             else "Czech"
         )
         self.language_optionmenu.set(current_lang_name)
 
     def change_mode_and_save(self):
         """Toggle between light and dark mode and save the preference."""
-        if self.viewmodel:
-            self.viewmodel.toggle_appearance_mode()
+        if self.view_model:
+            self.view_model.toggle_appearance_mode()
             self.update_button_icon()
 
     def update_button_icon(self):
@@ -120,8 +120,8 @@ class SettingsFrame(ctk.CTkFrame):
 
     def change_language(self, new_lang_display_name: str):
         """Change the application language."""
-        if self.viewmodel:
-            self.viewmodel.change_language(new_lang_display_name)
+        if self.view_model:
+            self.view_model.change_language(new_lang_display_name)
 
     def return_to_main_content(self):
         """Return to the main content frame."""

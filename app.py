@@ -21,7 +21,7 @@ class App(ctk.CTk):
         self.settings_model = SettingsModel()  
         self.email_model = EmailModel()
         self.formatter_model = FormatterModel()
-        self.material_view_model = MaterialsViewModel()
+        self.material_view_model = MaterialsViewModel(app_instance=self)
 
         self.settings_model.load()
 
@@ -29,7 +29,7 @@ class App(ctk.CTk):
         self.texts = LANGUAGES[self.current_language_code]
 
         self.title(self.texts.get("app_title", "NC Renamer"))
-        self.geometry("300x450")
+        self.geometry("350x450")
 
         ctk.set_appearance_mode(self.settings_model.settings.get("appearance_mode", "System"))
 
@@ -62,7 +62,7 @@ class App(ctk.CTk):
         )
 
         # Musíte předat ViewModel, aby měl materials_frame přístup k datům
-        self.materials_view_model = MaterialsViewModel()
+        self.materials_view_model = MaterialsViewModel(app_instance=self)
         self.materials_frame = MaterialsFrame(
             master=self,
             app_instance=self,
