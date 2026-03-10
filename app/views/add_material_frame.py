@@ -11,7 +11,7 @@ class AddMaterialFrame(ctk.CTkFrame):
         self.view_model = view_model
         self.app_instance = app_instance
         self.texts = texts or {}
-
+        
         # TOP
         title = ctk.CTkLabel(self, text="Přidat materiál", font=("Arial", 18))
         title.pack(pady=10)
@@ -28,11 +28,16 @@ class AddMaterialFrame(ctk.CTkFrame):
         buttons_frame = ctk.CTkFrame(self)
         buttons_frame.pack(pady=10)
         
-        add_btn = ctk.CTkButton(buttons_frame, text="Přidat")
+        add_btn = ctk.CTkButton(buttons_frame, text="Přidat", command=self.add_material)
         add_btn.pack(side="left", padx=10)
 
         add_btn = ctk.CTkButton(buttons_frame, text="Odstranit")
         add_btn.pack(side="left")
+
+        flash_message_frame = ctk.CTkFrame(self)
+        flash_message_frame.pack()        
+        self.flash_label = ctk.CTkLabel(flash_message_frame, text="")
+        self.flash_label.pack(side="bottom")
 
         # MIDDLE (expand)
         tree_frame = ctk.CTkFrame(self)
@@ -80,3 +85,24 @@ class AddMaterialFrame(ctk.CTkFrame):
 
         for row in content:
             self.tree.insert("", "end", values=(row[0], row[1]))
+
+    def add_material(self):
+        incorrect = self.incorrect_entry.get()
+        correct = self.correct_entry.get()
+
+        success, message = self.view_model.add_material(incorrect, correct)
+
+        if success:
+            self.show_flash(message, "green")
+            self.update_treeview_display()
+            self.incorrect_entry.delete(0, "end")
+            self.correct_entry.delete(0, "end")
+
+        else:
+            self.show_flash(message, "red")
+    
+    def show_flash(self, message, color="green"):
+        "Show flash message"
+        self.flash_label.configure(text=message, text_color=color)
+
+        self.after(2500, lambda: self.flash_label.configure(text=""))

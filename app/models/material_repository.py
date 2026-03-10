@@ -7,12 +7,20 @@ class MaterialRepository:
     def __init__(self):
         self.csv_path = Path("CNCs/materials_new.csv")
 
-    def add_material(self, incorrect: str, correct: str) -> None:
-        "Add a new material to the CSV file."
-        with open(self.csv_path, "a", newline="", encoding="utf-8") as f:
-            writer = csv.writer(f, delimiter=" ")
+    
+    def add_material(self, incorrect: str, correct: str) -> bool:
+        "Add material to cvs file"
+        materials = self.load_materials()
 
-            writer.writerow([incorrect, correct])
+        for row in materials:
+            if row[0] == incorrect:
+                return False
+
+        with open(self.csv_path, "a", newline="", encoding="utf-8") as f:
+            writer = csv.writer(f, delimiter="\t")
+            writer.writerow([incorrect.strip(), correct.strip()])
+
+        return True
 
     def load_materials(self):
         """Load tab-separated CSV as list of lists."""

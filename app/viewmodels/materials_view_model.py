@@ -15,12 +15,17 @@ class MaterialsViewModel:
                 return name
         return "Czech"
     
-    def add_material(self, incorrect, correct):
-        "Add material view model"
+    def add_material(self, incorrect: str, correct: str):
+        "Add materials view model"  
+        incorrect = incorrect.strip()
+        correct = correct.strip()
+
         if not incorrect or not correct:
             return False, "Materiál nesmí být prázdný"
 
-        self.repo.add_material(incorrect, correct)
+        success = self.repo.add_material(incorrect, correct)
+        if not success:
+            return False, "Materiál už existuje"
 
         return True, "Materiál byl přidán"
     

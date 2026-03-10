@@ -1,5 +1,4 @@
 import os
-from pathlib import Path
 import customtkinter as ctk
 
 from app.models.email_model import EmailModel
@@ -36,7 +35,7 @@ class App(ctk.CTk):
         self.texts = LANGUAGES[self.current_language_code]
 
         self.title(self.texts.get("app_title", "NC Renamer"))
-        self.geometry("350x450")
+        self.geometry("350x500")
 
         ctk.set_appearance_mode(self.settings_model.settings.get("appearance_mode", "System"))
 
