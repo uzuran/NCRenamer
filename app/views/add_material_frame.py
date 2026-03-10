@@ -31,7 +31,7 @@ class AddMaterialFrame(ctk.CTkFrame):
         add_btn = ctk.CTkButton(buttons_frame, text="Přidat", command=self.add_material)
         add_btn.pack(side="left", padx=10)
 
-        add_btn = ctk.CTkButton(buttons_frame, text="Odstranit")
+        add_btn = ctk.CTkButton(buttons_frame, text="Odstranit", command=self.remove_selected_material)
         add_btn.pack(side="left")
 
         flash_message_frame = ctk.CTkFrame(self)
@@ -87,6 +87,7 @@ class AddMaterialFrame(ctk.CTkFrame):
             self.tree.insert("", "end", values=(row[0], row[1]))
 
     def add_material(self):
+        "Add material"
         incorrect = self.incorrect_entry.get()
         correct = self.correct_entry.get()
 
@@ -100,6 +101,24 @@ class AddMaterialFrame(ctk.CTkFrame):
 
         else:
             self.show_flash(message, "red")
+
+    def remove_selected_material(self):
+        "Remove selected material"
+        selected = self.tree.selection()
+
+        if not selected:
+            self.show_flash("No material selected", "red")
+            return
+
+        item = self.tree.item(selected[0])
+        incorrect_material = item["values"][0]
+
+        success, message = self.view_model.remove_material(incorrect_material)
+
+        if success:
+            self.show_flash(message, "green")
+            self.update_treeview_display()
+
     
     def show_flash(self, message, color="green"):
         "Show flash message"

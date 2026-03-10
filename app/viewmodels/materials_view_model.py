@@ -29,6 +29,20 @@ class MaterialsViewModel:
 
         return True, "Materiál byl přidán"
     
+    def remove_material(self, incorrect: str):
+        "Remove material view model"
+        incorrect = incorrect.strip()
+
+        if not incorrect:
+            return False, "Nebyl vybrán materiál"
+
+        success = self.repo.delete_material(incorrect)
+
+        if not success:
+            return False, "Materiál nebyl nalezen"
+
+        return True, "Materiál byl odstraněn"
+    
     def get_materials(self):
         "Get materials from model"
         return self.repo.load_materials()

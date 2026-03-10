@@ -21,6 +21,27 @@ class MaterialRepository:
             writer.writerow([incorrect.strip(), correct.strip()])
 
         return True
+    
+
+    def delete_material(self, incorrect: str) -> bool:
+
+        incorrect = incorrect.strip()
+
+        materials = self.load_materials()
+
+        new_materials = [
+            row for row in materials
+            if row[0].strip() != incorrect
+        ]
+
+        if len(new_materials) == len(materials):
+            return False
+
+        with open(self.csv_path, "w", newline="", encoding="utf-8") as f:
+            writer = csv.writer(f, delimiter="\t")
+            writer.writerows(new_materials)
+
+        return True
 
     def load_materials(self):
         """Load tab-separated CSV as list of lists."""
