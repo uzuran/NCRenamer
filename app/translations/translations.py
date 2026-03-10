@@ -2,6 +2,8 @@
 
 # Slovník pro češtinu
 cs = {
+    "remove_material": "Odstranit materiál",
+    "add_material": "Přidat materiál",
     "number_of_bugs": "Počet nahlášených bugů",
     "app_title": "NC Formatter",
     "select_nc_files": "Vyberte NC soubory",
@@ -31,6 +33,8 @@ cs = {
 
 # Slovník pro angličtinu
 en = {
+    "remove_material": "Remove material",
+    "add_material": "Add material",
     "number_of_bugs": "Number of bugs",
     "app_title": "NC Formatter",
     "select_nc_files": "Select NC files",

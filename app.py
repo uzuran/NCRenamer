@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 import customtkinter as ctk
 
 from app.models.email_model import EmailModel
@@ -10,6 +11,9 @@ from app.views.settings_frame import SettingsFrame
 from app.translations.translations import LANGUAGES
 from app.views.materials_frame import MaterialsFrame
 from app.viewmodels.materials_view_model import MaterialsViewModel
+from app.models.material_repository import MaterialRepository
+from app.views.add_material_frame import AddMaterialFrame
+
 
 from app.models.settings_model import SettingsModel
 
@@ -21,7 +25,10 @@ class App(ctk.CTk):
         self.settings_model = SettingsModel()  
         self.email_model = EmailModel()
         self.formatter_model = FormatterModel()
-        self.material_view_model = MaterialsViewModel(app_instance=self)
+    
+        self.material_repo = MaterialRepository()
+        
+        self.material_view_model = MaterialsViewModel(app_instance=self, repo=self.material_repo)
 
         self.settings_model.load()
 
@@ -61,12 +68,18 @@ class App(ctk.CTk):
             texts=self.texts,
         )
 
-        # Musíte předat ViewModel, aby měl materials_frame přístup k datům
-        self.materials_view_model = MaterialsViewModel(app_instance=self)
+        self.materials_view_model = MaterialsViewModel(app_instance=self, repo=self.material_repo)
         self.materials_frame = MaterialsFrame(
             master=self,
             app_instance=self,
             view_model=self.material_view_model,
+            texts=self.texts,
+        )
+
+        self.add_material_frame = AddMaterialFrame(
+            master=self,
+            view_model=self.materials_view_model,
+            app_instance=self
         )
 
         self.show_main_content()
@@ -84,7 +97,6 @@ class App(ctk.CTk):
             self.materials_frame.update_texts(self.texts)
 
     def show_main_content(self):
-        
         self._hide_all_frames()
         self.main_frame.pack(fill="both", expand=True)
 
@@ -95,17 +107,16 @@ class App(ctk.CTk):
     def show_materials_content(self):
         self._hide_all_frames()
         # get loaded CSV directly
-        processed_content = self.materials_view_model.nc_files  
+        processed_content = self.materials_view_model.get_materials()
         self.materials_frame.update_treeview_display(processed_content)
         self.materials_frame.pack(fill="both", expand=True)
-
-        # Aktualizace MaterialsFrame s daty z ViewModel
-        self.materials_frame.update_treeview_display(processed_content)
-
-        self.materials_frame.pack(fill="both", expand=True)
+    
+    def show_add_materials_content(self):
+        self._hide_all_frames()
+        self.add_material_frame.pack(fill="both", expand=True)
         
     def _hide_all_frames(self):
-        for frame in (self.main_frame, self.settings_frame, self.materials_frame):
+        for frame in (self.main_frame, self.settings_frame, self.materials_frame, self.add_material_frame):
             frame.pack_forget()
 
 

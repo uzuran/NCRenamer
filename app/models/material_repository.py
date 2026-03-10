@@ -1,0 +1,30 @@
+from pathlib import Path
+import csv
+
+
+class MaterialRepository:
+    "Material repository for managing materials stored in a CSV file."
+    def __init__(self):
+        self.csv_path = Path("CNCs/materials_new.csv")
+
+    def add_material(self, incorrect: str, correct: str) -> None:
+        "Add a new material to the CSV file."
+        with open(self.csv_path, "a", newline="", encoding="utf-8") as f:
+            writer = csv.writer(f, delimiter=" ")
+
+            writer.writerow([incorrect, correct])
+
+    def load_materials(self):
+        """Load tab-separated CSV as list of lists."""
+        if not self.csv_path.exists():
+            print(f"CSV file not found at {self.csv_path}")
+            return []
+
+        try:
+            with open(self.csv_path, "r", encoding="utf-8-sig") as f:
+                reader = csv.reader(f, delimiter="\t")
+                return [row for row in reader if len(row) >= 2]  # only valid rows
+        except Exception as e:
+            print(f"Error loading CSV: {e}")
+            return []
+        

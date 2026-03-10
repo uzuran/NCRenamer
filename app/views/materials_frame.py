@@ -20,14 +20,14 @@ class MaterialsFrame(ctk.CTkFrame):
         buttons_frame.pack(anchor="n", pady=10)
 
         self.remove_material_button = ctk.CTkButton(
-            buttons_frame, text="Remove material", width=100, height=30
+            buttons_frame, text=self.texts.get("remove_material", "Remove material"), width=100, height=30
         )
-        self.remove_material_button.pack(side="left", padx=5)
+        self.remove_material_button.pack(side="left", padx=10)
 
         self.add_material_button = ctk.CTkButton(
-            buttons_frame, text="Add material", width=100, height=30
+            buttons_frame, text=self.texts.get("add_material", "Add material"), width=100, height=30, command=self.open_add_materials_window
         )
-        self.add_material_button.pack(side="left", padx=5)
+        self.add_material_button.pack(side="left")
 
         # ─── MIDDLE: TREEVIEW IN ITS OWN FRAME ─────────────────────────
         tree_frame = ctk.CTkFrame(self)
@@ -59,18 +59,19 @@ class MaterialsFrame(ctk.CTkFrame):
             text_color="black",
             command=self.return_to_main_content,
         )
-        self.back_button.pack(pady=10, padx=25, fill="x", side="bottom")
+        self.back_button.pack(pady=10, padx=25, fill="x")
 
     def return_to_main_content(self):
         if self.app_instance:
             self.app_instance.show_main_content()
 
     def update_treeview_display(self, content: Optional[List[List[str]]] = None):
+        "Update the treeview with the provided content or reload from the view model."
         for row in self.tree.get_children():
             self.tree.delete(row)
 
         if content is None:
-            content = self.view_model.nc_files
+            content = self.view_model.get_materials()
 
         for row in content:
             self.tree.insert("", "end", values=(row[0], row[1]))
@@ -79,6 +80,12 @@ class MaterialsFrame(ctk.CTkFrame):
     def update_texts(self, new_texts: dict):
         """Update the texts in the settings frame."""
         self.texts = new_texts
+        self.remove_material_button.configure(
+            text=self.texts.get("remove_material", "Remove material")
+        )
+        self.add_material_button.configure(
+            text=self.texts.get("add_material", "Add material")
+        )
         self.back_button.configure(text=self.texts.get("back_button", "Back"))
         current_lang_name = (
             self.view_model.get_current_language_name(LANGUAGE_NAMES)
@@ -91,3 +98,8 @@ class MaterialsFrame(ctk.CTkFrame):
         """Change the application language."""
         if self.view_model:
             self.view_model.change_language(new_lang_display_name)
+
+    def open_add_materials_window(self):
+        """Opens the SettingsFrame (or switches view)."""
+        if self.app_instance:
+            self.app_instance.show_add_materials_content()
