@@ -23,18 +23,7 @@ class FormatterModel:
         self.cons: Console = Console()
 
     def get_nc_files(self, file_path: Path) -> list[Path]:
-        """
-        Return all `.NC` files in the given directory.
 
-        Args:
-            file_path (Path): Path to the directory containing NC files.
-
-        Returns:
-            list[Path]: List of `.NC` file paths.
-
-        Raises:
-            SystemExit: If the provided path is invalid or not a directory.
-        """
         if not file_path.exists() or not file_path.is_dir():
             self.cons.log(
                 f"Directory {file_path} does not exist or is not a directory.",
@@ -42,7 +31,7 @@ class FormatterModel:
             )
             sys.exit(1)
 
-        return [file for file in file_path.iterdir() if file.suffix.upper() == ".NC"]
+        return list(file_path.glob("*.NC"))
 
     def access_line_4(self, nc_file: Path) -> str | None:
         """
@@ -133,3 +122,4 @@ class FormatterModel:
             style="bold red",
         )
         return False
+    

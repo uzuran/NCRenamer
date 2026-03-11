@@ -2,6 +2,7 @@
 
 # Slovník pro češtinu
 cs = {
+    "unselect_files": "Zrušit vybrané soubory",
     "remove_material": "Odstranit materiál",
     "add_material": "Přidat materiál",
     "number_of_bugs": "Počet nahlášených bugů",
@@ -33,6 +34,7 @@ cs = {
 
 # Slovník pro angličtinu
 en = {
+    "unselect_files": "Unselect files",
     "remove_material": "Remove material",
     "add_material": "Add material",
     "number_of_bugs": "Number of bugs",

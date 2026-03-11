@@ -35,7 +35,7 @@ class App(ctk.CTk):
         self.texts = LANGUAGES[self.current_language_code]
 
         self.title(self.texts.get("app_title", "NC Renamer"))
-        self.geometry("350x500")
+        self.geometry("350x600")
 
         ctk.set_appearance_mode(self.settings_model.settings.get("appearance_mode", "System"))
 

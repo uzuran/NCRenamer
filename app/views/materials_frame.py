@@ -20,7 +20,7 @@ class MaterialsFrame(ctk.CTkFrame):
         buttons_frame.pack(anchor="n", pady=10)
 
         self.remove_material_button = ctk.CTkButton(
-            buttons_frame, text=self.texts.get("remove_material", "Remove material"), width=100, height=30
+            buttons_frame, text=self.texts.get("remove_material", "Remove material"), width=100, height=30, command=self.remove_selected_material
         )
         self.remove_material_button.pack(side="left", padx=10)
 
@@ -28,6 +28,19 @@ class MaterialsFrame(ctk.CTkFrame):
             buttons_frame, text=self.texts.get("add_material", "Add material"), width=100, height=30, command=self.open_add_materials_window
         )
         self.add_material_button.pack(side="left")
+
+        flash_message_frame = ctk.CTkFrame(self)
+        flash_message_frame.pack()        
+        self.flash_label = ctk.CTkLabel(flash_message_frame, text="")
+        self.flash_label.pack(side="bottom")
+        
+        #Search input
+        self.search_entry = ctk.CTkEntry(
+        self,
+        placeholder_text="Search material..."
+        )
+        self.search_entry.pack(padx=10, pady=5, fill="x")
+        self.search_entry.bind("<KeyRelease>", self.search_material)
 
         # ─── MIDDLE: TREEVIEW IN ITS OWN FRAME ─────────────────────────
         tree_frame = ctk.CTkFrame(self)
@@ -93,6 +106,42 @@ class MaterialsFrame(ctk.CTkFrame):
             else "Czech"
         )
         self.language_optionmenu.set(current_lang_name)
+    
+    def remove_selected_material(self):
+        "Remove selected material"
+        selected = self.tree.selection()
+
+        if not selected:
+            self.show_flash("No material selected", "red")
+            return
+
+        item = self.tree.item(selected[0])
+        incorrect_material = item["values"][0]
+
+        success, message = self.view_model.remove_material(incorrect_material)
+
+        if success:
+            self.show_flash(message, "green")
+            self.update_treeview_display()
+
+    def search_material(self, event=None):
+        "Function for search materials in treeview"
+        query = self.search_entry.get().lower()
+
+        materials = self.view_model.get_materials()
+
+        filtered = [
+            row for row in materials
+            if row[0].lower().startswith(query)
+        ]
+
+        self.update_treeview_display(filtered)
+
+    def show_flash(self, message, color="green"):
+        "Show flash message"
+        self.flash_label.configure(text=message, text_color=color)
+
+        self.after(2500, lambda: self.flash_label.configure(text=""))
 
     def change_language(self, new_lang_display_name: str):
         """Change the application language."""

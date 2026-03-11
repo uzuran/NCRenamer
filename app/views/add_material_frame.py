@@ -4,7 +4,7 @@ from typing import Optional, List
 
 
 class AddMaterialFrame(ctk.CTkFrame):
-
+    "Add material frame class"
     def __init__(self, texts=None, master=None, view_model=None, app_instance=None, **kwargs):
         super().__init__(master, **kwargs)
 
@@ -13,7 +13,7 @@ class AddMaterialFrame(ctk.CTkFrame):
         self.texts = texts or {}
         
         # TOP
-        title = ctk.CTkLabel(self, text="Přidat materiál", font=("Arial", 18))
+        title = ctk.CTkLabel(self, text=self.texts.get("add_material", "Add material"), font=("Arial", 18))
         title.pack(pady=10)
 
         inputs_frame = ctk.CTkFrame(self)
@@ -28,10 +28,10 @@ class AddMaterialFrame(ctk.CTkFrame):
         buttons_frame = ctk.CTkFrame(self)
         buttons_frame.pack(pady=10)
         
-        add_btn = ctk.CTkButton(buttons_frame, text="Přidat", command=self.add_material)
+        add_btn = ctk.CTkButton(buttons_frame, text=self.texts.get("add_material", "Add material"), command=self.add_material)
         add_btn.pack(side="left", padx=10)
 
-        add_btn = ctk.CTkButton(buttons_frame, text="Odstranit", command=self.remove_selected_material)
+        add_btn = ctk.CTkButton(buttons_frame, text=self.texts.get("remove_material", "Remove material"), command=self.remove_selected_material)
         add_btn.pack(side="left")
 
         flash_message_frame = ctk.CTkFrame(self)
@@ -73,10 +73,12 @@ class AddMaterialFrame(ctk.CTkFrame):
         self.back_button.pack(pady=10, padx=25, fill="x")
 
     def return_to_main_content(self):
+        "Function to allow user return back to the main content"
         if self.app_instance:
             self.app_instance.show_materials_content()
 
     def update_treeview_display(self, content: Optional[List[List[str]]] = None):
+        "Update treeview display"
         for row in self.tree.get_children():
             self.tree.delete(row)
 

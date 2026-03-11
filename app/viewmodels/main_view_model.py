@@ -36,3 +36,10 @@ class MainViewModel:
         """Metoda, která říká View (MainFrame), aby se aktualizoval."""
         if self.main_frame_instance:
             self.main_frame_instance.update_email_counter_label()
+
+
+    def unselect_files(self) -> int:
+        """Clear selected NC files"""
+        removed_count = len(self.file_list)
+        self.file_list.clear()
+        return removed_count

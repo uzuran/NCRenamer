@@ -76,6 +76,17 @@ class MainFrame(
         )
         self.rename_btn.pack(pady=(0, 10))
 
+        # Unselect button
+        self.rename_btn = ctk.CTkButton(
+            self, text=self.texts.get("unselect_files", "Unselect files"), command=self.unselect_selected_nc
+        )
+        self.rename_btn.pack(pady=(0, 10))
+
+        flash_message_frame = ctk.CTkFrame(self)
+        flash_message_frame.pack()        
+        self.flash_label = ctk.CTkLabel(flash_message_frame, text="")
+        self.flash_label.pack(side="bottom")
+
         # Output box.
         self.output_box = ctk.CTkTextbox(self, height=150, width=400, state="disabled")
         self.output_box.pack(pady=5)
@@ -212,3 +223,24 @@ class MainFrame(
             self.email_counter_label.configure(
                 text=f"{self.texts.get('number_of_bugs', 'Number of bugs')} {self.vm.email_model.email_counter}"
             )
+
+    def unselect_selected_nc(self):
+        if not self.vm.file_list:
+            self.show_flash("No files selected", "red")
+            return
+
+        removed_count = self.vm.unselect_files()
+
+        self.count_label.configure(
+            text=self.texts.get("selected_files", "Selected: {} files").format(0)
+        )
+
+        self.show_flash(f"{removed_count} files unselected", "green")
+
+    
+    def show_flash(self, message, color="green"):
+        "Show flash message"
+        self.flash_label.configure(text=message, text_color=color)
+
+        self.after(2500, lambda: self.flash_label.configure(text=""))
+        
