@@ -29,9 +29,10 @@ class SettingsFrame(ctk.CTkFrame):
             self.view_model = SettingsViewModel(app_instance, app_settings)
 
         self.password_vm = PasswordViewModel(
-        main_view_model=self.app_instance.main_view_model if self.app_instance else None,
-        password_model=PasswordModel(CORRECT_PASSWORD),
-)
+            main_view_model=self.app_instance.main_view_model if self.app_instance else None,
+            password_model=PasswordModel(CORRECT_PASSWORD),
+            texts=self.texts,
+        )
 
         self.setting_label = ctk.CTkLabel(
             self, text=self.texts.get("appearance_mode_setting", "Appearance Mode"), anchor="w"
@@ -97,6 +98,7 @@ class SettingsFrame(ctk.CTkFrame):
             text=self.texts.get("language_setting", "Language")
         )
         self.back_button.configure(text=self.texts.get("back_button", "Back"))
+        self.password_vm.update_texts(self.texts)
         current_lang_name = (
             self.view_model.get_current_language_name(LANGUAGE_NAMES)
             if self.view_model

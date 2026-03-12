@@ -26,13 +26,16 @@ class App(ctk.CTk):
         self.formatter_model = FormatterModel()
     
         self.material_repo = MaterialRepository()
-        
-        self.material_view_model = MaterialsViewModel(app_instance=self, repo=self.material_repo)
 
         self.settings_model.load()
 
         self.current_language_code = self.settings_model.settings.get("language", "cs")
         self.texts = LANGUAGES[self.current_language_code]
+        self.materials_view_model = MaterialsViewModel(
+            app_instance=self,
+            repo=self.material_repo,
+            texts=self.texts,
+        )
 
         self.title(self.texts.get("app_title", "NC Renamer"))
         self.geometry("350x600")
@@ -67,18 +70,18 @@ class App(ctk.CTk):
             texts=self.texts,
         )
 
-        self.materials_view_model = MaterialsViewModel(app_instance=self, repo=self.material_repo)
         self.materials_frame = MaterialsFrame(
             master=self,
             app_instance=self,
-            view_model=self.material_view_model,
+            view_model=self.materials_view_model,
             texts=self.texts,
         )
 
         self.add_material_frame = AddMaterialFrame(
             master=self,
             view_model=self.materials_view_model,
-            app_instance=self
+            app_instance=self,
+            texts=self.texts,
         )
 
         self.show_main_content()
@@ -90,10 +93,12 @@ class App(ctk.CTk):
             self.settings_model.set("language", lang_code)
             self.settings_model.save()
 
-            self.title(self.texts.get("app_title", "NC Formatter"))
+            self.title(self.texts.get("app_title", "NC Renamer"))
+            self.materials_view_model.update_texts(self.texts)
             self.main_frame.update_texts(self.texts)
             self.settings_frame.update_texts(self.texts)
             self.materials_frame.update_texts(self.texts)
+            self.add_material_frame.update_texts(self.texts)
 
     def show_main_content(self):
         self._hide_all_frames()

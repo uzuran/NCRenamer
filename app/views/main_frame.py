@@ -77,10 +77,10 @@ class MainFrame(
         self.rename_btn.pack(pady=(0, 10))
 
         # Unselect button
-        self.rename_btn = ctk.CTkButton(
+        self.unselect_btn = ctk.CTkButton(
             self, text=self.texts.get("unselect_files", "Unselect files"), command=self.unselect_selected_nc
         )
-        self.rename_btn.pack(pady=(0, 10))
+        self.unselect_btn.pack(pady=(0, 10))
 
         flash_message_frame = ctk.CTkFrame(self)
         flash_message_frame.pack()        
@@ -111,7 +111,10 @@ class MainFrame(
     ):
         files = filedialog.askopenfilenames(
             title=self.texts.get("select_nc_files", "Select NC files"),
-            filetypes=[("NC soubory", "*.NC"), ("Všechny soubory", "*.*")],
+            filetypes=[
+                (self.texts.get("file_dialog_nc_files", "NC files"), "*.NC"),
+                (self.texts.get("file_dialog_all_files", "All files"), "*.*"),
+            ],
         )
         self.vm.select_files(files)
         self.count_label.configure(
@@ -218,6 +221,7 @@ class MainFrame(
         )
         self.select_btn.configure(text=self.texts.get("select_nc_files", "Select NC files"))
         self.rename_btn.configure(text=self.texts.get("rename_nc_files", "Rename NC files"))
+        self.unselect_btn.configure(text=self.texts.get("unselect_files", "Unselect files"))
         self.report_bug_btn.configure(text=self.texts.get("report_bug", "Report bug"))
         if self.email_counter_label is not None:
             self.email_counter_label.configure(
@@ -226,7 +230,7 @@ class MainFrame(
 
     def unselect_selected_nc(self):
         if not self.vm.file_list:
-            self.show_flash("No files selected", "red")
+            self.show_flash(self.texts.get("no_file_selected"), "red")
             return
 
         removed_count = self.vm.unselect_files()
@@ -235,7 +239,10 @@ class MainFrame(
             text=self.texts.get("selected_files", "Selected: {} files").format(0)
         )
 
-        self.show_flash(f"{removed_count} files unselected", "green")
+        self.show_flash(
+            self.texts.get("files_unselected", "Files unselected: {}").format(removed_count),
+            "green",
+        )
 
     
     def show_flash(self, message, color="green"):

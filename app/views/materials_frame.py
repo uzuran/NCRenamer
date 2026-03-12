@@ -37,7 +37,7 @@ class MaterialsFrame(ctk.CTkFrame):
         #Search input
         self.search_entry = ctk.CTkEntry(
         self,
-        placeholder_text="Search material..."
+        placeholder_text=self.texts.get("search_placeholder", "Enter search material...")
         )
         self.search_entry.pack(padx=10, pady=5, fill="x")
         self.search_entry.bind("<KeyRelease>", self.search_material)
@@ -52,8 +52,15 @@ class MaterialsFrame(ctk.CTkFrame):
             show="headings",
             height=15
         )
-        self.tree.heading("Incorrect Material", text="Incorrect Material")
-        self.tree.heading("Correct Material", text="Correct Material")
+        self.tree.heading(
+            "Incorrect Material",
+            text=self.texts.get("incorrect_material", "Incorrect material"),
+        )
+        self.tree.heading(
+            "Correct Material",
+            text=self.texts.get("correct_material", "Correct material"),
+        )
+
         self.tree.column("Incorrect Material", width=150)
         self.tree.column("Correct Material", width=150)
 
@@ -99,6 +106,17 @@ class MaterialsFrame(ctk.CTkFrame):
         self.add_material_button.configure(
             text=self.texts.get("add_material", "Add material")
         )
+        self.search_entry.configure(
+            placeholder_text=self.texts.get("search_placeholder", "Enter search material...")
+        )
+        self.tree.heading(
+            "Incorrect Material",
+            text=self.texts.get("incorrect_material", "Incorrect material"),
+        )
+        self.tree.heading(
+            "Correct Material",
+            text=self.texts.get("correct_material", "Correct material"),
+        )
         self.back_button.configure(text=self.texts.get("back_button", "Back"))
         current_lang_name = (
             self.view_model.get_current_language_name(LANGUAGE_NAMES)
@@ -112,7 +130,10 @@ class MaterialsFrame(ctk.CTkFrame):
         selected = self.tree.selection()
 
         if not selected:
-            self.show_flash("No material selected", "red")
+            self.show_flash(
+                self.texts.get("no_material_selected", "No material selected"),
+                "red",
+            )
             return
 
         item = self.tree.item(selected[0])

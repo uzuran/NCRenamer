@@ -13,26 +13,40 @@ class AddMaterialFrame(ctk.CTkFrame):
         self.texts = texts or {}
         
         # TOP
-        title = ctk.CTkLabel(self, text=self.texts.get("add_material", "Add material"), font=("Arial", 18))
-        title.pack(pady=10)
+        self.title = ctk.CTkLabel(self, text=self.texts.get("add_material", "Add material"), font=("Arial", 18))
+        self.title.pack(pady=10)
 
         inputs_frame = ctk.CTkFrame(self)
         inputs_frame.pack(pady=10)
 
-        self.incorrect_entry = ctk.CTkEntry(inputs_frame, placeholder_text="Incorrect material")
+        self.incorrect_entry = ctk.CTkEntry(
+            inputs_frame,
+            placeholder_text=self.texts.get("incorrect_material", "Incorrect material"),
+        )
         self.incorrect_entry.pack(side="left", padx=10)
 
-        self.correct_entry = ctk.CTkEntry(inputs_frame, placeholder_text="Correct material")
+        self.correct_entry = ctk.CTkEntry(
+            inputs_frame,
+            placeholder_text=self.texts.get("correct_material", "Correct material"),
+        )
         self.correct_entry.pack(side="left")
 
         buttons_frame = ctk.CTkFrame(self)
         buttons_frame.pack(pady=10)
         
-        add_btn = ctk.CTkButton(buttons_frame, text=self.texts.get("add_material", "Add material"), command=self.add_material)
-        add_btn.pack(side="left", padx=10)
+        self.add_button = ctk.CTkButton(
+            buttons_frame,
+            text=self.texts.get("add_material", "Add material"),
+            command=self.add_material,
+        )
+        self.add_button.pack(side="left", padx=10)
 
-        add_btn = ctk.CTkButton(buttons_frame, text=self.texts.get("remove_material", "Remove material"), command=self.remove_selected_material)
-        add_btn.pack(side="left")
+        self.remove_button = ctk.CTkButton(
+            buttons_frame,
+            text=self.texts.get("remove_material", "Remove material"),
+            command=self.remove_selected_material,
+        )
+        self.remove_button.pack(side="left")
 
         flash_message_frame = ctk.CTkFrame(self)
         flash_message_frame.pack()        
@@ -49,8 +63,14 @@ class AddMaterialFrame(ctk.CTkFrame):
             show="headings",
         )
 
-        self.tree.heading("Incorrect Material", text="Incorrect Material")
-        self.tree.heading("Correct Material", text="Correct Material")
+        self.tree.heading(
+            "Incorrect Material",
+            text=self.texts.get("incorrect_material", "Incorrect material"),
+        )
+        self.tree.heading(
+            "Correct Material",
+            text=self.texts.get("correct_material", "Correct material"),
+        )
 
         self.tree.column("Incorrect Material", width=150)
         self.tree.column("Correct Material", width=150)
@@ -109,7 +129,7 @@ class AddMaterialFrame(ctk.CTkFrame):
         selected = self.tree.selection()
 
         if not selected:
-            self.show_flash("No material selected", "red")
+            self.show_flash(self.texts.get("no_material_selected", "No material selected"), "red")
             return
 
         item = self.tree.item(selected[0])
@@ -127,3 +147,25 @@ class AddMaterialFrame(ctk.CTkFrame):
         self.flash_label.configure(text=message, text_color=color)
 
         self.after(2500, lambda: self.flash_label.configure(text=""))
+
+    def update_texts(self, new_texts: dict):
+        """Aktualizuje texty všech widgetů ve framu."""
+        self.texts = new_texts
+        self.title.configure(text=self.texts.get("add_material", "Add material"))
+        self.incorrect_entry.configure(
+            placeholder_text=self.texts.get("incorrect_material", "Incorrect material")
+        )
+        self.correct_entry.configure(
+            placeholder_text=self.texts.get("correct_material", "Correct material")
+        )
+        self.add_button.configure(text=self.texts.get("add_material", "Add material"))
+        self.remove_button.configure(text=self.texts.get("remove_material", "Remove material"))
+        self.tree.heading(
+            "Incorrect Material",
+            text=self.texts.get("incorrect_material", "Incorrect material"),
+        )
+        self.tree.heading(
+            "Correct Material",
+            text=self.texts.get("correct_material", "Correct material"),
+        )
+        self.back_button.configure(text=self.texts.get("back_button", "Back"))

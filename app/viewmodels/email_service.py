@@ -7,9 +7,14 @@ from app.models.email_model import EmailModel
 
 class EmailBugTrackerViewModel:
     """Initialize the ViewModel with the model and console for UI output."""
-    def __init__(self, model:EmailModel, console: Console):
+    def __init__(self, model:EmailModel, console: Console, texts=None):
         self.model = model
         self.console = console
+        self.texts = texts or {}
+
+    def update_texts(self, texts: dict):
+        """Store current UI texts for translated dialogs."""
+        self.texts = texts or {}
 
     @property
     def counter(self):
@@ -22,9 +27,11 @@ class EmailBugTrackerViewModel:
         try:
             self.model.save_counter()
         except (IOError, OSError) as e:
-         messagebox.showerror(
-            title="Saving Error",
-            message=f"Failed to save the counter. Error: {e}"
-        )
+            messagebox.showerror(
+                title=self.texts.get("saving_error_title", "Saving Error"),
+                message=self.texts.get(
+                    "saving_error_message", "Failed to save the counter. Error: {}"
+                ).format(e),
+            )
          
             
