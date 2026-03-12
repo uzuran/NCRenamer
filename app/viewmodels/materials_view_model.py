@@ -1,56 +1,61 @@
-from pathlib import Path
-import csv
+"""Materials view model"""
 
 class MaterialsViewModel:
-    """ViewModel pro MaterialsFrame."""
-    def __init__(self, formatter_model=None, main_frame_instance=None):
-        self.materials_content = ""
-        self.formatter = formatter_model
-        self.main_frame_instance = main_frame_instance
-        self.nc_files = self.load_nc_files()
+    """Simple ViewModel to load CSV data for materials."""
 
-    def load_nc_files(self):
-        """Load NC files from a CSV file."""
-        path = Path("CNCs/materials_new.csv")
-        if path.exists():
-            try:
-                with open(path, "r", encoding="utf-8") as f:
-                    reader = csv.reader(f)
-                    return list(reader)
-            except Exception as e:
-                print(f"Error while loading file: {e}")
-                return []
-        return []
-    
+    def __init__(self, app_instance, repo, texts=None):
+        self.app = app_instance
+        self.repo = repo
+        self.texts = texts or {}
 
-    def process_data(self, data):
-        """Process data using the formatter model."""
-        processed_data = self.formatter.format(data)
-        self.nc_files.append([processed_data])
-        self.main_frame_instance.update_output(processed_data)
-        return processed_data
+    def update_texts(self, texts: dict):
+        """Store the current UI texts for translated messages."""
+        self.texts = texts or {}
 
-    def get_processed_nc_files(self):
-        """Převede historii ze seznamu na formátovaný text."""
-        if self.nc_files:
-            return "\n".join([", ".join(row) for row in self.nc_files])
-        return ""
+    def get_current_language_name(self, language_names: dict) -> str:
+        """Get the display name of the current language."""
+        code = self.app.current_language_code
+        for name, lang_code in language_names.items():
+            if lang_code == code:
+                return name
+        return "Czech"
 
-    def set_content(
-        self, content: str
-    ):  # TODO: Missing function or method docstringPylintC0116:missing-function-docstring
-        self.materials_content = content
+    def change_language(self, new_lang_display_name: str):
+        """Change the application language."""
+        from app.translations.translations import LANGUAGE_NAMES
 
-    def search(
-        self, query: str
-    ) -> str:  # TODO: Missing function or method docstringPylintC0116:missing-function-docstring
-        query = query.strip().lower()
-        if not query:
-            return self.materials_content
+        new_lang_code = LANGUAGE_NAMES.get(new_lang_display_name)
+        if new_lang_code:
+            self.app.set_language(new_lang_code)
 
-        filtered_lines = [
-            line
-            for line in self.materials_content.splitlines()
-            if query in line.lower()
-        ]
-        return "\n".join(filtered_lines)
+    def add_material(self, incorrect: str, correct: str):
+        """Add a material mapping."""
+        incorrect = incorrect.strip()
+        correct = correct.strip()
+
+        if not incorrect or not correct:
+            return False, self.texts.get("no_empty", "Material cannot be empty.")
+
+        success = self.repo.add_material(incorrect, correct)
+        if not success:
+            return False, self.texts.get("material_exists", "Material already exists")
+
+        return True, self.texts.get("material_added", "Material added")
+
+    def remove_material(self, incorrect: str):
+        """Remove a material mapping."""
+        incorrect = incorrect.strip()
+
+        if not incorrect:
+            return False, self.texts.get("no_material_selected", "No material selected")
+
+        success = self.repo.delete_material(incorrect)
+
+        if not success:
+            return False, self.texts.get("material_not_found", "Material not found")
+
+        return True, self.texts.get("material_removed", "Material removed")
+
+    def get_materials(self):
+        "Get materials from model"
+        return self.repo.load_materials()

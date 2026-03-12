@@ -40,3 +40,5 @@ email_counter.json
 
 # Images & assets (pokud se generují dynamicky)
 assets/generated/
+
+app.spec

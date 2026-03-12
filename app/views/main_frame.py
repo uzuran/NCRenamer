@@ -3,6 +3,7 @@ from tkinter import messagebox, filedialog
 from rich.console import Console
 import webbrowser
 from PIL import Image
+from app.utils.resource_path import resource_path
 
 cons = Console()
 
@@ -10,11 +11,11 @@ cons = Console()
 class MainFrame(
     ctk.CTkFrame
 ):
-    def __init__(self, master, viewmodel, texts, app_instance, **kwargs):
+    def __init__(self, master=None, viewmodel=None, texts=None, app_instance=None, **kwargs):
         super().__init__(master, **kwargs)
 
         self.vm = viewmodel 
-        self.texts = texts
+        self.texts = texts or {}
         self.app_instance = app_instance
         self.email_counter_label = None 
 
@@ -25,7 +26,7 @@ class MainFrame(
 
         # History / Materials Button (left corner)
         try:
-            self.history_icon = ctk.CTkImage(Image.open("img/box.png"), size=(24, 24))
+            self.history_icon = ctk.CTkImage(Image.open(resource_path("img/box.png")), size=(24, 24))
         except FileNotFoundError:
             self.history_icon = None
         self.history_materials_btn = ctk.CTkButton(
@@ -39,7 +40,7 @@ class MainFrame(
 
         # Settings Button (right corner)
         try:
-            self.settings_icon = ctk.CTkImage(Image.open("img/setting.png"), size=(24, 24))
+            self.settings_icon = ctk.CTkImage(Image.open(resource_path("img/setting.png")), size=(24, 24))
         except FileNotFoundError:
             self.settings_icon = None  
 
@@ -54,13 +55,13 @@ class MainFrame(
 
         # Rest of your UI (centered below top bar)
         self.count_label = ctk.CTkLabel(
-            self, text=self.texts["selected_files"].format(0)
+            self, text=self.texts.get("selected_files", "Selected: {} files").format(0)
         )
         self.count_label.pack(pady=5)
 
         # File selection button.
         self.select_btn = ctk.CTkButton(
-            self, text=self.texts["select_nc_files"], command=self.select_files
+            self, text=self.texts.get("select_nc_files", "Select NC files"), command=self.select_files
         )
         self.select_btn.pack(pady=(10, 0))
 
@@ -72,37 +73,53 @@ class MainFrame(
         
         # Rename button.
         self.rename_btn = ctk.CTkButton(
-            self, text=self.texts["rename_nc_files"], command=self.rename_files
+            self, text=self.texts.get("rename_nc_files", "Rename NC files"), command=self.rename_files
         )
         self.rename_btn.pack(pady=(0, 10))
+
+        # Unselect button
+        self.unselect_btn = ctk.CTkButton(
+            self, text=self.texts.get("unselect_files", "Unselect files"), command=self.unselect_selected_nc
+        )
+        self.unselect_btn.pack(pady=(0, 10))
+
+        flash_message_frame = ctk.CTkFrame(self)
+        flash_message_frame.pack()        
+        self.flash_label = ctk.CTkLabel(flash_message_frame, text="")
+        self.flash_label.pack(side="bottom")
 
         # Output box.
         self.output_box = ctk.CTkTextbox(self, height=150, width=400, state="disabled")
         self.output_box.pack(pady=5)
         
         # Report bug button.
-        self.reportbug_btn = ctk.CTkButton(
-            self, text=self.texts["report_bug"], command=self.set_email
+        self.report_bug_btn = ctk.CTkButton(
+            self, text=self.texts.get("report_bug", "Report bug"), command=self.set_email
         )
-        self.reportbug_btn.pack(pady=(0, 10))
+        self.report_bug_btn.pack(pady=(0, 10))
 
     def post_init(self):
-        """Inicializuje widgety, které potřebují ViewModel."""
+        """Initialize need it ViewModel."""
         # Report bug counter.
         self.email_counter_label = ctk.CTkLabel(
-            self, text=f"Number of bug reports: {self.vm.email_model.email_counter}")
+            self,
+            text=f"{self.texts.get('number_of_bugs', 'Number of bugs')} {self.vm.email_model.email_counter}",
+        )
         self.email_counter_label.pack(pady=5)
 
     def select_files(
         self,
     ):
         files = filedialog.askopenfilenames(
-            title=self.texts["select_nc_files"],
-            filetypes=[("NC soubory", "*.NC"), ("Všechny soubory", "*.*")],
+            title=self.texts.get("select_nc_files", "Select NC files"),
+            filetypes=[
+                (self.texts.get("file_dialog_nc_files", "NC files"), "*.NC"),
+                (self.texts.get("file_dialog_all_files", "All files"), "*.*"),
+            ],
         )
         self.vm.select_files(files)
         self.count_label.configure(
-            text=self.texts["selected_files"].format(len(self.vm.file_list))
+            text=self.texts.get("selected_files", "Selected: {} files").format(len(self.vm.file_list))
         )
 
     def rename_files(
@@ -116,7 +133,8 @@ class MainFrame(
         total = len(files_to_process)
         if total == 0:
             messagebox.showinfo(
-                title=self.texts["done_title"], message=self.texts["no_files_to_rename"]
+                title=self.texts.get("done_title", "Done"),
+                message=self.texts.get("no_files_to_rename", "No files to rename."),
             )
             return
 
@@ -130,9 +148,9 @@ class MainFrame(
             
             # Update output box
             text = (
-                self.texts["file_modified"].format(name)
+                self.texts.get("file_modified", "Modified: {}").format(name)
                 if changed
-                else self.texts["file_no_change"].format(name)
+                else self.texts.get("file_no_change", "No change: {}").format(name)
             )
             self.output_box.insert("end", f"{text}\n")
             
@@ -151,8 +169,10 @@ class MainFrame(
         
         self.output_box.configure(state="disabled")
         messagebox.showinfo(
-            title=self.texts["done_title"],
-            message=self.texts["done_message"].format(total),
+            title=self.texts.get("done_title", "Done"),
+            message=self.texts.get(
+                "done_message", "Processing complete.\nTotal files: {}"
+            ).format(total),
         )
 
     def set_email(
@@ -161,14 +181,19 @@ class MainFrame(
         self.vm.increment_email_counter()
         if self.email_counter_label is not None:
             self.email_counter_label.configure(
-                text=self.texts["email_count"].format(self.vm.email_model.email_counter)
+                text=self.texts.get(
+                    "email_count", "Number of bug reports: {}"
+                ).format(self.vm.email_model.email_counter)
             )
         try:
             webbrowser.open(self.vm.get_mailto_url())
         except webbrowser.Error:
             messagebox.showerror(
-                title=self.texts["email_error_title"],
-                message=self.texts["email_error_message"],
+                title=self.texts.get("email_error_title", "Error"),
+                message=self.texts.get(
+                    "email_error_message",
+                    "Could not open default email client. Make sure one is configured.",
+                ),
             )
 
     def open_settings_window(self):
@@ -183,12 +208,47 @@ class MainFrame(
     def update_email_counter_label(self):
         """Aktualizuje text popisku počítadla na základě aktuální hodnoty z ViewModelu."""
         if self.email_counter_label is not None:
-            self.email_counter_label.configure(text=f"Number of bug reports: {self.vm.email_model.email_counter}")
+            self.email_counter_label.configure(
+                text=f"{self.texts.get('number_of_bugs', 'Number of bugs')} {self.vm.email_model.email_counter}"
+            )
 
     def update_texts(self, new_texts: dict):
         """Aktualizuje texty všech widgetů ve framu."""
         self.texts = new_texts
-        self.count_label.configure(text=self.texts["selected_files"].format(len(self.vm.file_list)))
-        self.select_btn.configure(text=self.texts["select_nc_files"])
-        self.rename_btn.configure(text=self.texts["rename_nc_files"])
-        self.reportbug_btn.configure(text=self.texts["report_bug"])
+        self.count_label.configure(
+            text=self.texts.get("selected_files", "Selected: {} files").format(
+                len(self.vm.file_list)
+            )
+        )
+        self.select_btn.configure(text=self.texts.get("select_nc_files", "Select NC files"))
+        self.rename_btn.configure(text=self.texts.get("rename_nc_files", "Rename NC files"))
+        self.unselect_btn.configure(text=self.texts.get("unselect_files", "Unselect files"))
+        self.report_bug_btn.configure(text=self.texts.get("report_bug", "Report bug"))
+        if self.email_counter_label is not None:
+            self.email_counter_label.configure(
+                text=f"{self.texts.get('number_of_bugs', 'Number of bugs')} {self.vm.email_model.email_counter}"
+            )
+
+    def unselect_selected_nc(self):
+        if not self.vm.file_list:
+            self.show_flash(self.texts.get("no_file_selected"), "red")
+            return
+
+        removed_count = self.vm.unselect_files()
+
+        self.count_label.configure(
+            text=self.texts.get("selected_files", "Selected: {} files").format(0)
+        )
+
+        self.show_flash(
+            self.texts.get("files_unselected", "Files unselected: {}").format(removed_count),
+            "green",
+        )
+
+    
+    def show_flash(self, message, color="green"):
+        "Show flash message"
+        self.flash_label.configure(text=message, text_color=color)
+
+        self.after(2500, lambda: self.flash_label.configure(text=""))
+        

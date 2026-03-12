@@ -8,6 +8,8 @@ from app.models.email_model import CORRECT_PASSWORD
 
 from app.translations.translations import LANGUAGE_NAMES
 from app.viewmodels.settings_view_model import SettingsViewModel
+from app.utils.resource_path import resource_path
+
 
 
 class SettingsFrame(ctk.CTkFrame):
@@ -24,25 +26,26 @@ class SettingsFrame(ctk.CTkFrame):
 
         self.app_instance = app_instance
         self.texts = texts or {}
-        self.viewmodel = None
+        self.view_model = None
         if app_instance:
-            self.viewmodel = SettingsViewModel(app_instance, app_settings)
+            self.view_model = SettingsViewModel(app_instance, app_settings)
 
         self.password_vm = PasswordViewModel(
-        main_view_model=self.app_instance.main_view_model if self.app_instance else None,
-        password_model=PasswordModel(CORRECT_PASSWORD),
-)
+            main_view_model=self.app_instance.main_view_model if self.app_instance else None,
+            password_model=PasswordModel(CORRECT_PASSWORD),
+            texts=self.texts,
+        )
 
         self.setting_label = ctk.CTkLabel(
             self, text=self.texts.get("appearance_mode_setting", "Appearance Mode"), anchor="w"
         )
         self.setting_label.pack(pady=0, padx=25)
 
-        self.light_icon = ctk.CTkImage(Image.open("img/light-mode.png"), size=(34, 34))
-        self.dark_icon = ctk.CTkImage(Image.open("img/night-mode.png"), size=(34, 34))
-        self.restart_icon = ctk.CTkImage(Image.open("img/restart.png"), size=(24, 24))
+        self.light_icon = ctk.CTkImage(Image.open(resource_path("img/light-mode.png")), size=(34, 34))
+        self.dark_icon = ctk.CTkImage(Image.open(resource_path("img/night-mode.png")), size=(34, 34))
+        self.restart_icon = ctk.CTkImage(Image.open(resource_path("img/restart.png")), size=(24, 24))
 
-        self.color_button = ctk.CTkButton(
+        self.change_color_button = ctk.CTkButton(
             self,
             text="",
             image=self.light_icon,
@@ -50,7 +53,7 @@ class SettingsFrame(ctk.CTkFrame):
             width=100,
             height=30,
         )
-        self.color_button.pack(pady=10, padx=25)
+        self.change_color_button.pack(pady=10, padx=25)
         self.update_button_icon()
 
         self.language_label = ctk.CTkLabel(
@@ -62,8 +65,8 @@ class SettingsFrame(ctk.CTkFrame):
             self, values=list(LANGUAGE_NAMES.keys()), command=self.change_language
         )
         current_lang_name = (
-            self.viewmodel.get_current_language_name(LANGUAGE_NAMES)
-            if self.viewmodel
+            self.view_model.get_current_language_name(LANGUAGE_NAMES)
+            if self.view_model
             else "Czech"
         )
         self.language_optionmenu.set(current_lang_name)
@@ -79,13 +82,13 @@ class SettingsFrame(ctk.CTkFrame):
         )
         self.reset_counter_btn.pack(pady=(20, 10))
         
-        self.close_button = ctk.CTkButton(
+        self.back_button = ctk.CTkButton(
             self,
             text=self.texts.get("back_button", "Back"),
             text_color="black",
             command=self.return_to_main_content,
         )
-        self.close_button.pack(pady=10, padx=25, fill="x", side="bottom")
+        self.back_button.pack(pady=10, padx=25, fill="x", side="bottom")
 
     def update_texts(self, new_texts: dict):
         """Update the texts in the settings frame."""
@@ -96,32 +99,33 @@ class SettingsFrame(ctk.CTkFrame):
         self.language_label.configure(
             text=self.texts.get("language_setting", "Language")
         )
-        self.close_button.configure(text=self.texts.get("back_button", "Back"))
+        self.back_button.configure(text=self.texts.get("back_button", "Back"))
+        self.password_vm.update_texts(self.texts)
         current_lang_name = (
-            self.viewmodel.get_current_language_name(LANGUAGE_NAMES)
-            if self.viewmodel
+            self.view_model.get_current_language_name(LANGUAGE_NAMES)
+            if self.view_model
             else "Czech"
         )
         self.language_optionmenu.set(current_lang_name)
 
     def change_mode_and_save(self):
         """Toggle between light and dark mode and save the preference."""
-        if self.viewmodel:
-            self.viewmodel.toggle_appearance_mode()
+        if self.view_model:
+            self.view_model.toggle_appearance_mode()
             self.update_button_icon()
 
     def update_button_icon(self):
         """Update the icon of the appearance mode button based on the current mode."""
         current_mode = ctk.get_appearance_mode()
         if current_mode == "Dark":
-            self.color_button.configure(image=self.light_icon, text="")
+            self.change_color_button.configure(image=self.light_icon, text="")
         else:
-            self.color_button.configure(image=self.dark_icon, text="")
+            self.change_color_button.configure(image=self.dark_icon, text="")
 
     def change_language(self, new_lang_display_name: str):
         """Change the application language."""
-        if self.viewmodel:
-            self.viewmodel.change_language(new_lang_display_name)
+        if self.view_model:
+            self.view_model.change_language(new_lang_display_name)
 
     def return_to_main_content(self):
         """Return to the main content frame."""
