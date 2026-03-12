@@ -13,17 +13,19 @@ from app.viewmodels.materials_view_model import MaterialsViewModel
 from app.models.material_repository import MaterialRepository
 from app.views.add_material_frame import AddMaterialFrame
 from app.version import APP_NAME, APP_VERSION
+from app.services.update_checker import check_for_updates
+import webbrowser
 
 
 from app.models.settings_model import SettingsModel
 
 
 class App(ctk.CTk):
+    "Main application class for NCRenamer"
     def __init__(self):
         super().__init__()
-
         self.settings_model = SettingsModel()  
-        self.email_model = EmailModel()
+        self.email_model = EmailModel() 
         self.formatter_model = FormatterModel()
     
         self.material_repo = MaterialRepository()
@@ -87,6 +89,10 @@ class App(ctk.CTk):
 
         self.show_main_content()
 
+
+        # update check po startu aplikace
+        self.after(2000, self.check_updates)
+
     def set_language(self, lang_code: str):
         if self.current_language_code != lang_code:
             self.current_language_code = lang_code
@@ -123,7 +129,12 @@ class App(ctk.CTk):
     def _hide_all_frames(self):
         for frame in (self.main_frame, self.settings_frame, self.materials_frame, self.add_material_frame):
             frame.pack_forget()
+    
+    def check_updates(self):
+        update_available, url = check_for_updates()
 
+        if update_available:
+            webbrowser.open(url)
 
 if __name__ == "__main__":
     app = App()
