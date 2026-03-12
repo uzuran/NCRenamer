@@ -8,6 +8,8 @@ from app.models.email_model import CORRECT_PASSWORD
 
 from app.translations.translations import LANGUAGE_NAMES
 from app.viewmodels.settings_view_model import SettingsViewModel
+from app.utils.resource_path import resource_path
+
 
 
 class SettingsFrame(ctk.CTkFrame):
@@ -39,9 +41,9 @@ class SettingsFrame(ctk.CTkFrame):
         )
         self.setting_label.pack(pady=0, padx=25)
 
-        self.light_icon = ctk.CTkImage(Image.open("img/light-mode.png"), size=(34, 34))
-        self.dark_icon = ctk.CTkImage(Image.open("img/night-mode.png"), size=(34, 34))
-        self.restart_icon = ctk.CTkImage(Image.open("img/restart.png"), size=(24, 24))
+        self.light_icon = ctk.CTkImage(Image.open(resource_path("img/light-mode.png")), size=(34, 34))
+        self.dark_icon = ctk.CTkImage(Image.open(resource_path("img/night-mode.png")), size=(34, 34))
+        self.restart_icon = ctk.CTkImage(Image.open(resource_path("img/restart.png")), size=(24, 24))
 
         self.change_color_button = ctk.CTkButton(
             self,

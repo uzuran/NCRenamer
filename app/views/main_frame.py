@@ -3,6 +3,7 @@ from tkinter import messagebox, filedialog
 from rich.console import Console
 import webbrowser
 from PIL import Image
+from app.utils.resource_path import resource_path
 
 cons = Console()
 
@@ -25,7 +26,7 @@ class MainFrame(
 
         # History / Materials Button (left corner)
         try:
-            self.history_icon = ctk.CTkImage(Image.open("img/box.png"), size=(24, 24))
+            self.history_icon = ctk.CTkImage(Image.open(resource_path("img/box.png")), size=(24, 24))
         except FileNotFoundError:
             self.history_icon = None
         self.history_materials_btn = ctk.CTkButton(
@@ -39,7 +40,7 @@ class MainFrame(
 
         # Settings Button (right corner)
         try:
-            self.settings_icon = ctk.CTkImage(Image.open("img/setting.png"), size=(24, 24))
+            self.settings_icon = ctk.CTkImage(Image.open(resource_path("img/setting.png")), size=(24, 24))
         except FileNotFoundError:
             self.settings_icon = None  
 
