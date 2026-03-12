@@ -12,6 +12,7 @@ from app.views.materials_frame import MaterialsFrame
 from app.viewmodels.materials_view_model import MaterialsViewModel
 from app.models.material_repository import MaterialRepository
 from app.views.add_material_frame import AddMaterialFrame
+from app.version import APP_NAME, APP_VERSION
 
 
 from app.models.settings_model import SettingsModel
@@ -37,7 +38,7 @@ class App(ctk.CTk):
             texts=self.texts,
         )
 
-        self.title(self.texts.get("app_title", "NC Renamer"))
+        self.title(f"{APP_NAME} v{APP_VERSION}")
         self.geometry("350x600")
 
         ctk.set_appearance_mode(self.settings_model.settings.get("appearance_mode", "System"))
