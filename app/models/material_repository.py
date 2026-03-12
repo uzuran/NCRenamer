@@ -1,11 +1,12 @@
 from pathlib import Path
 import csv
+from app.utils.resource_path import resource_path
 
 
 class MaterialRepository:
     "Material repository for managing materials stored in a CSV file."
     def __init__(self):
-        self.csv_path = Path("CNCs/materials_new.csv")
+        self.csv_path = Path(resource_path("CNCs/materials_new.csv"))
 
     
     def add_material(self, incorrect: str, correct: str) -> bool:
@@ -24,6 +25,7 @@ class MaterialRepository:
     
 
     def delete_material(self, incorrect: str) -> bool:
+
 
         incorrect = incorrect.strip()
 
