@@ -144,14 +144,20 @@ class MainFrame(
         # Process files one by one with real-time progress bar updates
         for i, file_path in enumerate(files_to_process, start=1):
             # Process the file and get result
-            name, changed = self.vm.process_single_file(file_path)
+            name, changed, final_material = self.vm.process_single_file(file_path)
             
             # Update output box
-            text = (
-                self.texts.get("file_modified", "Modified: {}").format(name)
-                if changed
-                else self.texts.get("file_no_change", "No change: {}").format(name)
-            )
+            if changed and final_material:
+                text = self.texts.get(
+                    "file_modified_with_material",
+                    "Modified: {} -> {}",
+                ).format(name, final_material)
+            else:
+                text = (
+                    self.texts.get("file_modified", "Modified: {}").format(name)
+                    if changed
+                    else self.texts.get("file_no_change", "No change: {}").format(name)
+                )
             self.output_box.insert("end", f"{text}\n")
             
             # Update progress bar with proper UI refresh

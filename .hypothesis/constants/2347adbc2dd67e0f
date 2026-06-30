@@ -1,0 +1,4 @@
+# file: /home/uzuran/NCRenamer/app/models/formatter_model.py
+# hypothesis_version: 6.151.10
+
+['(', '(\\d\\.\\d{4})', ')', 'MA/', '\\s+', 'bold red', 'green', 'r', 'red', 'utf-8', 'yellow']

@@ -1,0 +1,4 @@
+# file: /home/uzuran/NCRenamer/app/models/material_repository.py
+# hypothesis_version: 6.151.10
+
+['AppData', 'Local', 'NCRenamer', 'a', 'materials_new.csv', 'r', 'utf-8', 'utf-8-sig', 'w']

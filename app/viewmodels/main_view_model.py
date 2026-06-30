@@ -22,10 +22,16 @@ class MainViewModel:
         """Returns the file list for processing in the UI."""
         return self.file_list
 
-    def process_single_file(self, file_path: Path) -> tuple[str, bool]:
-        """Process a single file and return (filename, changed_status)."""
+    def process_single_file(self, file_path: Path) -> tuple[str, bool, str | None]:
+        """Process a single file and return filename, change flag and final material."""
         changed = self.formatter.process_file(file_path)
-        return (file_path.name, changed)
+        final_line = self.formatter.access_line_4(file_path)
+        final_material = (
+            self.formatter.extract_material_value(final_line)
+            if final_line is not None
+            else None
+        )
+        return (file_path.name, changed, final_material)
 
     def get_mailto_url(self):
         recipient_email = "else.artem@gmail.com"

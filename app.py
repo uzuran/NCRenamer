@@ -1,4 +1,5 @@
 import os
+import threading
 import customtkinter as ctk
 
 from app.models.email_model import EmailModel
@@ -26,9 +27,8 @@ class App(ctk.CTk):
         super().__init__()
         self.settings_model = SettingsModel()  
         self.email_model = EmailModel() 
-        self.formatter_model = FormatterModel()
-    
         self.material_repo = MaterialRepository()
+        self.formatter_model = FormatterModel(self.material_repo)
 
         self.settings_model.load()
 
@@ -89,9 +89,10 @@ class App(ctk.CTk):
 
         self.show_main_content()
 
+        self._update_check_in_progress = False
 
         # update check po startu aplikace
-        self.after(2000, self.check_updates)
+        self.after(2000, self.start_update_check)
 
     def set_language(self, lang_code: str):
         if self.current_language_code != lang_code:
@@ -130,9 +131,23 @@ class App(ctk.CTk):
         for frame in (self.main_frame, self.settings_frame, self.materials_frame, self.add_material_frame):
             frame.pack_forget()
     
-    def check_updates(self):
-        update_available, url = check_for_updates()
+    def start_update_check(self):
+        if self._update_check_in_progress:
+            return
 
+        self._update_check_in_progress = True
+        threading.Thread(target=self.check_updates, daemon=True).start()
+
+    def check_updates(self):
+        try:
+            update_available, url = check_for_updates()
+        except Exception:
+            update_available, url = False, None
+        finally:
+            self.after(0, self._finish_update_check, update_available, url)
+
+    def _finish_update_check(self, update_available, url):
+        self._update_check_in_progress = False
         if update_available:
             webbrowser.open(url)
 
