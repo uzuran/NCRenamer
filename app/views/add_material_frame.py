@@ -4,7 +4,7 @@ import customtkinter as ctk
 
 
 class AddMaterialFrame(ctk.CTkFrame):
-    "Add material frame class"
+    "Add / edit material frame."
 
     def __init__(
         self, texts=None, master=None, view_model=None, app_instance=None, **kwargs
@@ -15,7 +15,10 @@ class AddMaterialFrame(ctk.CTkFrame):
         self.app_instance = app_instance
         self.texts = texts or {}
 
-        # TOP
+        # Key of the row currently being edited; None means "add mode".
+        self._editing_incorrect: str | None = None
+
+        # ─── TITLE ────────────────────────────────────────────────────
         self.title = ctk.CTkLabel(
             self,
             text=self.texts.get("add_material", "Add material"),
@@ -23,6 +26,7 @@ class AddMaterialFrame(ctk.CTkFrame):
         )
         self.title.pack(pady=10)
 
+        # ─── ENTRY FIELDS ─────────────────────────────────────────────
         inputs_frame = ctk.CTkFrame(self)
         inputs_frame.pack(pady=10)
 
@@ -38,29 +42,50 @@ class AddMaterialFrame(ctk.CTkFrame):
         )
         self.correct_entry.pack(side="left")
 
-        buttons_frame = ctk.CTkFrame(self)
-        buttons_frame.pack(pady=10)
+        # ─── ACTION BUTTONS ───────────────────────────────────────────
+        buttons_row1 = ctk.CTkFrame(self)
+        buttons_row1.pack(pady=(10, 4))
 
         self.add_button = ctk.CTkButton(
-            buttons_frame,
+            buttons_row1,
             text=self.texts.get("add_material", "Add material"),
             command=self.add_material,
         )
         self.add_button.pack(side="left", padx=10)
 
         self.remove_button = ctk.CTkButton(
-            buttons_frame,
+            buttons_row1,
             text=self.texts.get("remove_material", "Remove material"),
             command=self.remove_selected_material,
         )
-        self.remove_button.pack(side="left")
+        self.remove_button.pack(side="left", padx=10)
 
+        buttons_row2 = ctk.CTkFrame(self)
+        buttons_row2.pack(pady=(0, 10))
+
+        self.update_button = ctk.CTkButton(
+            buttons_row2,
+            text=self.texts.get("update_material", "Update material"),
+            command=self.update_selected_material,
+            state="disabled",
+        )
+        self.update_button.pack(side="left", padx=10)
+
+        self.cancel_button = ctk.CTkButton(
+            buttons_row2,
+            text=self.texts.get("cancel_edit", "Cancel edit"),
+            command=self._deselect,
+            state="disabled",
+        )
+        self.cancel_button.pack(side="left", padx=10)
+
+        # ─── FLASH MESSAGE ────────────────────────────────────────────
         flash_message_frame = ctk.CTkFrame(self)
         flash_message_frame.pack()
         self.flash_label = ctk.CTkLabel(flash_message_frame, text="")
         self.flash_label.pack(side="bottom")
 
-        # MIDDLE (expand)
+        # ─── TREEVIEW ─────────────────────────────────────────────────
         tree_frame = ctk.CTkFrame(self)
         tree_frame.pack(fill="both", expand=True, padx=10, pady=10)
 
@@ -88,9 +113,14 @@ class AddMaterialFrame(ctk.CTkFrame):
         self.tree.pack(side="left", fill="both", expand=True)
         y_scroll.pack(side="right", fill="y")
 
+        self.tree.bind("<<TreeviewSelect>>", self.on_tree_select)
+        # Click on already-selected row or empty area → deselect
+        self.tree.bind("<Button-1>", self._on_tree_click)
+        self.tree.bind("<Escape>", lambda e: self._deselect())
+
         self.update_treeview_display()
 
-        # BOTTOM
+        # ─── BACK BUTTON ──────────────────────────────────────────────
         self.back_button = ctk.CTkButton(
             self,
             text=self.texts.get("back_button", "Back"),
@@ -99,24 +129,58 @@ class AddMaterialFrame(ctk.CTkFrame):
         )
         self.back_button.pack(pady=10, padx=25, fill="x")
 
-    def return_to_main_content(self):
-        "Function to allow user return back to the main content"
-        if self.app_instance:
-            self.app_instance.show_materials_content()
+    # ── Treeview selection ─────────────────────────────────────────────
 
-    def update_treeview_display(self, content: list[list[str]] | None = None):
-        "Update treeview display"
-        for child in self.tree.get_children():
-            self.tree.delete(child)
+    def on_tree_select(self, event=None):
+        """Fill entries from the selected row and switch to edit mode."""
+        selected = self.tree.selection()
+        if not selected:
+            self._reset_edit_state()
+            return
 
-        if content is None:
-            content = self.view_model.get_materials()
+        item = self.tree.item(selected[0])
+        self._editing_incorrect = str(item["values"][0])
 
-        for row in content:
-            self.tree.insert("", "end", values=(row[0], row[1]))
+        self.incorrect_entry.delete(0, "end")
+        self.incorrect_entry.insert(0, self._editing_incorrect)
+
+        self.correct_entry.delete(0, "end")
+        self.correct_entry.insert(0, str(item["values"][1]))
+
+        self.update_button.configure(state="normal")
+        self.cancel_button.configure(state="normal")
+        self.add_button.configure(state="disabled")
+
+    def _reset_edit_state(self):
+        """Return UI to add mode. Does NOT change treeview selection."""
+        self._editing_incorrect = None
+        self.incorrect_entry.configure(state="normal")
+        self.incorrect_entry.delete(0, "end")
+        self.correct_entry.delete(0, "end")
+        self.update_button.configure(state="disabled")
+        self.cancel_button.configure(state="disabled")
+        self.add_button.configure(state="normal")
+
+    def _deselect(self, event=None):
+        """Clear treeview selection and return to add mode.
+
+        Calling selection_remove triggers <<TreeviewSelect>> with an empty
+        selection, which calls on_tree_select → _reset_edit_state.
+        """
+        for iid in self.tree.selection():
+            self.tree.selection_remove(iid)
+
+    def _on_tree_click(self, event):
+        """Deselect when clicking on empty space or the already-selected row."""
+        row = self.tree.identify_row(event.y)
+        if not row or row in self.tree.selection():
+            self._deselect()
+
+    # ── CRUD actions ───────────────────────────────────────────────────
 
     def add_material(self):
-        "Add material"
+        "Add a new material mapping."
+        # Read entries FIRST — _reset_edit_state would clear them if called here.
         incorrect = self.incorrect_entry.get()
         correct = self.correct_entry.get()
 
@@ -124,15 +188,32 @@ class AddMaterialFrame(ctk.CTkFrame):
 
         if success:
             self.show_flash(message, "green")
-            self.update_treeview_display()
             self.incorrect_entry.delete(0, "end")
             self.correct_entry.delete(0, "end")
+            self.update_treeview_display()
+        else:
+            self.show_flash(message, "red")
 
+    def update_selected_material(self):
+        "Save the edited correct value for the selected row."
+        if not self._editing_incorrect:
+            return
+
+        new_incorrect = self.incorrect_entry.get()
+        new_correct = self.correct_entry.get()
+        success, message = self.view_model.update_material(
+            self._editing_incorrect, new_incorrect, new_correct
+        )
+
+        if success:
+            self.show_flash(message, "green")
+            self._deselect()
+            self.update_treeview_display()
         else:
             self.show_flash(message, "red")
 
     def remove_selected_material(self):
-        "Remove selected material"
+        "Remove the selected row."
         selected = self.tree.selection()
 
         if not selected:
@@ -148,16 +229,34 @@ class AddMaterialFrame(ctk.CTkFrame):
 
         if success:
             self.show_flash(message, "green")
+            self._deselect()
             self.update_treeview_display()
 
-    def show_flash(self, message, color="green"):
-        "Show flash message"
-        self.flash_label.configure(text=message, text_color=color)
+    # ── Display helpers ────────────────────────────────────────────────
 
+    def return_to_main_content(self):
+        "Navigate back to the materials list."
+        if self.app_instance:
+            self.app_instance.show_materials_content()
+
+    def update_treeview_display(self, content: list[list[str]] | None = None):
+        "Reload the treeview from the ViewModel (or from *content* directly)."
+        for child in self.tree.get_children():
+            self.tree.delete(child)
+
+        if content is None:
+            content = self.view_model.get_materials()
+
+        for row in content:
+            self.tree.insert("", "end", values=(row[0], row[1]))
+
+    def show_flash(self, message, color="green"):
+        "Display a short-lived status message."
+        self.flash_label.configure(text=message, text_color=color)
         self.after(2500, lambda: self.flash_label.configure(text=""))
 
     def update_texts(self, new_texts: dict):
-        """Aktualizuje texty všech widgetů ve framu."""
+        "Update all widget labels after a language change."
         self.texts = new_texts
         self.title.configure(text=self.texts.get("add_material", "Add material"))
         self.incorrect_entry.configure(
@@ -167,6 +266,12 @@ class AddMaterialFrame(ctk.CTkFrame):
             placeholder_text=self.texts.get("correct_material", "Correct material")
         )
         self.add_button.configure(text=self.texts.get("add_material", "Add material"))
+        self.update_button.configure(
+            text=self.texts.get("update_material", "Update material")
+        )
+        self.cancel_button.configure(
+            text=self.texts.get("cancel_edit", "Cancel edit")
+        )
         self.remove_button.configure(
             text=self.texts.get("remove_material", "Remove material")
         )

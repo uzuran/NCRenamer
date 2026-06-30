@@ -1,4 +1,5 @@
 """Unit tests for PasswordModel.verify_password."""
+
 import pytest
 
 from app.models.password_model import PasswordModel

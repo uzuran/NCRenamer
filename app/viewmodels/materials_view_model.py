@@ -43,6 +43,21 @@ class MaterialsViewModel:
 
         return True, self.texts.get("material_added", "Material added")
 
+    def update_material(self, incorrect: str, new_incorrect: str, new_correct: str):
+        """Update both the incorrect key and correct value for an existing entry."""
+        incorrect = incorrect.strip()
+        new_incorrect = new_incorrect.strip()
+        new_correct = new_correct.strip()
+
+        if not incorrect or not new_incorrect or not new_correct:
+            return False, self.texts.get("no_empty", "Material cannot be empty.")
+
+        success = self.repo.update_material(incorrect, new_incorrect, new_correct)
+        if not success:
+            return False, self.texts.get("material_not_found", "Material not found")
+
+        return True, self.texts.get("material_updated", "Material updated")
+
     def remove_material(self, incorrect: str):
         """Remove a material mapping."""
         incorrect = incorrect.strip()

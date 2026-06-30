@@ -1,18 +1,18 @@
 # tests/unit/test_formatter_model.py
 """Unit tests for every public method of FormatterModel."""
 
-import re
 from pathlib import Path
+from typing import ClassVar
 
 import pytest
-
-from app.models.formatter_model import FormatterModel
 from tests.conftest import StubMaterialRepository
 
+from app.models.formatter_model import FormatterModel
 
 # --------------------------------------------------------------------------- #
 # Helpers
 # --------------------------------------------------------------------------- #
+
 
 def make_formatter(materials: list[list[str]] | None = None) -> FormatterModel:
     repo = StubMaterialRepository(materials) if materials is not None else None
@@ -29,6 +29,7 @@ def write_nc(tmp_path: Path, lines: list[str]) -> Path:
 # --------------------------------------------------------------------------- #
 # access_line_4
 # --------------------------------------------------------------------------- #
+
 
 class TestAccessLine4:
     def test_returns_fourth_line(self, tmp_path):
@@ -59,6 +60,7 @@ class TestAccessLine4:
 # extract_material_value
 # --------------------------------------------------------------------------- #
 
+
 class TestExtractMaterialValue:
     @pytest.mark.parametrize(
         "text, expected",
@@ -85,6 +87,7 @@ class TestExtractMaterialValue:
 # normalize_material_key
 # --------------------------------------------------------------------------- #
 
+
 class TestNormalizeMaterialKey:
     @pytest.mark.parametrize(
         "text, expected",
@@ -102,6 +105,7 @@ class TestNormalizeMaterialKey:
 # --------------------------------------------------------------------------- #
 # lookup_material_mapping
 # --------------------------------------------------------------------------- #
+
 
 class TestLookupMaterialMapping:
     def test_returns_correct_when_match_found(self):
@@ -129,6 +133,7 @@ class TestLookupMaterialMapping:
 # infer_material_with_missing_space
 # --------------------------------------------------------------------------- #
 
+
 class TestInferMaterialWithMissingSpace:
     @pytest.mark.parametrize(
         "text, expected",
@@ -142,7 +147,10 @@ class TestInferMaterialWithMissingSpace:
         assert FormatterModel().infer_material_with_missing_space(text) == expected
 
     def test_returns_none_when_already_spaced(self):
-        assert FormatterModel().infer_material_with_missing_space("(MA/1.4301 brus)") is None
+        assert (
+            FormatterModel().infer_material_with_missing_space("(MA/1.4301 brus)")
+            is None
+        )
 
     def test_returns_none_for_number_only(self):
         assert FormatterModel().infer_material_with_missing_space("(MA/1.4301)") is None
@@ -154,6 +162,7 @@ class TestInferMaterialWithMissingSpace:
 # --------------------------------------------------------------------------- #
 # write_line_4
 # --------------------------------------------------------------------------- #
+
 
 class TestWriteLine4:
     def test_replaces_fourth_line(self, tmp_path):
@@ -180,8 +189,9 @@ class TestWriteLine4:
 # PATTERN regex
 # --------------------------------------------------------------------------- #
 
+
 class TestPattern:
-    VALID = [
+    VALID: ClassVar[list[str]] = [
         "(MA/1.4301)",
         "(MA/1.0037)",
         "(MA/3.3535)",
@@ -189,11 +199,11 @@ class TestPattern:
         "(MA/1.0037 S235JRG2)",
         "(MA/3.3535 listkovy)",
     ]
-    INVALID = [
-        "MA/1.4301",           # missing outer parens
-        "(MA/1.4301BRUS-4.0)", # suffix with no space separator
-        "(MA/test)",           # no numeric code
-        "(MA/1.430)",          # wrong number format (3 digits)
+    INVALID: ClassVar[list[str]] = [
+        "MA/1.4301",  # missing outer parens
+        "(MA/1.4301BRUS-4.0)",  # suffix with no space separator
+        "(MA/test)",  # no numeric code
+        "(MA/1.430)",  # wrong number format (3 digits)
         "",
         "(MA/)",
     ]

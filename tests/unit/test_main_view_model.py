@@ -1,17 +1,18 @@
 """Unit tests for MainViewModel — uses stubs for all external dependencies."""
+
 from __future__ import annotations
 
 from pathlib import Path
 
 import pytest
-
-from app.viewmodels.main_view_model import MainViewModel
 from tests.conftest import StubEmailModel, StubFormatterModel
 
+from app.viewmodels.main_view_model import MainViewModel
 
 # --------------------------------------------------------------------------- #
 # Fixtures
 # --------------------------------------------------------------------------- #
+
 
 @pytest.fixture
 def vm():
@@ -40,6 +41,7 @@ def vm_with_files(tmp_path):
 # --------------------------------------------------------------------------- #
 # File selection
 # --------------------------------------------------------------------------- #
+
 
 def test_file_paths_empty_on_init(vm):
     assert vm.file_paths == []
@@ -90,6 +92,7 @@ def test_select_files_multiple(vm, tmp_path):
 # Unselect files
 # --------------------------------------------------------------------------- #
 
+
 def test_unselect_files_clears_selection(vm_with_files):
     vm, _, _ = vm_with_files
     vm.unselect_files()
@@ -108,6 +111,7 @@ def test_unselect_files_when_empty_returns_zero(vm):
 # --------------------------------------------------------------------------- #
 # Email counter
 # --------------------------------------------------------------------------- #
+
 
 def test_email_counter_reads_from_model(vm):
     assert vm.email_counter == 0
@@ -142,6 +146,7 @@ def test_reset_email_counter_sets_to_zero(vm):
 # get_mailto_url
 # --------------------------------------------------------------------------- #
 
+
 def test_get_mailto_url_starts_with_mailto(vm):
     url = vm.get_mailto_url()
     assert url.startswith("mailto:")
@@ -169,6 +174,7 @@ def test_get_mailto_url_url_encodes_subject(vm):
 # --------------------------------------------------------------------------- #
 # process_single_file
 # --------------------------------------------------------------------------- #
+
 
 def test_process_single_file_returns_three_tuple(tmp_path):
     nc = tmp_path / "4039-100.NC"

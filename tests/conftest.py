@@ -26,6 +26,17 @@ class StubMaterialRepository:
         self._materials.append([incorrect, correct])
         return True
 
+    def update_material(self, incorrect: str, new_incorrect: str, new_correct: str) -> bool:
+        incorrect = incorrect.strip()
+        new_incorrect = new_incorrect.strip()
+        new_correct = new_correct.strip()
+        for row in self._materials:
+            if row[0].strip() == incorrect:
+                row[0] = new_incorrect
+                row[1] = new_correct
+                return True
+        return False
+
     def delete_material(self, incorrect: str) -> bool:
         original_len = len(self._materials)
         self._materials = [

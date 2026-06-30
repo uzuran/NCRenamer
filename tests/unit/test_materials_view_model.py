@@ -1,9 +1,9 @@
 """Unit tests for MaterialsViewModel — add, remove, get, texts."""
-import pytest
 
-from app.viewmodels.materials_view_model import MaterialsViewModel
+import pytest
 from tests.conftest import StubMaterialRepository
 
+from app.viewmodels.materials_view_model import MaterialsViewModel
 
 # --------------------------------------------------------------------------- #
 # Fixtures
@@ -13,6 +13,7 @@ TEXTS_EN = {
     "no_empty": "Material cannot be empty.",
     "material_exists": "Material already exists",
     "material_added": "Material added",
+    "material_updated": "Material updated",
     "no_material_selected": "No material selected",
     "material_not_found": "Material not found",
     "material_removed": "Material removed",
@@ -40,6 +41,7 @@ def vm_with_data():
 # get_materials
 # --------------------------------------------------------------------------- #
 
+
 def test_get_materials_returns_empty_list_for_empty_repo(vm):
     assert vm.get_materials() == []
 
@@ -53,6 +55,7 @@ def test_get_materials_returns_all_entries(vm_with_data):
 # --------------------------------------------------------------------------- #
 # add_material
 # --------------------------------------------------------------------------- #
+
 
 def test_add_material_success_returns_true_and_message(vm):
     success, msg = vm.add_material("1.4301BRUS-4.0", "1.4301 brus")
@@ -105,8 +108,62 @@ def test_add_material_does_not_increase_count_on_duplicate(vm_with_data):
 
 
 # --------------------------------------------------------------------------- #
+# update_material
+# --------------------------------------------------------------------------- #
+
+
+def test_update_material_success_returns_true_and_message(vm_with_data):
+    success, msg = vm_with_data.update_material("1.4301BRUS-4.0", "1.4301BRUS-4.0", "1.4301 new")
+    assert success is True
+    assert msg == "Material updated"
+
+
+def test_update_material_changes_the_correct_value(vm_with_data):
+    vm_with_data.update_material("1.4301BRUS-4.0", "1.4301BRUS-4.0", "1.4301 new")
+    rows = {r[0]: r[1] for r in vm_with_data.get_materials()}
+    assert rows["1.4301BRUS-4.0"] == "1.4301 new"
+
+
+def test_update_material_renames_incorrect_key(vm_with_data):
+    vm_with_data.update_material("1.4301BRUS-4.0", "1.4301BRUS-NEW", "1.4301 new")
+    rows = {r[0]: r[1] for r in vm_with_data.get_materials()}
+    assert "1.4301BRUS-NEW" in rows
+    assert "1.4301BRUS-4.0" not in rows
+
+
+def test_update_material_not_found_returns_false(vm):
+    success, msg = vm.update_material("NONEXISTENT", "NONEXISTENT", "anything")
+    assert success is False
+    assert msg == "Material not found"
+
+
+def test_update_material_rejects_empty_incorrect(vm_with_data):
+    success, msg = vm_with_data.update_material("", "", "1.4301 new")
+    assert success is False
+    assert msg == "Material cannot be empty."
+
+
+def test_update_material_rejects_empty_new_incorrect(vm_with_data):
+    success, msg = vm_with_data.update_material("1.4301BRUS-4.0", "", "1.4301 new")
+    assert success is False
+    assert msg == "Material cannot be empty."
+
+
+def test_update_material_rejects_empty_new_correct(vm_with_data):
+    success, msg = vm_with_data.update_material("1.4301BRUS-4.0", "1.4301BRUS-4.0", "")
+    assert success is False
+    assert msg == "Material cannot be empty."
+
+
+def test_update_material_rejects_whitespace_only(vm_with_data):
+    success, _ = vm_with_data.update_material("   ", "   ", "1.4301 new")
+    assert success is False
+
+
+# --------------------------------------------------------------------------- #
 # remove_material
 # --------------------------------------------------------------------------- #
+
 
 def test_remove_material_success_returns_true_and_message(vm_with_data):
     success, msg = vm_with_data.remove_material("1.4301BRUS-4.0")
@@ -139,6 +196,7 @@ def test_remove_material_whitespace_only_returns_false(vm):
 # --------------------------------------------------------------------------- #
 # update_texts
 # --------------------------------------------------------------------------- #
+
 
 def test_update_texts_replaces_text_dict(vm):
     new_texts = {"material_added": "Pridano"}

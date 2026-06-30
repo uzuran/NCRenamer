@@ -97,6 +97,55 @@ def test_delete_material_strips_whitespace_before_comparing(repo_with_data):
 
 
 # --------------------------------------------------------------------------- #
+# update_material
+# --------------------------------------------------------------------------- #
+
+
+def test_update_material_changes_correct_value(repo_with_data):
+    repo_with_data.update_material("1.4301BRUS-4.0", "1.4301BRUS-4.0", "1.4301 new")
+    rows = {r[0]: r[1] for r in repo_with_data.load_materials()}
+    assert rows["1.4301BRUS-4.0"] == "1.4301 new"
+
+
+def test_update_material_returns_true_on_success(repo_with_data):
+    assert repo_with_data.update_material("1.4301BRUS-4.0", "1.4301BRUS-4.0", "1.4301 new") is True
+
+
+def test_update_material_returns_false_when_key_not_found(repo_with_data):
+    assert repo_with_data.update_material("NONEXISTENT", "NONEXISTENT", "anything") is False
+
+
+def test_update_material_preserves_other_entries(repo_with_data):
+    repo_with_data.update_material("1.4301BRUS-4.0", "1.4301BRUS-4.0", "1.4301 new")
+    rows = {r[0]: r[1] for r in repo_with_data.load_materials()}
+    assert rows["1.0037-2.0"] == "1.0037"
+
+
+def test_update_material_strips_whitespace(repo_with_data):
+    repo_with_data.update_material("  1.4301BRUS-4.0  ", "1.4301BRUS-4.0", "  1.4301 new  ")
+    rows = {r[0]: r[1] for r in repo_with_data.load_materials()}
+    assert rows["1.4301BRUS-4.0"] == "1.4301 new"
+
+
+def test_update_material_persists_to_csv(tmp_path):
+    csv_file = tmp_path / "materials.csv"
+    csv_file.write_text("1.4301BRUS-4.0\t1.4301 brus\n", encoding="utf-8")
+    repo = MaterialRepository(csv_path=csv_file)
+    repo.update_material("1.4301BRUS-4.0", "1.4301BRUS-4.0", "1.4301 updated")
+    repo2 = MaterialRepository(csv_path=csv_file)
+    rows = {r[0]: r[1] for r in repo2.load_materials()}
+    assert rows["1.4301BRUS-4.0"] == "1.4301 updated"
+
+
+def test_update_material_renames_incorrect_key(repo_with_data):
+    repo_with_data.update_material("1.4301BRUS-4.0", "1.4301BRUS-NEW", "1.4301 new")
+    rows = {r[0]: r[1] for r in repo_with_data.load_materials()}
+    assert "1.4301BRUS-NEW" in rows
+    assert "1.4301BRUS-4.0" not in rows
+    assert rows["1.4301BRUS-NEW"] == "1.4301 new"
+
+
+# --------------------------------------------------------------------------- #
 # load_materials — edge cases
 # --------------------------------------------------------------------------- #
 

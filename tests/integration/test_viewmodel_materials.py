@@ -15,6 +15,7 @@ TEXTS_EN = {
     "no_empty": "Material cannot be empty.",
     "material_exists": "Material already exists",
     "material_added": "Material added",
+    "material_updated": "Material updated",
     "no_material_selected": "No material selected",
     "material_not_found": "Material not found",
     "material_removed": "Material removed",
@@ -82,6 +83,36 @@ def test_remove_nonexistent_does_not_affect_existing_data(vm):
     vm.add_material("1.4301BRUS-4.0", "1.4301 brus")
     vm.remove_material("NONEXISTENT")
     assert len(vm.get_materials()) == 1
+
+
+# --------------------------------------------------------------------------- #
+# update_material
+# --------------------------------------------------------------------------- #
+
+
+def test_update_material_changes_value(vm):
+    vm.add_material("1.4301BRUS-4.0", "1.4301 brus")
+    success, msg = vm.update_material("1.4301BRUS-4.0", "1.4301BRUS-4.0", "1.4301 new")
+    assert success is True
+    assert msg == "Material updated"
+    rows = {r[0]: r[1] for r in vm.get_materials()}
+    assert rows["1.4301BRUS-4.0"] == "1.4301 new"
+
+
+def test_update_material_persists_to_csv(repo):
+    vm1 = MaterialsViewModel(app_instance=None, repo=repo, texts=TEXTS_EN)
+    vm1.add_material("1.4301BRUS-4.0", "1.4301 brus")
+    vm1.update_material("1.4301BRUS-4.0", "1.4301BRUS-4.0", "1.4301 updated")
+
+    vm2 = MaterialsViewModel(app_instance=None, repo=repo, texts=TEXTS_EN)
+    rows = {r[0]: r[1] for r in vm2.get_materials()}
+    assert rows["1.4301BRUS-4.0"] == "1.4301 updated"
+
+
+def test_update_material_not_found_returns_false(vm):
+    success, msg = vm.update_material("NONEXISTENT", "NONEXISTENT", "anything")
+    assert success is False
+    assert msg == "Material not found"
 
 
 # --------------------------------------------------------------------------- #

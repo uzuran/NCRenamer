@@ -1,4 +1,5 @@
 """Unit tests for EmailModel — counter persistence and mutation."""
+
 import json
 
 import pytest
@@ -19,6 +20,7 @@ def model(counter_path):
 # --------------------------------------------------------------------------- #
 # Loading
 # --------------------------------------------------------------------------- #
+
 
 def test_counter_starts_at_zero_when_file_is_missing(counter_path):
     assert not counter_path.exists()
@@ -48,6 +50,7 @@ def test_counter_defaults_to_zero_when_key_missing(counter_path):
 # save_counter
 # --------------------------------------------------------------------------- #
 
+
 def test_save_counter_creates_file(model, counter_path):
     model.save_counter()
     assert counter_path.exists()
@@ -63,6 +66,7 @@ def test_save_counter_writes_correct_json(model, counter_path):
 # --------------------------------------------------------------------------- #
 # increment_counter
 # --------------------------------------------------------------------------- #
+
 
 def test_increment_increases_counter_by_one(model):
     model.increment_counter()
@@ -84,6 +88,7 @@ def test_increment_persists_to_file(model, counter_path):
 # --------------------------------------------------------------------------- #
 # reset_counter
 # --------------------------------------------------------------------------- #
+
 
 def test_reset_sets_counter_to_zero(model):
     model.email_counter = 5

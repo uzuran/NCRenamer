@@ -1,4 +1,5 @@
 """Unit tests for SettingsModel — load, save, get, set."""
+
 import json
 
 import pytest
@@ -19,6 +20,7 @@ def model(settings_path):
 # --------------------------------------------------------------------------- #
 # load
 # --------------------------------------------------------------------------- #
+
 
 def test_load_gives_empty_dict_when_file_missing(model):
     model.load()
@@ -49,6 +51,7 @@ def test_load_gives_empty_dict_on_empty_file(settings_path, model):
 # save
 # --------------------------------------------------------------------------- #
 
+
 def test_save_creates_file(model, settings_path):
     model.settings["key"] = "value"
     model.save()
@@ -74,6 +77,7 @@ def test_save_creates_parent_directories(tmp_path):
 # get
 # --------------------------------------------------------------------------- #
 
+
 def test_get_returns_value_for_existing_key(model):
     model.settings["language"] = "en"
     assert model.get("language") == "en"
@@ -91,6 +95,7 @@ def test_get_returns_custom_default_for_missing_key(model):
 # set
 # --------------------------------------------------------------------------- #
 
+
 def test_set_updates_in_memory_value(model):
     model.set("language", "en")
     assert model.settings["language"] == "en"
@@ -105,6 +110,7 @@ def test_set_persists_immediately(model, settings_path):
 # --------------------------------------------------------------------------- #
 # round-trip
 # --------------------------------------------------------------------------- #
+
 
 def test_round_trip_save_then_load(settings_path):
     m1 = SettingsModel(path=str(settings_path))

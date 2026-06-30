@@ -49,6 +49,25 @@ class MaterialRepository:
 
         return True
 
+    def update_material(self, incorrect: str, new_incorrect: str, new_correct: str) -> bool:
+        """Update the incorrect key and correct value for an existing entry. Returns False if the key is not found."""
+        incorrect = incorrect.strip()
+        new_incorrect = new_incorrect.strip()
+        new_correct = new_correct.strip()
+
+        materials = self.load_materials()
+
+        for row in materials:
+            if row[0].strip() == incorrect:
+                row[0] = new_incorrect
+                row[1] = new_correct
+                with open(self.csv_path, "w", newline="", encoding="utf-8") as f:
+                    writer = csv.writer(f, delimiter="\t")
+                    writer.writerows(materials)
+                return True
+
+        return False
+
     def delete_material(self, incorrect: str) -> bool:
         incorrect = incorrect.strip()
 
