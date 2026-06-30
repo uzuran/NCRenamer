@@ -2,18 +2,18 @@
 
 import customtkinter as ctk
 from PIL import Image
-from app.viewmodels.password_view_model import PasswordViewModel
-from app.models.password_model import PasswordModel
+
 from app.models.email_model import CORRECT_PASSWORD
-
+from app.models.password_model import PasswordModel
 from app.translations.translations import LANGUAGE_NAMES
-from app.viewmodels.settings_view_model import SettingsViewModel
 from app.utils.resource_path import resource_path
-
+from app.viewmodels.password_view_model import PasswordViewModel
+from app.viewmodels.settings_view_model import SettingsViewModel
 
 
 class SettingsFrame(ctk.CTkFrame):
     """A frame for application settings, including appearance mode and language selection."""
+
     def __init__(
         self,
         master=None,
@@ -31,19 +31,29 @@ class SettingsFrame(ctk.CTkFrame):
             self.view_model = SettingsViewModel(app_instance, app_settings)
 
         self.password_vm = PasswordViewModel(
-            main_view_model=self.app_instance.main_view_model if self.app_instance else None,
+            main_view_model=self.app_instance.main_view_model
+            if self.app_instance
+            else None,
             password_model=PasswordModel(CORRECT_PASSWORD),
             texts=self.texts,
         )
 
         self.setting_label = ctk.CTkLabel(
-            self, text=self.texts.get("appearance_mode_setting", "Appearance Mode"), anchor="w"
+            self,
+            text=self.texts.get("appearance_mode_setting", "Appearance Mode"),
+            anchor="w",
         )
         self.setting_label.pack(pady=0, padx=25)
 
-        self.light_icon = ctk.CTkImage(Image.open(resource_path("img/light-mode.png")), size=(34, 34))
-        self.dark_icon = ctk.CTkImage(Image.open(resource_path("img/night-mode.png")), size=(34, 34))
-        self.restart_icon = ctk.CTkImage(Image.open(resource_path("img/restart.png")), size=(24, 24))
+        self.light_icon = ctk.CTkImage(
+            Image.open(resource_path("img/light-mode.png")), size=(34, 34)
+        )
+        self.dark_icon = ctk.CTkImage(
+            Image.open(resource_path("img/night-mode.png")), size=(34, 34)
+        )
+        self.restart_icon = ctk.CTkImage(
+            Image.open(resource_path("img/restart.png")), size=(24, 24)
+        )
 
         self.change_color_button = ctk.CTkButton(
             self,
@@ -81,7 +91,7 @@ class SettingsFrame(ctk.CTkFrame):
             command=self.password_vm.prompt_for_password_and_reset,
         )
         self.reset_counter_btn.pack(pady=(20, 10))
-        
+
         self.back_button = ctk.CTkButton(
             self,
             text=self.texts.get("back_button", "Back"),

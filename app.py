@@ -1,32 +1,31 @@
 import os
 import threading
+import webbrowser
+
 import customtkinter as ctk
 
 from app.models.email_model import EmailModel
 from app.models.formatter_model import FormatterModel
-from app.viewmodels.main_view_model import MainViewModel
-from app.views.main_frame import MainFrame
-from app.views.settings_frame import SettingsFrame
-
-from app.translations.translations import LANGUAGES
-from app.views.materials_frame import MaterialsFrame
-from app.viewmodels.materials_view_model import MaterialsViewModel
 from app.models.material_repository import MaterialRepository
-from app.views.add_material_frame import AddMaterialFrame
-from app.version import APP_NAME, APP_VERSION
-from app.services.update_checker import check_for_updates
-import webbrowser
-
-
 from app.models.settings_model import SettingsModel
+from app.services.update_checker import check_for_updates
+from app.translations.translations import LANGUAGES
+from app.version import APP_NAME, APP_VERSION
+from app.viewmodels.main_view_model import MainViewModel
+from app.viewmodels.materials_view_model import MaterialsViewModel
+from app.views.add_material_frame import AddMaterialFrame
+from app.views.main_frame import MainFrame
+from app.views.materials_frame import MaterialsFrame
+from app.views.settings_frame import SettingsFrame
 
 
 class App(ctk.CTk):
     "Main application class for NCRenamer"
+
     def __init__(self):
         super().__init__()
-        self.settings_model = SettingsModel()  
-        self.email_model = EmailModel() 
+        self.settings_model = SettingsModel()
+        self.email_model = EmailModel()
         self.material_repo = MaterialRepository()
         self.formatter_model = FormatterModel(self.material_repo)
 
@@ -43,25 +42,26 @@ class App(ctk.CTk):
         self.title(f"{APP_NAME} v{APP_VERSION}")
         self.geometry("350x600")
 
-        ctk.set_appearance_mode(self.settings_model.settings.get("appearance_mode", "System"))
+        ctk.set_appearance_mode(
+            self.settings_model.settings.get("appearance_mode", "System")
+        )
 
         folder = os.path.dirname(self.settings_model.path)
         if folder and not os.path.exists(folder):
             os.makedirs(folder, exist_ok=True)
-        
+
         self.main_frame = MainFrame(
             master=self,
             texts=self.texts,
             app_instance=self,
-            viewmodel=None, 
+            viewmodel=None,
         )
 
         self.main_view_model = MainViewModel(
-            main_frame_instance=self.main_frame,
             email_model=self.email_model,
-            formatter_model=self.formatter_model
+            formatter_model=self.formatter_model,
         )
-        
+
         self.main_frame.vm = self.main_view_model
         self.main_frame.post_init()
         self.main_frame.pack(fill="both", expand=True)
@@ -122,15 +122,20 @@ class App(ctk.CTk):
         processed_content = self.materials_view_model.get_materials()
         self.materials_frame.update_treeview_display(processed_content)
         self.materials_frame.pack(fill="both", expand=True)
-    
+
     def show_add_materials_content(self):
         self._hide_all_frames()
         self.add_material_frame.pack(fill="both", expand=True)
-        
+
     def _hide_all_frames(self):
-        for frame in (self.main_frame, self.settings_frame, self.materials_frame, self.add_material_frame):
+        for frame in (
+            self.main_frame,
+            self.settings_frame,
+            self.materials_frame,
+            self.add_material_frame,
+        ):
             frame.pack_forget()
-    
+
     def start_update_check(self):
         if self._update_check_in_progress:
             return
@@ -150,6 +155,7 @@ class App(ctk.CTk):
         self._update_check_in_progress = False
         if update_available:
             webbrowser.open(url)
+
 
 if __name__ == "__main__":
     app = App()

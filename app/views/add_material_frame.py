@@ -1,19 +1,26 @@
-import customtkinter as ctk
 from tkinter import ttk
-from typing import Optional, List
+
+import customtkinter as ctk
 
 
 class AddMaterialFrame(ctk.CTkFrame):
     "Add material frame class"
-    def __init__(self, texts=None, master=None, view_model=None, app_instance=None, **kwargs):
+
+    def __init__(
+        self, texts=None, master=None, view_model=None, app_instance=None, **kwargs
+    ):
         super().__init__(master, **kwargs)
 
         self.view_model = view_model
         self.app_instance = app_instance
         self.texts = texts or {}
-        
+
         # TOP
-        self.title = ctk.CTkLabel(self, text=self.texts.get("add_material", "Add material"), font=("Arial", 18))
+        self.title = ctk.CTkLabel(
+            self,
+            text=self.texts.get("add_material", "Add material"),
+            font=("Arial", 18),
+        )
         self.title.pack(pady=10)
 
         inputs_frame = ctk.CTkFrame(self)
@@ -33,7 +40,7 @@ class AddMaterialFrame(ctk.CTkFrame):
 
         buttons_frame = ctk.CTkFrame(self)
         buttons_frame.pack(pady=10)
-        
+
         self.add_button = ctk.CTkButton(
             buttons_frame,
             text=self.texts.get("add_material", "Add material"),
@@ -49,7 +56,7 @@ class AddMaterialFrame(ctk.CTkFrame):
         self.remove_button.pack(side="left")
 
         flash_message_frame = ctk.CTkFrame(self)
-        flash_message_frame.pack()        
+        flash_message_frame.pack()
         self.flash_label = ctk.CTkLabel(flash_message_frame, text="")
         self.flash_label.pack(side="bottom")
 
@@ -97,10 +104,10 @@ class AddMaterialFrame(ctk.CTkFrame):
         if self.app_instance:
             self.app_instance.show_materials_content()
 
-    def update_treeview_display(self, content: Optional[List[List[str]]] = None):
+    def update_treeview_display(self, content: list[list[str]] | None = None):
         "Update treeview display"
-        for row in self.tree.get_children():
-            self.tree.delete(row)
+        for child in self.tree.get_children():
+            self.tree.delete(child)
 
         if content is None:
             content = self.view_model.get_materials()
@@ -129,7 +136,9 @@ class AddMaterialFrame(ctk.CTkFrame):
         selected = self.tree.selection()
 
         if not selected:
-            self.show_flash(self.texts.get("no_material_selected", "No material selected"), "red")
+            self.show_flash(
+                self.texts.get("no_material_selected", "No material selected"), "red"
+            )
             return
 
         item = self.tree.item(selected[0])
@@ -141,7 +150,6 @@ class AddMaterialFrame(ctk.CTkFrame):
             self.show_flash(message, "green")
             self.update_treeview_display()
 
-    
     def show_flash(self, message, color="green"):
         "Show flash message"
         self.flash_label.configure(text=message, text_color=color)
@@ -159,7 +167,9 @@ class AddMaterialFrame(ctk.CTkFrame):
             placeholder_text=self.texts.get("correct_material", "Correct material")
         )
         self.add_button.configure(text=self.texts.get("add_material", "Add material"))
-        self.remove_button.configure(text=self.texts.get("remove_material", "Remove material"))
+        self.remove_button.configure(
+            text=self.texts.get("remove_material", "Remove material")
+        )
         self.tree.heading(
             "Incorrect Material",
             text=self.texts.get("incorrect_material", "Incorrect material"),

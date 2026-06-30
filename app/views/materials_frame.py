@@ -1,10 +1,14 @@
-import customtkinter as ctk
 from tkinter import ttk
-from typing import Optional, List
+
+import customtkinter as ctk
+
 from app.translations.translations import LANGUAGE_NAMES
 
+
 class MaterialsFrame(ctk.CTkFrame):
-    def __init__(self, texts=None, master=None, view_model=None, app_instance=None, **kwargs):
+    def __init__(
+        self, texts=None, master=None, view_model=None, app_instance=None, **kwargs
+    ):
         super().__init__(master, **kwargs)
         self.view_model = view_model
         self.app_instance = app_instance
@@ -20,24 +24,34 @@ class MaterialsFrame(ctk.CTkFrame):
         buttons_frame.pack(anchor="n", pady=10)
 
         self.remove_material_button = ctk.CTkButton(
-            buttons_frame, text=self.texts.get("remove_material", "Remove material"), width=100, height=30, command=self.remove_selected_material
+            buttons_frame,
+            text=self.texts.get("remove_material", "Remove material"),
+            width=100,
+            height=30,
+            command=self.remove_selected_material,
         )
         self.remove_material_button.pack(side="left", padx=10)
 
         self.add_material_button = ctk.CTkButton(
-            buttons_frame, text=self.texts.get("add_material", "Add material"), width=100, height=30, command=self.open_add_materials_window
+            buttons_frame,
+            text=self.texts.get("add_material", "Add material"),
+            width=100,
+            height=30,
+            command=self.open_add_materials_window,
         )
         self.add_material_button.pack(side="left")
 
         flash_message_frame = ctk.CTkFrame(self)
-        flash_message_frame.pack()        
+        flash_message_frame.pack()
         self.flash_label = ctk.CTkLabel(flash_message_frame, text="")
         self.flash_label.pack(side="bottom")
-        
-        #Search input
+
+        # Search input
         self.search_entry = ctk.CTkEntry(
-        self,
-        placeholder_text=self.texts.get("search_placeholder", "Enter search material...")
+            self,
+            placeholder_text=self.texts.get(
+                "search_placeholder", "Enter search material..."
+            ),
         )
         self.search_entry.pack(padx=10, pady=5, fill="x")
         self.search_entry.bind("<KeyRelease>", self.search_material)
@@ -50,7 +64,7 @@ class MaterialsFrame(ctk.CTkFrame):
             tree_frame,
             columns=("Incorrect Material", "Correct Material"),
             show="headings",
-            height=15
+            height=15,
         )
         self.tree.heading(
             "Incorrect Material",
@@ -85,17 +99,16 @@ class MaterialsFrame(ctk.CTkFrame):
         if self.app_instance:
             self.app_instance.show_main_content()
 
-    def update_treeview_display(self, content: Optional[List[List[str]]] = None):
+    def update_treeview_display(self, content: list[list[str]] | None = None):
         "Update the treeview with the provided content or reload from the view model."
-        for row in self.tree.get_children():
-            self.tree.delete(row)
+        for child in self.tree.get_children():
+            self.tree.delete(child)
 
         if content is None:
             content = self.view_model.get_materials()
 
         for row in content:
             self.tree.insert("", "end", values=(row[0], row[1]))
-
 
     def update_texts(self, new_texts: dict):
         """Update the texts in the settings frame."""
@@ -107,7 +120,9 @@ class MaterialsFrame(ctk.CTkFrame):
             text=self.texts.get("add_material", "Add material")
         )
         self.search_entry.configure(
-            placeholder_text=self.texts.get("search_placeholder", "Enter search material...")
+            placeholder_text=self.texts.get(
+                "search_placeholder", "Enter search material..."
+            )
         )
         self.tree.heading(
             "Incorrect Material",
@@ -124,7 +139,7 @@ class MaterialsFrame(ctk.CTkFrame):
             else "Czech"
         )
         self.language_optionmenu.set(current_lang_name)
-    
+
     def remove_selected_material(self):
         "Remove selected material"
         selected = self.tree.selection()
@@ -151,10 +166,7 @@ class MaterialsFrame(ctk.CTkFrame):
 
         materials = self.view_model.get_materials()
 
-        filtered = [
-            row for row in materials
-            if row[0].lower().startswith(query)
-        ]
+        filtered = [row for row in materials if row[0].lower().startswith(query)]
 
         self.update_treeview_display(filtered)
 

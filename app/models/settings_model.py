@@ -1,6 +1,7 @@
 import json
 import os
 
+
 class SettingsModel:
     """
     Model for storing and managing application settings.
@@ -25,9 +26,9 @@ class SettingsModel:
         """
         if os.path.exists(self.path):
             try:
-                with open(self.path, "r", encoding="utf-8") as f:
+                with open(self.path, encoding="utf-8") as f:
                     self.settings = json.load(f)
-            except (json.JSONDecodeError, IOError):
+            except (OSError, json.JSONDecodeError):
                 self.settings = {}
         else:
             self.settings = {}

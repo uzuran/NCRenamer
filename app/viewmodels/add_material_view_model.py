@@ -1,5 +1,6 @@
 """Add materials view model"""
 
+
 class AddMaterialsViewModel:
     """Add materials view model to load CSV data for materials."""
 
@@ -13,7 +14,7 @@ class AddMaterialsViewModel:
         self.texts = texts or {}
 
     def add_material(self, incorrect: str, correct: str):
-        "Add materials view model"  
+        "Add materials view model"
         incorrect = incorrect.strip()
         correct = correct.strip()
 
@@ -25,7 +26,7 @@ class AddMaterialsViewModel:
             return False, self.texts.get("material_exists", "Material already exists")
 
         return True, self.texts.get("material_added", "Material added")
-    
+
     def remove_material(self, incorrect: str):
         "Remove material view model"
         incorrect = incorrect.strip()
@@ -39,7 +40,7 @@ class AddMaterialsViewModel:
             return False, self.texts.get("material_not_found", "Material not found")
 
         return True, self.texts.get("material_removed", "Material removed")
-    
+
     def get_materials(self):
         "Get materials from model"
         return self.repo.load_materials()

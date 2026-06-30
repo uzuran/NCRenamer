@@ -1,8 +1,8 @@
 """Module for formatting and validating NC files."""
 
 import re
-import sys
 from pathlib import Path
+
 from rich.console import Console
 
 from app.models.material_repository import MaterialRepository
@@ -169,4 +169,3 @@ class FormatterModel:
             style="bold red",
         )
         return False
-    

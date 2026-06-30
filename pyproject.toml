@@ -1,0 +1,76 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.backends.legacy:build"
+
+# --------------------------------------------------------------------------- #
+# Project metadata (mirrors setup.cfg — keep in sync until setup.cfg removed) #
+# --------------------------------------------------------------------------- #
+[project]
+name = "NCRenamer"
+version = "0.1.0"
+requires-python = ">=3.12"
+
+# --------------------------------------------------------------------------- #
+# Ruff — linting + formatting (replaces black + isort + pyflakes + pycodestyle)
+# --------------------------------------------------------------------------- #
+[tool.ruff]
+target-version = "py312"
+line-length = 88
+src = ["app", "tests"]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "N",   # pep8-naming
+    "UP",  # pyupgrade
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "SIM", # flake8-simplify
+    "TCH", # flake8-type-checking
+    "RUF", # ruff-specific rules
+]
+ignore = [
+    "E501",  # line too long — handled by formatter
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+# --------------------------------------------------------------------------- #
+# Mypy — strict type checking                                                  #
+# --------------------------------------------------------------------------- #
+[tool.mypy]
+python_version = "3.12"
+strict = false                     # enable gradually; start with the flags below
+check_untyped_defs = true
+disallow_untyped_defs = false      # enable per-file as refactoring progresses
+disallow_any_generics = false
+warn_return_any = true
+warn_unused_ignores = true
+ignore_missing_imports = true      # third-party stubs not always available
+# app.py (entry-point script) conflicts with the app/ package name; exclude it
+exclude = "^app\\.py$"
+
+[[tool.mypy.overrides]]
+module = ["tests.*"]
+disallow_untyped_defs = false      # test helpers are less strict
+check_untyped_defs = false         # stubs don't match concrete types; skip test bodies
+
+# --------------------------------------------------------------------------- #
+# Pytest                                                                        #
+# --------------------------------------------------------------------------- #
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-v"
+markers = [
+    "positive: positive/happy-path test",
+    "negative: negative/error-path test",
+]

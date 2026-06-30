@@ -1,8 +1,7 @@
 """Module for handling email functionality in the application."""
 
-import os
 import json
-
+import os
 
 CORRECT_PASSWORD = "amada"
 
@@ -18,9 +17,9 @@ class EmailModel:
         """Load the email counter from a JSON file."""
         if os.path.exists(self.counter_file):
             try:
-                with open(self.counter_file, "r", encoding="utf-8") as f:
+                with open(self.counter_file, encoding="utf-8") as f:
                     data = json.load(f)
-                    return data.get("counter", 0)
+                    return int(data.get("counter", 0))
             except (json.JSONDecodeError, KeyError):
                 return 0
         return 0
@@ -29,7 +28,7 @@ class EmailModel:
         """Save the email counter to a JSON file."""
         with open(self.counter_file, "w", encoding="utf-8") as f:
             json.dump({"counter": self.email_counter}, f)
-                  
+
     def increment_counter(self) -> None:
         """Increments the email counter by one and saves the change."""
         self.email_counter += 1

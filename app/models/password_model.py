@@ -1,7 +1,9 @@
 """A simple password model."""
 
+
 class PasswordModel:
     """A simple password model for demonstration purposes."""
+
     def __init__(self, correct_password: str):
         self.correct_password = correct_password
 

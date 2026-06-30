@@ -1,24 +1,25 @@
-import customtkinter as ctk
-from tkinter import messagebox, filedialog
-from rich.console import Console
 import webbrowser
+from tkinter import filedialog, messagebox
+
+import customtkinter as ctk
 from PIL import Image
+from rich.console import Console
+
 from app.utils.resource_path import resource_path
 
 cons = Console()
 
 
-class MainFrame(
-    ctk.CTkFrame
-):
-    def __init__(self, master=None, viewmodel=None, texts=None, app_instance=None, **kwargs):
+class MainFrame(ctk.CTkFrame):
+    def __init__(
+        self, master=None, viewmodel=None, texts=None, app_instance=None, **kwargs
+    ):
         super().__init__(master, **kwargs)
 
-        self.vm = viewmodel 
+        self.vm = viewmodel
         self.texts = texts or {}
         self.app_instance = app_instance
-        self.email_counter_label = None 
-
+        self.email_counter_label = None
 
         # Create a top bar for the two buttons
         self.top_bar = ctk.CTkFrame(self, fg_color="transparent")
@@ -26,7 +27,9 @@ class MainFrame(
 
         # History / Materials Button (left corner)
         try:
-            self.history_icon = ctk.CTkImage(Image.open(resource_path("img/box.png")), size=(24, 24))
+            self.history_icon = ctk.CTkImage(
+                Image.open(resource_path("img/box.png")), size=(24, 24)
+            )
         except FileNotFoundError:
             self.history_icon = None
         self.history_materials_btn = ctk.CTkButton(
@@ -40,9 +43,11 @@ class MainFrame(
 
         # Settings Button (right corner)
         try:
-            self.settings_icon = ctk.CTkImage(Image.open(resource_path("img/setting.png")), size=(24, 24))
+            self.settings_icon = ctk.CTkImage(
+                Image.open(resource_path("img/setting.png")), size=(24, 24)
+            )
         except FileNotFoundError:
-            self.settings_icon = None  
+            self.settings_icon = None
 
         self.settings_btn = ctk.CTkButton(
             self.top_bar,
@@ -61,7 +66,9 @@ class MainFrame(
 
         # File selection button.
         self.select_btn = ctk.CTkButton(
-            self, text=self.texts.get("select_nc_files", "Select NC files"), command=self.select_files
+            self,
+            text=self.texts.get("select_nc_files", "Select NC files"),
+            command=self.select_files,
         )
         self.select_btn.pack(pady=(10, 0))
 
@@ -70,31 +77,37 @@ class MainFrame(
         self.progressbar.configure(corner_radius=5)
         self.progressbar.set(0)
         self.progressbar.update()
-        
+
         # Rename button.
         self.rename_btn = ctk.CTkButton(
-            self, text=self.texts.get("rename_nc_files", "Rename NC files"), command=self.rename_files
+            self,
+            text=self.texts.get("rename_nc_files", "Rename NC files"),
+            command=self.rename_files,
         )
         self.rename_btn.pack(pady=(0, 10))
 
         # Unselect button
         self.unselect_btn = ctk.CTkButton(
-            self, text=self.texts.get("unselect_files", "Unselect files"), command=self.unselect_selected_nc
+            self,
+            text=self.texts.get("unselect_files", "Unselect files"),
+            command=self.unselect_selected_nc,
         )
         self.unselect_btn.pack(pady=(0, 10))
 
         flash_message_frame = ctk.CTkFrame(self)
-        flash_message_frame.pack()        
+        flash_message_frame.pack()
         self.flash_label = ctk.CTkLabel(flash_message_frame, text="")
         self.flash_label.pack(side="bottom")
 
         # Output box.
         self.output_box = ctk.CTkTextbox(self, height=150, width=400, state="disabled")
         self.output_box.pack(pady=5)
-        
+
         # Report bug button.
         self.report_bug_btn = ctk.CTkButton(
-            self, text=self.texts.get("report_bug", "Report bug"), command=self.set_email
+            self,
+            text=self.texts.get("report_bug", "Report bug"),
+            command=self.set_email,
         )
         self.report_bug_btn.pack(pady=(0, 10))
 
@@ -103,7 +116,7 @@ class MainFrame(
         # Report bug counter.
         self.email_counter_label = ctk.CTkLabel(
             self,
-            text=f"{self.texts.get('number_of_bugs', 'Number of bugs')} {self.vm.email_model.email_counter}",
+            text=f"{self.texts.get('number_of_bugs', 'Number of bugs')} {self.vm.email_counter}",
         )
         self.email_counter_label.pack(pady=5)
 
@@ -119,7 +132,9 @@ class MainFrame(
         )
         self.vm.select_files(files)
         self.count_label.configure(
-            text=self.texts.get("selected_files", "Selected: {} files").format(len(self.vm.file_list))
+            text=self.texts.get("selected_files", "Selected: {} files").format(
+                len(self.vm.file_paths)
+            )
         )
 
     def rename_files(
@@ -128,8 +143,8 @@ class MainFrame(
         # Reset progress bar to 0 before starting
         self.progressbar.set(0)
         self.progressbar.update()
-        
-        files_to_process = self.vm.list_of_nc_files()
+
+        files_to_process = self.vm.file_paths
         total = len(files_to_process)
         if total == 0:
             messagebox.showinfo(
@@ -145,7 +160,7 @@ class MainFrame(
         for i, file_path in enumerate(files_to_process, start=1):
             # Process the file and get result
             name, changed, final_material = self.vm.process_single_file(file_path)
-            
+
             # Update output box
             if changed and final_material:
                 text = self.texts.get(
@@ -159,20 +174,20 @@ class MainFrame(
                     else self.texts.get("file_no_change", "No change: {}").format(name)
                 )
             self.output_box.insert("end", f"{text}\n")
-            
+
             # Update progress bar with proper UI refresh
             progress_value = i / total
             self.progressbar.set(progress_value)
             self.progressbar.update()
             self.update_idletasks()
-            
+
             # Force a small delay to make progress visible
             self.after(10)
 
         # Ensure progress bar shows 100% completion
         self.progressbar.set(1.0)
         self.progressbar.update()
-        
+
         self.output_box.configure(state="disabled")
         messagebox.showinfo(
             title=self.texts.get("done_title", "Done"),
@@ -187,9 +202,9 @@ class MainFrame(
         self.vm.increment_email_counter()
         if self.email_counter_label is not None:
             self.email_counter_label.configure(
-                text=self.texts.get(
-                    "email_count", "Number of bug reports: {}"
-                ).format(self.vm.email_model.email_counter)
+                text=self.texts.get("email_count", "Number of bug reports: {}").format(
+                    self.vm.email_counter
+                )
             )
         try:
             webbrowser.open(self.vm.get_mailto_url())
@@ -211,11 +226,12 @@ class MainFrame(
         """Opens the MaterialsFrame (or switches view)."""
         if self.app_instance:
             self.app_instance.show_materials_content()
+
     def update_email_counter_label(self):
         """Aktualizuje text popisku počítadla na základě aktuální hodnoty z ViewModelu."""
         if self.email_counter_label is not None:
             self.email_counter_label.configure(
-                text=f"{self.texts.get('number_of_bugs', 'Number of bugs')} {self.vm.email_model.email_counter}"
+                text=f"{self.texts.get('number_of_bugs', 'Number of bugs')} {self.vm.email_counter}"
             )
 
     def update_texts(self, new_texts: dict):
@@ -223,20 +239,26 @@ class MainFrame(
         self.texts = new_texts
         self.count_label.configure(
             text=self.texts.get("selected_files", "Selected: {} files").format(
-                len(self.vm.file_list)
+                len(self.vm.file_paths)
             )
         )
-        self.select_btn.configure(text=self.texts.get("select_nc_files", "Select NC files"))
-        self.rename_btn.configure(text=self.texts.get("rename_nc_files", "Rename NC files"))
-        self.unselect_btn.configure(text=self.texts.get("unselect_files", "Unselect files"))
+        self.select_btn.configure(
+            text=self.texts.get("select_nc_files", "Select NC files")
+        )
+        self.rename_btn.configure(
+            text=self.texts.get("rename_nc_files", "Rename NC files")
+        )
+        self.unselect_btn.configure(
+            text=self.texts.get("unselect_files", "Unselect files")
+        )
         self.report_bug_btn.configure(text=self.texts.get("report_bug", "Report bug"))
         if self.email_counter_label is not None:
             self.email_counter_label.configure(
-                text=f"{self.texts.get('number_of_bugs', 'Number of bugs')} {self.vm.email_model.email_counter}"
+                text=f"{self.texts.get('number_of_bugs', 'Number of bugs')} {self.vm.email_counter}"
             )
 
     def unselect_selected_nc(self):
-        if not self.vm.file_list:
+        if not self.vm.file_paths:
             self.show_flash(self.texts.get("no_file_selected"), "red")
             return
 
@@ -247,14 +269,14 @@ class MainFrame(
         )
 
         self.show_flash(
-            self.texts.get("files_unselected", "Files unselected: {}").format(removed_count),
+            self.texts.get("files_unselected", "Files unselected: {}").format(
+                removed_count
+            ),
             "green",
         )
 
-    
     def show_flash(self, message, color="green"):
         "Show flash message"
         self.flash_label.configure(text=message, text_color=color)
 
         self.after(2500, lambda: self.flash_label.configure(text=""))
-        

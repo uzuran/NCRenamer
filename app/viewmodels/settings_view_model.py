@@ -1,17 +1,17 @@
 """ViewModel for managing application settings and interactions."""
 
 import customtkinter as ctk
-from app.translations.translations import LANGUAGE_NAMES
 
+from app.translations.translations import LANGUAGE_NAMES
 
 
 class SettingsViewModel:
     """ViewModel for managing application settings and interactions."""
+
     def __init__(self, app_instance, settings_model):
         self.app = app_instance
         self.model = settings_model
         self.model.load()
-
 
     def toggle_appearance_mode(self):
         """Toggle between Light and Dark appearance modes."""
@@ -23,7 +23,7 @@ class SettingsViewModel:
             self.model.save()
         return new_mode
 
-    def get_current_language_name(self, language_names: dict) -> str:
+    def get_current_language_name(self, language_names: dict[str, str]) -> str:
         """Get the display name of the current language."""
         code = self.app.current_language_code
         for name, lang_code in language_names.items():

@@ -1,13 +1,16 @@
 """Email Bug Tracker ViewModel Module"""
 
 from tkinter import messagebox
+
 from rich.console import Console
+
 from app.models.email_model import EmailModel
 
 
 class EmailBugTrackerViewModel:
     """Initialize the ViewModel with the model and console for UI output."""
-    def __init__(self, model:EmailModel, console: Console, texts=None):
+
+    def __init__(self, model: EmailModel, console: Console, texts=None):
         self.model = model
         self.console = console
         self.texts = texts or {}
@@ -26,12 +29,10 @@ class EmailBugTrackerViewModel:
         self.model.email_counter += 1
         try:
             self.model.save_counter()
-        except (IOError, OSError) as e:
+        except OSError as e:
             messagebox.showerror(
                 title=self.texts.get("saving_error_title", "Saving Error"),
                 message=self.texts.get(
                     "saving_error_message", "Failed to save the counter. Error: {}"
                 ).format(e),
             )
-         
-            

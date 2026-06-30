@@ -1,5 +1,6 @@
 """Materials view model"""
 
+
 class MaterialsViewModel:
     """Simple ViewModel to load CSV data for materials."""
 
@@ -12,7 +13,7 @@ class MaterialsViewModel:
         """Store the current UI texts for translated messages."""
         self.texts = texts or {}
 
-    def get_current_language_name(self, language_names: dict) -> str:
+    def get_current_language_name(self, language_names: dict[str, str]) -> str:
         """Get the display name of the current language."""
         code = self.app.current_language_code
         for name, lang_code in language_names.items():
