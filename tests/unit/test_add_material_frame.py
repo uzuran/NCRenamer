@@ -9,10 +9,9 @@ directly.
 from __future__ import annotations
 
 import pytest
-
 from tests.conftest import StubMaterialRepository
-from app.viewmodels.materials_view_model import MaterialsViewModel
 
+from app.viewmodels.materials_view_model import MaterialsViewModel
 
 # --------------------------------------------------------------------------- #
 # Shared fixtures
@@ -103,9 +102,7 @@ def test_update_strips_whitespace_from_new_correct(vm):
 
 
 def test_multiple_entries_only_target_is_changed():
-    repo = StubMaterialRepository(
-        [["A", "a"], ["B", "b"], ["C", "c"]]
-    )
+    repo = StubMaterialRepository([["A", "a"], ["B", "b"], ["C", "c"]])
     vm = MaterialsViewModel(app_instance=None, repo=repo, texts=TEXTS)
     vm.update_material("B", "B", "b_updated")
     rows = {r[0]: r[1] for r in vm.get_materials()}

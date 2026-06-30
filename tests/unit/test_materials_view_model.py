@@ -113,7 +113,9 @@ def test_add_material_does_not_increase_count_on_duplicate(vm_with_data):
 
 
 def test_update_material_success_returns_true_and_message(vm_with_data):
-    success, msg = vm_with_data.update_material("1.4301BRUS-4.0", "1.4301BRUS-4.0", "1.4301 new")
+    success, msg = vm_with_data.update_material(
+        "1.4301BRUS-4.0", "1.4301BRUS-4.0", "1.4301 new"
+    )
     assert success is True
     assert msg == "Material updated"
 

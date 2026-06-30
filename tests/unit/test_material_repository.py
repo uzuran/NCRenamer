@@ -108,11 +108,17 @@ def test_update_material_changes_correct_value(repo_with_data):
 
 
 def test_update_material_returns_true_on_success(repo_with_data):
-    assert repo_with_data.update_material("1.4301BRUS-4.0", "1.4301BRUS-4.0", "1.4301 new") is True
+    assert (
+        repo_with_data.update_material("1.4301BRUS-4.0", "1.4301BRUS-4.0", "1.4301 new")
+        is True
+    )
 
 
 def test_update_material_returns_false_when_key_not_found(repo_with_data):
-    assert repo_with_data.update_material("NONEXISTENT", "NONEXISTENT", "anything") is False
+    assert (
+        repo_with_data.update_material("NONEXISTENT", "NONEXISTENT", "anything")
+        is False
+    )
 
 
 def test_update_material_preserves_other_entries(repo_with_data):
@@ -122,7 +128,9 @@ def test_update_material_preserves_other_entries(repo_with_data):
 
 
 def test_update_material_strips_whitespace(repo_with_data):
-    repo_with_data.update_material("  1.4301BRUS-4.0  ", "1.4301BRUS-4.0", "  1.4301 new  ")
+    repo_with_data.update_material(
+        "  1.4301BRUS-4.0  ", "1.4301BRUS-4.0", "  1.4301 new  "
+    )
     rows = {r[0]: r[1] for r in repo_with_data.load_materials()}
     assert rows["1.4301BRUS-4.0"] == "1.4301 new"
 

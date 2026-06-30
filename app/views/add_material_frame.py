@@ -269,9 +269,7 @@ class AddMaterialFrame(ctk.CTkFrame):
         self.update_button.configure(
             text=self.texts.get("update_material", "Update material")
         )
-        self.cancel_button.configure(
-            text=self.texts.get("cancel_edit", "Cancel edit")
-        )
+        self.cancel_button.configure(text=self.texts.get("cancel_edit", "Cancel edit"))
         self.remove_button.configure(
             text=self.texts.get("remove_material", "Remove material")
         )

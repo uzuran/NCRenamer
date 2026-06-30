@@ -49,7 +49,9 @@ class MaterialRepository:
 
         return True
 
-    def update_material(self, incorrect: str, new_incorrect: str, new_correct: str) -> bool:
+    def update_material(
+        self, incorrect: str, new_incorrect: str, new_correct: str
+    ) -> bool:
         """Update the incorrect key and correct value for an existing entry. Returns False if the key is not found."""
         incorrect = incorrect.strip()
         new_incorrect = new_incorrect.strip()

@@ -26,7 +26,9 @@ class StubMaterialRepository:
         self._materials.append([incorrect, correct])
         return True
 
-    def update_material(self, incorrect: str, new_incorrect: str, new_correct: str) -> bool:
+    def update_material(
+        self, incorrect: str, new_incorrect: str, new_correct: str
+    ) -> bool:
         incorrect = incorrect.strip()
         new_incorrect = new_incorrect.strip()
         new_correct = new_correct.strip()
