@@ -1,0 +1,33 @@
+"""main.py — assembles all BurnViewModel dependencies."""
+
+from __future__ import annotations
+
+from app.burn_table.services.excel_reader import ExcelReader
+from app.burn_table.services.excel_writer import ExcelWriter
+from app.burn_table.services.file_service import FileService
+from app.burn_table.services.free_slot_detector import FreeSlotDetector
+from app.burn_table.services.print_service import PrintService
+from app.burn_table.services.xml_parser import XmlParser
+from app.burn_table.viewmodels.burn_view_model import BurnViewModel
+from app.burn_table.viewmodels.performance_recorder import PerformanceRecorder
+from app.burn_table.viewmodels.print_manager import PrintManager
+
+
+def create_view_model() -> BurnViewModel:
+    """Assemble and return a fully wired BurnViewModel."""
+    file_service = FileService()
+    xml_parser = XmlParser()
+
+    return BurnViewModel(
+        reader=ExcelReader(),
+        writer=ExcelWriter(),
+        detector=FreeSlotDetector(),
+        file_service=file_service,
+        recorder=PerformanceRecorder(
+            file_service=file_service,
+            xml_parser=xml_parser,
+        ),
+        print_manager=PrintManager(
+            print_service=PrintService(),
+        ),
+    )

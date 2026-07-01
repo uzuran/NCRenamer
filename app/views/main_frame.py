@@ -41,6 +41,14 @@ class MainFrame(ctk.CTkFrame):
         )
         self.history_materials_btn.pack(side="left", anchor="w")
 
+        self.burn_table_btn = ctk.CTkButton(
+            self.top_bar,
+            text=self.texts.get("burn_table", "Burn Table"),
+            width=90,
+            command=self.open_burn_table_frame,
+        )
+        self.burn_table_btn.pack(side="left", anchor="w", padx=(6, 0))
+
         # Settings Button (right corner)
         try:
             self.settings_icon = ctk.CTkImage(
@@ -227,6 +235,11 @@ class MainFrame(ctk.CTkFrame):
         if self.app_instance:
             self.app_instance.show_materials_content()
 
+    def open_burn_table_frame(self):
+        """Opens the BurnTableFrame."""
+        if self.app_instance:
+            self.app_instance.show_burn_table_content()
+
     def update_email_counter_label(self):
         """Aktualizuje text popisku počítadla na základě aktuální hodnoty z ViewModelu."""
         if self.email_counter_label is not None:
@@ -252,6 +265,7 @@ class MainFrame(ctk.CTkFrame):
             text=self.texts.get("unselect_files", "Unselect files")
         )
         self.report_bug_btn.configure(text=self.texts.get("report_bug", "Report bug"))
+        self.burn_table_btn.configure(text=self.texts.get("burn_table", "Burn Table"))
         if self.email_counter_label is not None:
             self.email_counter_label.configure(
                 text=f"{self.texts.get('number_of_bugs', 'Number of bugs')} {self.vm.email_counter}"

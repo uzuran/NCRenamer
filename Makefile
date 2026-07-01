@@ -1,7 +1,7 @@
 PYTHON := python3
 PIP    := pip3
 
-.PHONY: help run test test-unit test-integration test-verbose \
+.PHONY: help run run-burn test test-unit test-integration test-verbose \
         coverage coverage-html lint format typecheck check \
         install install-dev clean
 
@@ -12,7 +12,8 @@ help:
 	@echo "Usage: make <target>"
 	@echo ""
 	@echo "  Run"
-	@echo "    run                 Launch the application"
+	@echo "    run                 Launch the NCRenamer application"
+	@echo "    run-burn            Launch the burn-table application"
 	@echo ""
 	@echo "  Tests"
 	@echo "    test                Run full test suite"
@@ -40,6 +41,9 @@ help:
 
 run:
 	$(PYTHON) app.py
+
+run-burn:
+	$(PYTHON) -m app.burn_table
 
 # ─── Tests ──────────────────────────────────────────────────────────────────
 

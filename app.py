@@ -4,6 +4,7 @@ import webbrowser
 
 import customtkinter as ctk
 
+from app.burn_table.main import create_view_model as create_burn_view_model
 from app.models.email_model import EmailModel
 from app.models.formatter_model import FormatterModel
 from app.models.material_repository import MaterialRepository
@@ -14,6 +15,7 @@ from app.version import APP_NAME, APP_VERSION
 from app.viewmodels.main_view_model import MainViewModel
 from app.viewmodels.materials_view_model import MaterialsViewModel
 from app.views.add_material_frame import AddMaterialFrame
+from app.views.burn_table_frame import BurnTableFrame
 from app.views.main_frame import MainFrame
 from app.views.materials_frame import MaterialsFrame
 from app.views.settings_frame import SettingsFrame
@@ -87,7 +89,16 @@ class App(ctk.CTk):
             texts=self.texts,
         )
 
+        self.burn_view_model = create_burn_view_model()
+        self.burn_table_frame = BurnTableFrame(
+            master=self,
+            app_instance=self,
+            view_model=self.burn_view_model,
+            texts=self.texts,
+        )
+
         self.show_main_content()
+        self.burn_view_model.load_last_table()
 
         self._update_check_in_progress = False
 
@@ -107,10 +118,17 @@ class App(ctk.CTk):
             self.settings_frame.update_texts(self.texts)
             self.materials_frame.update_texts(self.texts)
             self.add_material_frame.update_texts(self.texts)
+            self.burn_table_frame.update_texts(self.texts)
 
     def show_main_content(self):
         self._hide_all_frames()
+        self.geometry("350x600")
         self.main_frame.pack(fill="both", expand=True)
+
+    def show_burn_table_content(self):
+        self._hide_all_frames()
+        self.geometry("1100x650")
+        self.burn_table_frame.pack(fill="both", expand=True)
 
     def show_settings_content(self):
         self._hide_all_frames()
@@ -133,6 +151,7 @@ class App(ctk.CTk):
             self.settings_frame,
             self.materials_frame,
             self.add_material_frame,
+            self.burn_table_frame,
         ):
             frame.pack_forget()
 
