@@ -60,7 +60,7 @@ class TableFactory:
 
         wb = openpyxl.Workbook()
         ws = wb.active
-        ws.title = "Pálení"
+        ws.title = "Ocel"
 
         header_font  = Font(bold=True, size=9, color="000000")
         header_align = Alignment(horizontal="center", vertical="center", wrap_text=True)

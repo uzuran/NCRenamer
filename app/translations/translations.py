@@ -52,6 +52,8 @@ cs = {
     "saving_error_title": "Chyba ukládání",
     "saving_error_message": "Nepodařilo se uložit počítadlo. Chyba: {}",
     # Tabulka pálení
+    "tab_steel": "Ocel",
+    "tab_aluminium": "Hliník",
     "burn_table": "Tabulka pálení",
     "load_nc_sch": "Načíst NC/SCH",
     "clear_table": "Vymazat tabulku",
@@ -152,6 +154,8 @@ en = {
     "saving_error_title": "Saving Error",
     "saving_error_message": "Failed to save the counter. Error: {}",
     # Burn table
+    "tab_steel": "Steel",
+    "tab_aluminium": "Aluminium",
     "burn_table": "Burn Table",
     "load_nc_sch": "Load NC/SCH",
     "clear_table": "Clear table",

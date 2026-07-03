@@ -29,6 +29,9 @@ class FreeSlotDetector:
     WARNING_THRESHOLD = 5
     CRITICAL_THRESHOLD = 2
 
+    def __init__(self, sheet_index: int = 0) -> None:
+        self._sheet_index = sheet_index
+
     def detect(self, path: Path) -> TableStatus:
         """Open *path* and return the current TableStatus."""
         if path.suffix.lower() == ".xls":
@@ -52,7 +55,7 @@ class FreeSlotDetector:
         except Exception as exc:
             raise ValueError(f"Cannot open workbook '{path}': {exc}") from exc
 
-        ws = wb.active
+        ws = wb.worksheets[self._sheet_index]
         used_rows = sum(
             1
             for row_num in range(self.DATA_START_ROW, self.MAX_ROW + 1)
@@ -74,7 +77,7 @@ class FreeSlotDetector:
         except Exception as exc:
             raise ValueError(f"Cannot open workbook '{path}': {exc}") from exc
 
-        ws = wb.sheet_by_index(0)
+        ws = wb.sheet_by_index(self._sheet_index)
         limit = min(self.MAX_ROW, ws.nrows)
         used_rows = sum(
             1

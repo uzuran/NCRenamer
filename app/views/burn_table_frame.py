@@ -17,51 +17,26 @@ _COLUMN_WIDTHS = (120, 85, 75, 160, 50, 90, 65, 95, 95)
 _MIN_WIDTHS    = ( 80, 60, 55, 110, 35, 65, 45, 65, 65)
 
 
-class BurnTableFrame(ctk.CTkFrame):
-    """CTk frame wrapping BurnViewModel as an integrated tab in NCRenamer."""
+class _BurnTabContent(ctk.CTkFrame):
+    """Per-material tab: toolbar + pending banner + tree + status bar."""
 
     def __init__(
         self,
         master,
-        app_instance,
         view_model: BurnViewModel,
         texts: dict | None = None,
         **kwargs,
     ) -> None:
-        super().__init__(master, **kwargs)
-        self.app = app_instance
+        super().__init__(master, fg_color="transparent", **kwargs)
         self.vm = view_model
         self.texts = texts or {}
-        self._build_ui()
-        self.vm.subscribe(self._on_vm_change)
-
-    # ─── Build ───────────────────────────────────────────────────────────────
-
-    def _build_ui(self) -> None:
-        self._build_top_bar()
         self._build_toolbar()
         self._build_pending_banner()
         self._build_tree()
         self._build_status_bar()
+        self.vm.subscribe(self._on_vm_change)
 
-    def _build_top_bar(self) -> None:
-        bar = ctk.CTkFrame(self, fg_color="transparent")
-        bar.pack(fill="x", pady=(10, 0), padx=10)
-
-        self.back_btn = ctk.CTkButton(
-            bar,
-            text=self.texts.get("back_button", "Back"),
-            width=70,
-            command=self._go_back,
-        )
-        self.back_btn.pack(side="left")
-
-        self.title_lbl = ctk.CTkLabel(
-            bar,
-            text=self.texts.get("burn_table", "Burn Table"),
-            font=ctk.CTkFont(size=16, weight="bold"),
-        )
-        self.title_lbl.pack(side="left", padx=12)
+    # ─── Build ───────────────────────────────────────────────────────────────
 
     def _build_toolbar(self) -> None:
         bar = ctk.CTkFrame(self, fg_color="transparent")
@@ -134,9 +109,6 @@ class BurnTableFrame(ctk.CTkFrame):
 
     # ─── Commands ────────────────────────────────────────────────────────────
 
-    def _go_back(self) -> None:
-        self.app.show_main_content()
-
     def _cmd_load_nc_sch(self) -> None:
         nc_strs = filedialog.askopenfilenames(
             title=self.texts.get("select_nc_file", "Select NC file(s)"),
@@ -177,7 +149,6 @@ class BurnTableFrame(ctk.CTkFrame):
         self._refresh_tree()
         self._refresh_pending_banner()
         self._refresh_status_bar()
-        self._refresh_button_states()
         self._check_popup()
 
     def _check_popup(self) -> None:
@@ -213,7 +184,6 @@ class BurnTableFrame(ctk.CTkFrame):
             if not has_table:
                 text += f"  —  {self.texts.get('no_table_hint', 'Create or load a table first!')}"
 
-            # Green when ready to append, amber when no table loaded
             banner_color = ("#d9f7d9", "#1a4d1a") if has_table else ("#fff3cd", "#5a4000")
             self.pending_frame.configure(fg_color=banner_color)
             self.pending_lbl.configure(text=text)
@@ -250,8 +220,74 @@ class BurnTableFrame(ctk.CTkFrame):
                 text_color="gray50",
             )
 
-    def _refresh_button_states(self) -> None:
-        pass  # All appending is now automatic via load_and_append_batch
+    # ─── Language switch ─────────────────────────────────────────────────────
+
+    def update_texts(self, new_texts: dict) -> None:
+        self.texts = new_texts
+        self.load_nc_btn.configure(text=new_texts.get("load_nc_sch", "Load NC/SCH"))
+        self.clear_table_btn.configure(text=new_texts.get("clear_table", "Clear table"))
+        self.print_btn.configure(text=new_texts.get("print_table", "Print"))
+        self._configure_columns()
+        self._refresh_status_bar()
+
+
+class BurnTableFrame(ctk.CTkFrame):
+    """Container with Steel and Aluminium tabs, each backed by its own BurnViewModel."""
+
+    def __init__(
+        self,
+        master,
+        app_instance,
+        vm_steel: BurnViewModel,
+        vm_aluminium: BurnViewModel,
+        texts: dict | None = None,
+        **kwargs,
+    ) -> None:
+        super().__init__(master, **kwargs)
+        self.app = app_instance
+        self.texts = texts or {}
+        self._build_top_bar()
+        self._build_tabs(vm_steel, vm_aluminium)
+
+    # ─── Build ───────────────────────────────────────────────────────────────
+
+    def _build_top_bar(self) -> None:
+        bar = ctk.CTkFrame(self, fg_color="transparent")
+        bar.pack(fill="x", pady=(10, 0), padx=10)
+
+        self.back_btn = ctk.CTkButton(
+            bar,
+            text=self.texts.get("back_button", "Back"),
+            width=70,
+            command=self._go_back,
+        )
+        self.back_btn.pack(side="left")
+
+        self.title_lbl = ctk.CTkLabel(
+            bar,
+            text=self.texts.get("burn_table", "Burn Table"),
+            font=ctk.CTkFont(size=16, weight="bold"),
+        )
+        self.title_lbl.pack(side="left", padx=12)
+
+    def _go_back(self) -> None:
+        self.app.show_main_content()
+
+    def _build_tabs(self, vm_steel: BurnViewModel, vm_aluminium: BurnViewModel) -> None:
+        self.tabview = ctk.CTkTabview(self)
+        self.tabview.pack(fill="both", expand=True, padx=4, pady=(4, 4))
+
+        steel_name = self.texts.get("tab_steel", "Ocel")
+        alu_name = self.texts.get("tab_aluminium", "Hliník")
+
+        tab_steel_frame = self.tabview.add(steel_name)
+        tab_alu_frame = self.tabview.add(alu_name)
+
+        self.steel_tab = _BurnTabContent(tab_steel_frame, vm_steel, self.texts)
+        self.steel_tab.pack(fill="both", expand=True)
+
+        self.alu_tab = _BurnTabContent(tab_alu_frame, vm_aluminium, self.texts)
+        self.alu_tab.pack(fill="both", expand=True)
 
     # ─── Language switch ─────────────────────────────────────────────────────
 
@@ -259,8 +295,5 @@ class BurnTableFrame(ctk.CTkFrame):
         self.texts = new_texts
         self.back_btn.configure(text=new_texts.get("back_button", "Back"))
         self.title_lbl.configure(text=new_texts.get("burn_table", "Burn Table"))
-        self.load_nc_btn.configure(text=new_texts.get("load_nc_sch", "Load NC/SCH"))
-        self.clear_table_btn.configure(text=new_texts.get("clear_table", "Clear table"))
-        self.print_btn.configure(text=new_texts.get("print_table", "Print"))
-        self._configure_columns()
-        self._refresh_status_bar()
+        self.steel_tab.update_texts(new_texts)
+        self.alu_tab.update_texts(new_texts)

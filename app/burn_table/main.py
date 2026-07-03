@@ -13,15 +13,20 @@ from app.burn_table.viewmodels.performance_recorder import PerformanceRecorder
 from app.burn_table.viewmodels.print_manager import PrintManager
 
 
-def create_view_model(texts: dict | None = None) -> BurnViewModel:
+def create_view_model(
+    texts: dict | None = None,
+    sheet_index: int = 0,
+    sheet_name: str = "Pálení",
+    settings_key: str = "last_table_path",
+) -> BurnViewModel:
     """Assemble and return a fully wired BurnViewModel."""
     file_service = FileService()
     xml_parser = XmlParser()
 
     return BurnViewModel(
-        reader=ExcelReader(),
-        writer=ExcelWriter(),
-        detector=FreeSlotDetector(),
+        reader=ExcelReader(sheet_index=sheet_index),
+        writer=ExcelWriter(sheet_index=sheet_index),
+        detector=FreeSlotDetector(sheet_index=sheet_index),
         file_service=file_service,
         recorder=PerformanceRecorder(
             file_service=file_service,
@@ -31,4 +36,6 @@ def create_view_model(texts: dict | None = None) -> BurnViewModel:
             print_service=PrintService(),
         ),
         texts=texts,
+        sheet_name=sheet_name,
+        settings_key=settings_key,
     )

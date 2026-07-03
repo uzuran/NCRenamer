@@ -89,16 +89,25 @@ class App(ctk.CTk):
             texts=self.texts,
         )
 
-        self.burn_view_model = create_burn_view_model(texts=self.texts)
+        self.vm_steel = create_burn_view_model(
+            texts=self.texts, sheet_index=0,
+            sheet_name="Ocel", settings_key="last_table_path",
+        )
+        self.vm_aluminium = create_burn_view_model(
+            texts=self.texts, sheet_index=1,
+            sheet_name="Hliník", settings_key="last_table_path_alu",
+        )
         self.burn_table_frame = BurnTableFrame(
             master=self,
             app_instance=self,
-            view_model=self.burn_view_model,
+            vm_steel=self.vm_steel,
+            vm_aluminium=self.vm_aluminium,
             texts=self.texts,
         )
 
         self.show_main_content()
-        self.burn_view_model.load_last_table()
+        self.vm_steel.load_last_table()
+        self.vm_aluminium.load_last_table()
 
         self._update_check_in_progress = False
 
@@ -114,7 +123,8 @@ class App(ctk.CTk):
 
             self.title(self.texts.get("app_title", "NC Renamer"))
             self.materials_view_model.update_texts(self.texts)
-            self.burn_view_model.update_texts(self.texts)
+            self.vm_steel.update_texts(self.texts)
+            self.vm_aluminium.update_texts(self.texts)
             self.main_frame.update_texts(self.texts)
             self.settings_frame.update_texts(self.texts)
             self.materials_frame.update_texts(self.texts)

@@ -21,6 +21,9 @@ class ExcelWriter:
     DATA_START_ROW = 3
     MAX_ROW = 36
 
+    def __init__(self, sheet_index: int = 0) -> None:
+        self._sheet_index = sheet_index
+
     def append_record(self, path: Path, record: BurnRecord) -> int:
         """Append *record* to the next free row and save.
 
@@ -43,7 +46,26 @@ class ExcelWriter:
         else:
             self._update_xlsx(path, row_num, record)
 
+    def ensure_sheet_exists(self, path: Path, sheet_name: str) -> bool:
+        """Create the sheet at self._sheet_index if it does not exist yet.
+
+        Returns True if a new sheet was created, False if it already existed.
+        """
+        if path.suffix.lower() == ".xls":
+            return self._ensure_sheet_xls(path, sheet_name)
+        return self._ensure_sheet_xlsx(path, sheet_name)
+
     # ── .xlsx ────────────────────────────────────────────────────────────────
+
+    def _ensure_sheet_xlsx(self, path: Path, sheet_name: str) -> bool:
+        import openpyxl
+
+        wb = openpyxl.load_workbook(path)
+        if len(wb.worksheets) > self._sheet_index:
+            return False  # sheet already exists
+        wb.create_sheet(sheet_name)
+        wb.save(path)
+        return True
 
     def _append_xlsx(self, path: Path, record: BurnRecord) -> int:
         import openpyxl
@@ -53,7 +75,7 @@ class ExcelWriter:
         except Exception as exc:
             raise ValueError(f"Cannot open workbook '{path}': {exc}") from exc
 
-        ws = wb.active
+        ws = wb.worksheets[self._sheet_index]
         next_row = self._find_next_free_xlsx(ws)
         if next_row is None:
             raise TableFullError(
@@ -67,7 +89,7 @@ class ExcelWriter:
         import openpyxl
 
         wb = openpyxl.load_workbook(path)
-        ws = wb.active
+        ws = wb.worksheets[self._sheet_index]
         self._write_row_xlsx(ws, row_num, record)
         wb.save(path)
 
@@ -88,6 +110,23 @@ class ExcelWriter:
 
     # ── .xls ─────────────────────────────────────────────────────────────────
 
+    def _ensure_sheet_xls(self, path: Path, sheet_name: str) -> bool:
+        try:
+            import xlrd
+            from xlutils.copy import copy as xl_copy
+        except ImportError as exc:
+            raise ImportError(
+                "xlrd and xlutils are required: pip install xlrd==1.2.0 xlutils"
+            ) from exc
+
+        rb = xlrd.open_workbook(str(path), formatting_info=True)
+        if rb.nsheets > self._sheet_index:
+            return False  # sheet already exists
+        wb = xl_copy(rb)
+        wb.add_sheet(sheet_name)
+        wb.save(str(path))
+        return True
+
     def _append_xls(self, path: Path, record: BurnRecord) -> int:
         try:
             import xlrd
@@ -102,7 +141,7 @@ class ExcelWriter:
         except Exception as exc:
             raise ValueError(f"Cannot open workbook '{path}': {exc}") from exc
 
-        rs = rb.sheet_by_index(0)
+        rs = rb.sheet_by_index(self._sheet_index)
         next_row_idx = self._find_next_free_xls(rs)
         if next_row_idx is None:
             raise TableFullError(
@@ -110,7 +149,7 @@ class ExcelWriter:
             )
 
         wb = xl_copy(rb)
-        ws = wb.get_sheet(0)
+        ws = wb.get_sheet(self._sheet_index)
         self._write_row_xls(ws, next_row_idx, record)
         wb.save(str(path))
         return next_row_idx + 1  # convert 0-based → 1-based Excel row
@@ -126,7 +165,7 @@ class ExcelWriter:
 
         rb = xlrd.open_workbook(str(path), formatting_info=True)
         wb = xl_copy(rb)
-        ws = wb.get_sheet(0)
+        ws = wb.get_sheet(self._sheet_index)
         self._write_row_xls(ws, row_num - 1, record)  # 1-based → 0-based
         wb.save(str(path))
 
@@ -172,7 +211,7 @@ class ExcelWriter:
         )
 
         wb = openpyxl.load_workbook(path)
-        ws = wb.active
+        ws = wb.worksheets[self._sheet_index]
 
         # Migrate old 10-column format: if F1 is "Čas progr. min", shift data
         # columns G-J left by one (G→F, H→G, I→H, J→I) for all data rows.
@@ -223,9 +262,9 @@ class ExcelWriter:
         )
 
         rb = xlrd.open_workbook(str(path), formatting_info=True)
-        rs = rb.sheet_by_index(0)
+        rs = rb.sheet_by_index(self._sheet_index)
         wb = xl_copy(rb)
-        ws = wb.get_sheet(0)
+        ws = wb.get_sheet(self._sheet_index)
 
         blank_style = xlwt.easyxf("")  # no borders, no fill — truly empty cell
 
@@ -271,7 +310,7 @@ class ExcelWriter:
         import openpyxl
 
         wb = openpyxl.load_workbook(path)
-        ws = wb.active
+        ws = wb.worksheets[self._sheet_index]
         for row_num in range(self.DATA_START_ROW, self.MAX_ROW + 1):
             for col in range(1, 10):
                 ws.cell(row=row_num, column=col).value = None
@@ -287,9 +326,9 @@ class ExcelWriter:
             ) from exc
 
         rb = xlrd.open_workbook(str(path), formatting_info=True)
-        rs = rb.sheet_by_index(0)
+        rs = rb.sheet_by_index(self._sheet_index)
         wb = xl_copy(rb)
-        ws = wb.get_sheet(0)
+        ws = wb.get_sheet(self._sheet_index)
         limit = min(self.MAX_ROW, rs.nrows)
         for row_idx in range(self.DATA_START_ROW - 1, limit):
             for col_idx in range(9):

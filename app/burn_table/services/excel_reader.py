@@ -22,6 +22,9 @@ class ExcelReader:
     MAX_ROW = 36
     MAX_DATA_ROWS = 34
 
+    def __init__(self, sheet_index: int = 0) -> None:
+        self._sheet_index = sheet_index
+
     def get_existing_programs(self, path: Path) -> list[str]:
         """Return all non-empty program numbers currently stored in *path*."""
         try:
@@ -48,7 +51,7 @@ class ExcelReader:
         except Exception as exc:
             raise ValueError(f"Cannot open workbook '{path}': {exc}") from exc
 
-        ws = wb.active
+        ws = wb.worksheets[self._sheet_index]
         records: list[BurnRecord] = []
         for row_num in range(self.DATA_START_ROW, self.MAX_ROW + 1):
             row = [ws.cell(row=row_num, column=col).value for col in range(1, 11)]
@@ -71,7 +74,7 @@ class ExcelReader:
         except Exception as exc:
             raise ValueError(f"Cannot open workbook '{path}': {exc}") from exc
 
-        ws = wb.sheet_by_index(0)
+        ws = wb.sheet_by_index(self._sheet_index)
         records: list[BurnRecord] = []
         # xlrd is 0-indexed; cap at ws.nrows so we don't read past the end.
         # Read up to 10 columns but never beyond ws.ncols (new 9-col files have ncols=9).

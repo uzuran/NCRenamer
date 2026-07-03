@@ -59,11 +59,15 @@ class BurnViewModel:
         recorder: PerformanceRecorder | None = None,
         print_manager: PrintManager | None = None,
         texts: dict | None = None,
+        sheet_name: str = "Pálení",
+        settings_key: str = "last_table_path",
     ) -> None:
         # Services (injectable for testing)
         self._reader = reader or ExcelReader()
         self._writer = writer or ExcelWriter()
         self._detector = detector or FreeSlotDetector()
+        self._sheet_name = sheet_name
+        self._settings_key = settings_key
         self._file_service = file_service or FileService()
         self._recorder = recorder or PerformanceRecorder()
         self._print_manager = print_manager or PrintManager()
@@ -172,6 +176,7 @@ class BurnViewModel:
     def load_table(self, path: Path) -> None:
         """Load the table at *path* and update state."""
         try:
+            self._writer.ensure_sheet_exists(path, self._sheet_name)
             records = self._reader.read_all(path)
             self._records = records
             self._table_path = path.resolve()
@@ -199,7 +204,7 @@ class BurnViewModel:
     def load_last_table(self) -> None:
         """Attempt to load the table saved in the settings file on startup."""
         settings = self._read_settings()
-        last = settings.get("last_table_path")
+        last = settings.get(self._settings_key) or settings.get("last_table_path")
         if last:
             path = Path(last)
             if path.is_file():
@@ -500,10 +505,9 @@ class BurnViewModel:
         if self._table_path is None:
             return
         try:
-            _SETTINGS_FILE.write_text(
-                json.dumps({"last_table_path": str(self._table_path)}, indent=2),
-                encoding="utf-8",
-            )
+            existing = self._read_settings()
+            existing[self._settings_key] = str(self._table_path)
+            _SETTINGS_FILE.write_text(json.dumps(existing, indent=2), encoding="utf-8")
         except OSError:
             pass  # Settings are a convenience — failure is non-fatal
 
