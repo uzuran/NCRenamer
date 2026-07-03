@@ -124,7 +124,7 @@ class BurnTableFrame(ctk.CTkFrame):
         for col_id, width, min_w in zip(_COLUMN_IDS, _COLUMN_WIDTHS, _MIN_WIDTHS):
             header = self.texts.get(f"col_{col_id}", col_id.replace("_", " ").title())
             self.tree.heading(col_id, text=header)
-            self.tree.column(col_id, width=width, minwidth=min_w, stretch=True)
+            self.tree.column(col_id, width=width, minwidth=min_w, stretch=True, anchor="center")
 
     def _build_status_bar(self) -> None:
         self.status_lbl = ctk.CTkLabel(

@@ -81,6 +81,10 @@ class BurnViewModel:
         # True once the first record with a date has been written in this
         # session; all subsequent records are written with date = "".
         self._date_written: bool = False
+        # Tracks the last sheet_format value actually written to Excel.
+        # Consecutive rows with the same format are written as "-----".
+        # Resets on load (to last format found) and on clear (to "").
+        self._last_sheet_format: str = ""
 
         # Observer callbacks registered by views
         self._callbacks: list[Callable[[], None]] = []
@@ -175,6 +179,13 @@ class BurnViewModel:
             # If the table already has rows the date was already written;
             # new appends must leave the date cell empty.
             self._date_written = len(records) > 0
+            # Resume the format chain: find the last real (non-placeholder) format
+            # in the loaded records so new appends continue the dedup correctly.
+            self._last_sheet_format = ""
+            for rec in reversed(records):
+                if rec.sheet_format and rec.sheet_format != "-----":
+                    self._last_sheet_format = rec.sheet_format
+                    break
             try:
                 self._writer.update_header(path)
             except Exception:  # noqa: BLE001
@@ -280,6 +291,11 @@ class BurnViewModel:
         """Parse and immediately append multiple NC files (SCH auto-detected).
 
         Duplicate program numbers are rejected with a popup warning.
+
+        The *product_group* value is written only into the **first successfully
+        appended record** of this call; all subsequent records in the same batch
+        get an empty product_group cell.  Each new call resets this flag, so
+        loading a second batch always writes the product_group in its first row.
         """
         if self._table_path is None:
             self._set_message(self._texts.get("load_table_first", "Load a table first."), ok=False)
@@ -289,6 +305,7 @@ class BurnViewModel:
         added: int = 0
         failed: list[str] = []
         duplicates: list[str] = []
+        product_group_written = False  # reset every batch call
 
         for nc_path in nc_paths:
             if self._status.is_full:
@@ -301,6 +318,11 @@ class BurnViewModel:
                     duplicates.append(record.program_number)
                     continue
                 record_to_write = self._prepare_record_for_writing(record)
+                # product_group is written only for the first record per batch
+                if product_group_written:
+                    record_to_write = dataclasses.replace(record_to_write, product_group="")
+                else:
+                    product_group_written = True
                 row_num = self._writer.append_record(self._table_path, record_to_write)
                 self._records.append(record_to_write)
                 self._status = self._detector.detect_from_records(len(self._records))
@@ -408,6 +430,7 @@ class BurnViewModel:
             self._records = []
             self._status = _EMPTY_STATUS
             self._date_written = False
+            self._last_sheet_format = ""
             self._set_message(self._texts.get("table_cleared", "Table cleared."))
         except Exception as exc:  # noqa: BLE001
             self._set_message(self._texts.get("clear_error", "Clear error: {}").format(exc), ok=False)
@@ -423,20 +446,42 @@ class BurnViewModel:
     # ══════════════════════════════════════════════════════════════════
 
     def _prepare_record_for_writing(self, record: BurnRecord) -> BurnRecord:
-        """Return *record* ready for Excel, enforcing the one-date-per-table rule.
+        """Return *record* ready for Excel, applying two appearance rules.
 
-        The first call returns *record* unchanged and marks the date as written.
-        Every subsequent call returns a shallow copy with ``date`` set to ``""``
-        so the date never repeats in the Excel sheet.
+        **Date rule** — the date is written only in the very first row.
+        All subsequent rows receive ``date=""``.  The flag ``_date_written``
+        is reset when the table is cleared or a fresh (empty) table is loaded.
 
-        The flag is reset to ``False`` by :meth:`load_table` (empty table) and
-        :meth:`clear_table`, and set to ``True`` by :meth:`load_table` when the
-        loaded table already contains rows.
+        **Sheet-format dedup rule** — the first occurrence of a given format
+        is written in full (e.g. ``"1.0037-4X3000X1500"``).  Every consecutive
+        row that carries the *same* format is replaced with ``"-----"``.
+        When the format changes the new value is written in full and becomes
+        the new baseline.  ``_last_sheet_format`` is reset on clear and
+        re-populated from the last real format when a table is loaded.
+
+        Both rules operate on a shallow copy so the original *record* (shown
+        in the pending banner) is never mutated.
         """
+        # ── date rule ────────────────────────────────────────────────────────
         if self._date_written:
-            return dataclasses.replace(record, date="")
-        self._date_written = True
-        return record
+            new_date = ""
+        else:
+            new_date = record.date
+            self._date_written = True
+
+        # ── sheet-format dedup rule ───────────────────────────────────────────
+        fmt = record.sheet_format
+        if fmt and fmt == self._last_sheet_format:
+            new_fmt = "-----"
+        else:
+            new_fmt = fmt
+            if fmt:  # only update tracker for non-empty real formats
+                self._last_sheet_format = fmt
+
+        # Return the original object when nothing changed (avoids allocation)
+        if new_date == record.date and new_fmt == record.sheet_format:
+            return record
+        return dataclasses.replace(record, date=new_date, sheet_format=new_fmt)
 
     def _notify(self) -> None:
         """Invoke all registered observer callbacks."""
