@@ -193,9 +193,7 @@ class BurnTableFrame(ctk.CTkFrame):
     def _refresh_tree(self) -> None:
         self.tree.delete(*self.tree.get_children())
         for i, record in enumerate(self.vm.records, start=1):
-            row = record.to_row()
-            # to_row() has 10 values; skip index 5 (program_time) — not displayed
-            self.tree.insert("", "end", iid=str(i), values=row[:5] + row[6:])
+            self.tree.insert("", "end", iid=str(i), values=record.to_row())
 
     def _refresh_pending_banner(self) -> None:
         if self.vm.has_pending_record:

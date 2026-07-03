@@ -52,7 +52,7 @@ class ExcelReader:
         records: list[BurnRecord] = []
         for row_num in range(self.DATA_START_ROW, self.MAX_ROW + 1):
             row = [ws.cell(row=row_num, column=col).value for col in range(1, 11)]
-            if row[0] is None:
+            if row[1] is None:  # column B (program_number) is the occupied-row marker
                 continue
             records.append(BurnRecord.from_row(row))
         wb.close()
@@ -73,12 +73,14 @@ class ExcelReader:
 
         ws = wb.sheet_by_index(0)
         records: list[BurnRecord] = []
-        # xlrd is 0-indexed; cap at ws.nrows so we don't read past the end
+        # xlrd is 0-indexed; cap at ws.nrows so we don't read past the end.
+        # Read up to 10 columns but never beyond ws.ncols (new 9-col files have ncols=9).
         limit = min(self.MAX_ROW, ws.nrows)
+        col_count = min(10, ws.ncols)
         for row_idx in range(self.DATA_START_ROW - 1, limit):
-            val = ws.cell_value(row_idx, 0)
+            val = ws.cell_value(row_idx, 1)  # column B (program_number) is the occupied-row marker
             if not str(val).strip():
                 continue
-            row = [ws.cell_value(row_idx, col) for col in range(10)]
+            row = [ws.cell_value(row_idx, col) for col in range(col_count)]
             records.append(BurnRecord.from_row(row))
         return records

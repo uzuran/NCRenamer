@@ -12,7 +12,8 @@ class FreeSlotDetector:
 
     Rules:
         - Data rows are A3–A36  (34 rows maximum).
-        - A row is *used* when its column A cell is non-empty.
+        - A row is *used* when its column B (program_number) cell is non-empty.
+          Column A (date) is intentionally empty for 2nd+ records by design.
         - free_rows  = 34 - used_rows
         - warning    = 'warning'  when free_rows ≤ 5
         - warning    = 'critical' when free_rows ≤ 2
@@ -55,7 +56,7 @@ class FreeSlotDetector:
         used_rows = sum(
             1
             for row_num in range(self.DATA_START_ROW, self.MAX_ROW + 1)
-            if ws.cell(row=row_num, column=1).value is not None
+            if ws.cell(row=row_num, column=2).value is not None  # column B = program_number
         )
         wb.close()
         return self._build_status(used_rows)
@@ -78,7 +79,7 @@ class FreeSlotDetector:
         used_rows = sum(
             1
             for row_idx in range(self.DATA_START_ROW - 1, limit)
-            if str(ws.cell_value(row_idx, 0)).strip()
+            if str(ws.cell_value(row_idx, 1)).strip()  # column B (index 1) = program_number
         )
         return self._build_status(used_rows)
 

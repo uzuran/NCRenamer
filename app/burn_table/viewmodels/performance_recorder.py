@@ -83,7 +83,18 @@ class PerformanceRecorder:
         if sch_path is not None:
             sch_text = self._file_service.read_sch(sch_path)
             try:
+                # parse() gives us parts_name (used as program-number fallback)
                 sheet_info = self._xml_parser.parse(sch_text)
+                # Override quantity with the entry that matches *this* NC program.
+                # The SCH often contains one block per program cut on the same sheet,
+                # so a generic sum would give wrong results.
+                program_number = program_info.program_number or (nc_path.stem if nc_path else "")
+                targeted_qty = self._xml_parser.find_quantity_for_program(sch_text, program_number)
+                sheet_info = SheetInfo(
+                    product_quantity=targeted_qty,
+                    parts_name=sheet_info.parts_name,
+                    raw_fields=sheet_info.raw_fields,
+                )
             except ValueError:
                 pass  # SCH parse failure is non-fatal; use default quantity
 
@@ -153,10 +164,13 @@ class PerformanceRecorder:
             2. <parts_name> from the SCH/XML file
             3. NC filename stem  (e.g. '6670-18' from '6670-18.NC')
         """
+        # Priority: (PR/…) tag > NC filename stem > first <parts_name> in SCH.
+        # NC stem beats SCH parts_name because a multi-block SCH file returns
+        # the first block's name regardless of which NC we're processing.
         program_number = (
             info.program_number
-            or sheet.parts_name
             or (nc_path.stem if nc_path else "")
+            or sheet.parts_name
         )
         return BurnRecord(
             date=info.date_cz,

@@ -65,6 +65,12 @@ class TestPerformanceRecorder:
         info = self.recorder.parse_nc(_NC_CONTENT)
         assert info.date_cz == "30.06.2026"
 
+    def test_date_cz_handles_space_before_day(self):
+        # NC machines output 'Y2026M 7D 1' when month or day is single-digit
+        from app.burn_table.models.parsed_info import ProgramInfo
+        info = ProgramInfo(date_raw="Y2026M 7D 1")
+        assert info.date_cz == "01.07.2026"
+
     def test_parses_material(self):
         info = self.recorder.parse_nc(_NC_CONTENT)
         assert info.material_code == "1.0037"
@@ -77,7 +83,7 @@ class TestPerformanceRecorder:
 
     def test_sheet_format_string(self):
         info = self.recorder.parse_nc(_NC_CONTENT)
-        assert info.sheet_format == "1.0037-5X 1700X 1500"
+        assert info.sheet_format == "1.0037-5X1700X1500"
 
     def test_parses_time_with_leading_spaces(self):
         info = self.recorder.parse_nc(_NC_CONTENT)
@@ -101,7 +107,7 @@ class TestPerformanceRecorder:
 
         assert record.date == "30.06.2026"
         assert record.program_number == "6670-18"  # from SCH parts_name
-        assert record.sheet_format == "1.0037-5X 1700X 1500"
+        assert record.sheet_format == "1.0037-5X1700X1500"
         assert record.sheet_count == 1
         assert record.total_time == "00:21:51"
         assert record.program_time == "22"

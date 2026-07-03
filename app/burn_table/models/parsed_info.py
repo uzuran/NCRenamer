@@ -77,7 +77,7 @@ class ProgramInfo:
     def sheet_format(self) -> str:
         """Format the sheet dimensions as used in column D.
 
-        Example output: '1.0037-5X 1700X 1500'
+        Example output: '1.0037-5X1700X1500'
         """
         if not self.material_code:
             return ""
@@ -87,7 +87,7 @@ class ProgramInfo:
         t = _fmt_dim(self.thickness)
         w = _fmt_dim(self.width)
         h = _fmt_dim(self.height)
-        return f"{base}-{t}X {w}X {h}"
+        return f"{base}-{t}X{w}X{h}"
 
     @property
     def date_cz(self) -> str:
@@ -95,7 +95,7 @@ class ProgramInfo:
 
         Handles NC Czech format 'Y2026M 6D30' and raw YYYYMMDD.
         """
-        m = re.match(r"Y(\d{4})M\s*(\d+)D(\d+)", self.date_raw)
+        m = re.match(r"Y(\d{4})M\s*(\d+)D\s*(\d+)", self.date_raw)
         if m:
             year, month, day = int(m.group(1)), int(m.group(2)), int(m.group(3))
             return f"{day:02d}.{month:02d}.{year}"

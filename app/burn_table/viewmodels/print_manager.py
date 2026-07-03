@@ -33,7 +33,7 @@ class PrintManager:
         except FileNotFoundError as exc:
             return False, str(exc)
         except Exception as exc:  # noqa: BLE001
-            return False, f"Chyba tisku: {exc}"
+            return False, str(exc)
 
     def export_pdf(
         self,
@@ -69,9 +69,9 @@ class PrintManager:
         if not records:
             return ["(žádná data)"]
 
-        col_widths = [14, 10, 6, 34, 6, 7, 12, 10, 16, 10]
+        col_widths = [14, 10, 6, 34, 6, 12, 10, 16, 10]
         headers = ["Datum", "Číslo pr.", "Note", "Formát tabule",
-                   "Ks", "Čas", "Celk. čas", "Vypáleno", "Výrobek", "Pálil"]
+                   "Ks", "Celk. čas", "Vypáleno", "Výrobek", "Pálil"]
 
         def fmt_row(values: list[str]) -> str:
             return "  ".join(
@@ -86,7 +86,6 @@ class PrintManager:
             lines.append(fmt_row([
                 rec.date, rec.program_number, rec.note,
                 rec.sheet_format, str(rec.sheet_count),
-                rec.program_time, rec.total_time,
-                rec.burned, rec.product_group, rec.operator,
+                rec.total_time, rec.burned, rec.product_group, rec.operator,
             ]))
         return lines

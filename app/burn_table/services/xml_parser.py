@@ -29,6 +29,35 @@ class XmlParser:
     # Tags that may contain the program / part name
     PARTS_NAME_TAGS = ("parts_name", "PartName", "ProgramName", "Name")
 
+    def find_quantity_for_program(self, xml_text: str, program_number: str) -> int:
+        """Return <product_quantity> from the <parts_info> whose <parts_name> matches.
+
+        The SCH file may contain one block per NC program on the same sheet.
+        This method finds the block for *program_number* specifically instead
+        of summing all blocks.
+
+        Returns 1 (safe default) when:
+          - *program_number* is empty
+          - *xml_text* is not valid XML
+          - no <parts_info> block with a matching <parts_name> is found
+        """
+        if not program_number:
+            return 1
+        try:
+            root = ET.fromstring(xml_text)
+        except ET.ParseError:
+            return 1
+
+        for block in root.iter("parts_info"):
+            name_elem = block.find("parts_name")
+            if name_elem is not None and (name_elem.text or "").strip() == program_number:
+                qty_elem = block.find("product_quantity")
+                if qty_elem is not None and qty_elem.text:
+                    return self._safe_int(qty_elem.text) or 1
+                return 1  # block matched but no quantity element
+
+        return 1  # no matching block found
+
     def parse(self, xml_text: str) -> SheetInfo:
         """Parse *xml_text* and return a SheetInfo.
 

@@ -24,6 +24,9 @@ class PrintService:
     def print_table(self, path: Path) -> None:
         """Send *path* to the operating system for printing.
 
+        On WSL the file is opened in the Windows default application so the
+        user can print using the familiar Excel print dialog.
+
         Raises:
             FileNotFoundError: if *path* does not exist.
         """
@@ -31,15 +34,17 @@ class PrintService:
             raise FileNotFoundError(f"Cannot print — file not found: {path}")
 
         if sys.platform == "win32":
-            os.startfile(str(path), "print")
+            os.startfile(str(path))
+        elif self._is_wsl():
+            self._open_in_windows(path)
         elif sys.platform == "darwin":
-            subprocess.run(["lpr", str(path)], check=False)
+            subprocess.run(["open", str(path)], check=False)
         else:
             try:
-                subprocess.run(["lpr", str(path)], check=False)
+                subprocess.run(["xdg-open", str(path)], check=False)
             except FileNotFoundError:
                 raise RuntimeError(
-                    "Tisk není dostupný — příkaz 'lpr' nebyl nalezen."
+                    "Cannot open file — 'xdg-open' not found."
                 ) from None
 
     def export_pdf(self, path: Path, output_path: Path) -> Path:
@@ -85,6 +90,8 @@ class PrintService:
         # Fallback: open the file so the user can print-to-PDF manually
         if sys.platform == "win32":
             os.startfile(str(path))
+        elif self._is_wsl():
+            self._open_in_windows(path)
         else:
             try:
                 subprocess.run(["xdg-open", str(path)], check=False)
@@ -102,3 +109,28 @@ class PrintService:
         """Return True when the 'soffice' binary is on PATH."""
         import shutil
         return shutil.which("soffice") is not None
+
+    @staticmethod
+    def _is_wsl() -> bool:
+        """Return True when running inside Windows Subsystem for Linux."""
+        try:
+            return "microsoft" in Path("/proc/version").read_text().lower()
+        except OSError:
+            return False
+
+    @staticmethod
+    def _open_in_windows(path: Path) -> None:
+        """Open *path* in the default Windows application via cmd.exe.
+
+        Uses wslpath to convert the Linux path to its Windows UNC equivalent
+        (e.g. \\\\wsl.localhost\\Ubuntu\\home\\...) so Windows can locate it.
+        """
+        try:
+            win_path = subprocess.check_output(
+                ["wslpath", "-w", str(path)]
+            ).decode().strip()
+            # The empty-string title argument is required by 'start' when the
+            # path is quoted — otherwise 'start' treats the path as the title.
+            subprocess.run(["cmd.exe", "/c", "start", "", win_path], check=False)
+        except (FileNotFoundError, subprocess.CalledProcessError) as exc:
+            raise RuntimeError(f"Nelze otevřít soubor ve Windows: {exc}") from exc

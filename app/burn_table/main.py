@@ -13,7 +13,7 @@ from app.burn_table.viewmodels.performance_recorder import PerformanceRecorder
 from app.burn_table.viewmodels.print_manager import PrintManager
 
 
-def create_view_model() -> BurnViewModel:
+def create_view_model(texts: dict | None = None) -> BurnViewModel:
     """Assemble and return a fully wired BurnViewModel."""
     file_service = FileService()
     xml_parser = XmlParser()
@@ -30,4 +30,5 @@ def create_view_model() -> BurnViewModel:
         print_manager=PrintManager(
             print_service=PrintService(),
         ),
+        texts=texts,
     )

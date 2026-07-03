@@ -1,5 +1,13 @@
 import json
 import os
+import sys
+
+
+def _default_settings_path() -> str:
+    if getattr(sys, "frozen", False):
+        base = os.environ.get("APPDATA") or os.path.expanduser("~")
+        return os.path.join(base, "NCRenamer", "app_settings.json")
+    return "resources/app_settings.json"
 
 
 class SettingsModel:
@@ -14,7 +22,9 @@ class SettingsModel:
         settings (dict): Dictionary containing the loaded settings.
     """
 
-    def __init__(self, path="resources/app_settings.json"):
+    def __init__(self, path=None):
+        if path is None:
+            path = _default_settings_path()
         self.path = path
         self.settings = {}
 

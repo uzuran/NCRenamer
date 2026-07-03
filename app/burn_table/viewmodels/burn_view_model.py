@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import dataclasses
 import json
+import os
+import sys
 from pathlib import Path
 from typing import Callable
 
@@ -16,7 +19,16 @@ from app.burn_table.viewmodels.performance_recorder import PerformanceRecorder
 from app.burn_table.viewmodels.print_manager import PrintManager
 
 
-_SETTINGS_FILE = Path(__file__).parent.parent / "_burn_table_settings.json"
+def _burn_settings_file() -> Path:
+    if getattr(sys, "frozen", False):
+        base = os.environ.get("APPDATA") or str(Path.home())
+        d = Path(base) / "NCRenamer"
+        d.mkdir(parents=True, exist_ok=True)
+        return d / "_burn_table_settings.json"
+    return Path(__file__).parent.parent / "_burn_table_settings.json"
+
+
+_SETTINGS_FILE = _burn_settings_file()
 
 _EMPTY_STATUS = TableStatus(
     used_rows=0,
@@ -46,6 +58,7 @@ class BurnViewModel:
         file_service: FileService | None = None,
         recorder: PerformanceRecorder | None = None,
         print_manager: PrintManager | None = None,
+        texts: dict | None = None,
     ) -> None:
         # Services (injectable for testing)
         self._reader = reader or ExcelReader()
@@ -54,6 +67,7 @@ class BurnViewModel:
         self._file_service = file_service or FileService()
         self._recorder = recorder or PerformanceRecorder()
         self._print_manager = print_manager or PrintManager()
+        self._texts: dict = texts or {}
 
         # State
         self._table_path: Path | None = None
@@ -64,6 +78,9 @@ class BurnViewModel:
         self._last_sch_path: Path | None = None
         self._message: str = ""
         self._message_ok: bool = True
+        # True once the first record with a date has been written in this
+        # session; all subsequent records are written with date = "".
+        self._date_written: bool = False
 
         # Observer callbacks registered by views
         self._callbacks: list[Callable[[], None]] = []
@@ -83,6 +100,10 @@ class BurnViewModel:
     def unsubscribe(self, callback: Callable[[], None]) -> None:
         """Remove a previously registered callback."""
         self._callbacks = [c for c in self._callbacks if c is not callback]
+
+    def update_texts(self, texts: dict) -> None:
+        """Update the UI language; call after ``set_language()`` in the app."""
+        self._texts = texts
 
     # ══════════════════════════════════════════════════════════════════
     # Read-only properties for the view
@@ -149,12 +170,19 @@ class BurnViewModel:
         try:
             records = self._reader.read_all(path)
             self._records = records
-            self._table_path = path
+            self._table_path = path.resolve()
             self._status = self._detector.detect_from_records(len(records))
-            self._set_message(f"Tabulka načtena: {path.name}")
+            # If the table already has rows the date was already written;
+            # new appends must leave the date cell empty.
+            self._date_written = len(records) > 0
+            try:
+                self._writer.update_header(path)
+            except Exception:  # noqa: BLE001
+                pass  # non-fatal — header formatting is cosmetic
+            self._set_message(self._texts.get("table_loaded", "Table loaded: {}").format(path.name))
             self._save_settings()
         except Exception as exc:  # noqa: BLE001
-            self._set_message(f"Chyba při načítání: {exc}", ok=False)
+            self._set_message(self._texts.get("table_load_error", "Error loading: {}").format(exc), ok=False)
         self._notify()
 
     def load_last_table(self) -> None:
@@ -165,6 +193,14 @@ class BurnViewModel:
             path = Path(last)
             if path.is_file():
                 self.load_table(path)
+                return
+
+        # Frozen exe fallback: look for laser.xls next to the executable
+        if getattr(sys, "frozen", False):
+            exe_dir = Path(sys.executable).parent
+            fallback = exe_dir / "CNCs" / "laser.xls"
+            if fallback.is_file():
+                self.load_table(fallback)
 
     def load_nc_sch(
         self,
@@ -182,13 +218,13 @@ class BurnViewModel:
             self._pending_record = record
             self._last_nc_path = nc_path
             self._last_sch_path = sch_path
-            self._set_message(
-                f"Soubory načteny: {nc_path.name}"
-                + (f" + {sch_path.name}" if sch_path else "")
-            )
+            msg = self._texts.get("files_loaded", "Files loaded: {}").format(nc_path.name)
+            if sch_path:
+                msg += f" + {sch_path.name}"
+            self._set_message(msg)
         except Exception as exc:  # noqa: BLE001
             self._pending_record = None
-            self._set_message(f"Chyba parsování: {exc}", ok=False)
+            self._set_message(self._texts.get("parse_error", "Parse error: {}").format(exc), ok=False)
         self._notify()
 
     def append_pending_record(self) -> None:
@@ -197,36 +233,37 @@ class BurnViewModel:
         Does nothing if there is no pending record or no table loaded.
         """
         if self._pending_record is None:
-            self._set_message("Žádný záznam k uložení.", ok=False)
+            self._set_message(self._texts.get("no_record_to_save", "No record to save."), ok=False)
             self._notify()
             return
 
         if self._table_path is None:
-            self._set_message("Nejprve načtěte tabulku.", ok=False)
+            self._set_message(self._texts.get("load_table_first", "Load a table first."), ok=False)
             self._notify()
             return
 
         if self._status.is_full:
-            self._set_message("Tabulka je plná — nelze přidat další záznam.", ok=False)
+            self._set_message(self._texts.get("table_full_add", "Table is full — cannot add more records."), ok=False)
             self._notify()
             return
 
         try:
-            row_num = self._writer.append_record(self._table_path, self._pending_record)
-            self._records.append(self._pending_record)
+            record_to_write = self._prepare_record_for_writing(self._pending_record)
+            row_num = self._writer.append_record(self._table_path, record_to_write)
+            self._records.append(record_to_write)
             self._pending_record = None
             self._status = self._detector.detect_from_records(len(self._records))
-            self._set_message(f"Záznam uložen do řádku {row_num}.")
+            self._set_message(self._texts.get("record_saved", "Record saved to row {}.").format(row_num))
         except TableFullError:
-            self._set_message("Tabulka je plná.", ok=False)
+            self._set_message(self._texts.get("table_full", "Table is full."), ok=False)
         except Exception as exc:  # noqa: BLE001
-            self._set_message(f"Chyba při ukládání: {exc}", ok=False)
+            self._set_message(self._texts.get("save_error", "Save error: {}").format(exc), ok=False)
         self._notify()
 
     def discard_pending_record(self) -> None:
         """Discard the parsed pending record without appending it."""
         self._pending_record = None
-        self._set_message("Záznam zahozen.")
+        self._set_message(self._texts.get("record_discarded", "Record discarded."))
         self._notify()
 
     def validate_unique_program(self, program_number: str) -> bool:
@@ -245,7 +282,7 @@ class BurnViewModel:
         Duplicate program numbers are rejected with a popup warning.
         """
         if self._table_path is None:
-            self._set_message("Nejprve načtěte tabulku.", ok=False)
+            self._set_message(self._texts.get("load_table_first", "Load a table first."), ok=False)
             self._notify()
             return
 
@@ -255,16 +292,17 @@ class BurnViewModel:
 
         for nc_path in nc_paths:
             if self._status.is_full:
-                failed.append(f"{nc_path.name}: tabulka plná")
+                failed.append(f"{nc_path.name}: {self._texts.get('table_full_label', 'table full')}")
                 break
-            sch_path = self.find_sch_for_nc(nc_path)
+            resolved_sch = self.find_sch_for_nc(nc_path)
             try:
-                record = self._recorder.record_from_paths(nc_path, sch_path, product_group)
+                record = self._recorder.record_from_paths(nc_path, resolved_sch, product_group)
                 if not self.validate_unique_program(record.program_number):
                     duplicates.append(record.program_number)
                     continue
-                row_num = self._writer.append_record(self._table_path, record)
-                self._records.append(record)
+                record_to_write = self._prepare_record_for_writing(record)
+                row_num = self._writer.append_record(self._table_path, record_to_write)
+                self._records.append(record_to_write)
                 self._status = self._detector.detect_from_records(len(self._records))
                 added += 1
             except Exception as exc:  # noqa: BLE001
@@ -272,31 +310,52 @@ class BurnViewModel:
 
         if duplicates:
             self._popup_message = (
-                "Program již existuje v tabulce.\n"
-                "Duplicitní záznamy nejsou povoleny.\n\n"
-                + ", ".join(duplicates)
+                self._texts.get("dup_program_warning", "Program already exists in table.\nDuplicate records are not allowed.")
+                + "\n\n" + ", ".join(duplicates)
             )
 
         if failed:
             self._set_message(
-                f"Přidáno: {added}, chyb: {len(failed)} — {failed[0]}",
+                self._texts.get("added_with_errors", "Added: {0}, errors: {1} — {2}").format(
+                    added, len(failed), failed[0]
+                ),
                 ok=added > 0,
             )
         elif duplicates and added == 0:
             self._set_message(
-                f"Přeskočeno — duplicitní program: {', '.join(duplicates)}", ok=False,
+                self._texts.get("skipped_duplicate", "Skipped — duplicate program: {}").format(
+                    ", ".join(duplicates)
+                ),
+                ok=False,
             )
         else:
-            self._set_message(f"Přidáno {added} záznamů do tabulky.")
+            self._set_message(self._texts.get("added_records", "Added {} records to table.").format(added))
         self._notify()
 
     @staticmethod
     def find_sch_for_nc(nc_path: Path) -> Path | None:
-        """Return the matching SCH/XML file next to *nc_path*, or None."""
+        """Return the matching SCH/XML file next to *nc_path*, or None.
+
+        Search order:
+        1. Exact stem match  — 6670-18.NC  → 6670-18.SCH
+        2. Job-prefix glob   — 6684-97.NC  → 6684-*.SCH → 6684-32.SCH
+           (one SCH file often covers all programs cut from the same sheet)
+        """
+        # 1. Exact match
         for ext in (".sch", ".SCH", ".xml", ".XML"):
             candidate = nc_path.with_suffix(ext)
             if candidate.exists():
                 return candidate
+
+        # 2. Job prefix: strip last '-NN' segment (e.g. '6684' from '6684-97')
+        stem = nc_path.stem
+        if "-" in stem:
+            prefix = stem.rsplit("-", 1)[0]
+            for ext in (".SCH", ".sch"):
+                matches = sorted(nc_path.parent.glob(f"{prefix}-*{ext}"))
+                if matches:
+                    return matches[0]
+
         return None
 
     def refresh_status(self) -> None:
@@ -306,30 +365,30 @@ class BurnViewModel:
                 self._status = self._detector.detect(self._table_path)
                 records = self._reader.read_all(self._table_path)
                 self._records = records
-                self._set_message("Stav obnoven.")
+                self._set_message(self._texts.get("status_refreshed", "Status refreshed."))
             except Exception as exc:  # noqa: BLE001
-                self._set_message(f"Chyba obnovení: {exc}", ok=False)
+                self._set_message(self._texts.get("refresh_error", "Refresh error: {}").format(exc), ok=False)
         else:
-            self._set_message("Není načtena žádná tabulka.", ok=False)
+            self._set_message(self._texts.get("status_no_table", "No table loaded."), ok=False)
         self._notify()
 
     def print_table(self) -> None:
         """Print the current table file."""
         if self._table_path is None:
-            self._set_message("Nejprve načtěte tabulku.", ok=False)
+            self._set_message(self._texts.get("load_table_first", "Load a table first."), ok=False)
             self._notify()
             return
-        success, error = self._print_manager.print_table(self._table_path)
+        success, exc_msg = self._print_manager.print_table(self._table_path)
         if success:
-            self._set_message("Tisk odeslán.")
+            self._set_message(self._texts.get("print_sent", "Print sent."))
         else:
-            self._set_message(error, ok=False)
+            self._set_message(self._texts.get("print_error", "Print error: {}").format(exc_msg), ok=False)
         self._notify()
 
     def export_pdf(self, output_path: Path | None = None) -> None:
         """Export the current table to PDF."""
         if self._table_path is None:
-            self._set_message("Nejprve načtěte tabulku.", ok=False)
+            self._set_message(self._texts.get("load_table_first", "Load a table first."), ok=False)
             self._notify()
             return
         success, msg, _ = self._print_manager.export_pdf(
@@ -341,16 +400,17 @@ class BurnViewModel:
     def clear_table(self) -> None:
         """Remove all data records from the current table file."""
         if self._table_path is None:
-            self._set_message("Nejprve načtěte tabulku.", ok=False)
+            self._set_message(self._texts.get("load_table_first", "Load a table first."), ok=False)
             self._notify()
             return
         try:
             self._writer.clear_all_records(self._table_path)
             self._records = []
             self._status = _EMPTY_STATUS
-            self._set_message("Tabulka byla vymazána.")
+            self._date_written = False
+            self._set_message(self._texts.get("table_cleared", "Table cleared."))
         except Exception as exc:  # noqa: BLE001
-            self._set_message(f"Chyba při mazání: {exc}", ok=False)
+            self._set_message(self._texts.get("clear_error", "Clear error: {}").format(exc), ok=False)
         self._notify()
 
     def clear_message(self) -> None:
@@ -361,6 +421,22 @@ class BurnViewModel:
     # ══════════════════════════════════════════════════════════════════
     # Private helpers
     # ══════════════════════════════════════════════════════════════════
+
+    def _prepare_record_for_writing(self, record: BurnRecord) -> BurnRecord:
+        """Return *record* ready for Excel, enforcing the one-date-per-table rule.
+
+        The first call returns *record* unchanged and marks the date as written.
+        Every subsequent call returns a shallow copy with ``date`` set to ``""``
+        so the date never repeats in the Excel sheet.
+
+        The flag is reset to ``False`` by :meth:`load_table` (empty table) and
+        :meth:`clear_table`, and set to ``True`` by :meth:`load_table` when the
+        loaded table already contains rows.
+        """
+        if self._date_written:
+            return dataclasses.replace(record, date="")
+        self._date_written = True
+        return record
 
     def _notify(self) -> None:
         """Invoke all registered observer callbacks."""

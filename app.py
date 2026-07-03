@@ -89,7 +89,7 @@ class App(ctk.CTk):
             texts=self.texts,
         )
 
-        self.burn_view_model = create_burn_view_model()
+        self.burn_view_model = create_burn_view_model(texts=self.texts)
         self.burn_table_frame = BurnTableFrame(
             master=self,
             app_instance=self,
@@ -114,6 +114,7 @@ class App(ctk.CTk):
 
             self.title(self.texts.get("app_title", "NC Renamer"))
             self.materials_view_model.update_texts(self.texts)
+            self.burn_view_model.update_texts(self.texts)
             self.main_frame.update_texts(self.texts)
             self.settings_frame.update_texts(self.texts)
             self.materials_frame.update_texts(self.texts)
