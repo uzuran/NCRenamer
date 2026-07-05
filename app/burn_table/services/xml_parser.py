@@ -23,8 +23,14 @@ class XmlParser:
     # Tag and attribute names searched for quantity data (case-sensitive list)
     QUANTITY_ATTRS = ("quantity", "qty", "Quantity", "Qty", "Menge", "count")
     QUANTITY_TAGS = (
-        "Quantity", "qty", "AnzahlTeile", "PartQuantity",
-        "PartCount", "Stueckzahl", "Count", "product_quantity",
+        "Quantity",
+        "qty",
+        "AnzahlTeile",
+        "PartQuantity",
+        "PartCount",
+        "Stueckzahl",
+        "Count",
+        "product_quantity",
     )
     # Tags that may contain the program / part name
     PARTS_NAME_TAGS = ("parts_name", "PartName", "ProgramName", "Name")
@@ -50,7 +56,10 @@ class XmlParser:
 
         for block in root.iter("parts_info"):
             name_elem = block.find("parts_name")
-            if name_elem is not None and (name_elem.text or "").strip() == program_number:
+            if (
+                name_elem is not None
+                and (name_elem.text or "").strip() == program_number
+            ):
                 qty_elem = block.find("product_quantity")
                 if qty_elem is not None and qty_elem.text:
                     return self._safe_int(qty_elem.text) or 1

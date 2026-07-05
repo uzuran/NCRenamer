@@ -2,16 +2,19 @@
 
 from __future__ import annotations
 
-from pathlib import Path
+from typing import TYPE_CHECKING
 
-from app.burn_table.models.table_status import TableStatus
+if TYPE_CHECKING:
+    from pathlib import Path
+
+from app.burn_table.models.table_status import TableStatus, WarningLevel
 
 
 class FreeSlotDetector:
     """Inspects the workbook and returns a TableStatus snapshot.
 
     Rules:
-        - Data rows are A3–A36  (34 rows maximum).
+        - Data rows are A3-A36  (34 rows maximum).
         - A row is *used* when its column B (program_number) cell is non-empty.
           Column A (date) is intentionally empty for 2nd+ records by design.
         - free_rows  = 34 - used_rows
@@ -59,7 +62,8 @@ class FreeSlotDetector:
         used_rows = sum(
             1
             for row_num in range(self.DATA_START_ROW, self.MAX_ROW + 1)
-            if ws.cell(row=row_num, column=2).value is not None  # column B = program_number
+            if ws.cell(row=row_num, column=2).value
+            is not None  # column B = program_number
         )
         wb.close()
         return self._build_status(used_rows)
@@ -82,7 +86,9 @@ class FreeSlotDetector:
         used_rows = sum(
             1
             for row_idx in range(self.DATA_START_ROW - 1, limit)
-            if str(ws.cell_value(row_idx, 1)).strip()  # column B (index 1) = program_number
+            if str(
+                ws.cell_value(row_idx, 1)
+            ).strip()  # column B (index 1) = program_number
         )
         return self._build_status(used_rows)
 
@@ -92,6 +98,7 @@ class FreeSlotDetector:
         free_rows = max(0, self.MAX_DATA_ROWS - used_rows)
         is_full = free_rows == 0
 
+        warning: WarningLevel
         if free_rows <= self.CRITICAL_THRESHOLD:
             warning = "critical"
         elif free_rows <= self.WARNING_THRESHOLD:

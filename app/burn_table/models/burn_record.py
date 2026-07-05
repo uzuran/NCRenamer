@@ -1,4 +1,4 @@
-"""BurnRecord — one data row (columns A–I) in the burn table."""
+"""BurnRecord - one data row (columns A-I) in the burn table."""
 
 from dataclasses import dataclass, field
 
@@ -7,16 +7,16 @@ from dataclasses import dataclass, field
 class BurnRecord:
     """Represents a single entry in the burn-cutting production table.
 
-    Columns match the fixed Excel layout A–I:
-        A – date (Czech format  e.g. 'Y2026M 6D30')
-        B – program_number      e.g. '6670-18'
-        C – note                free-text comment
-        D – sheet_format        e.g. '1.0037 5.00T 1700.00X 1500.00'
-        E – sheet_count         number of sheets
-        F – total_time          raw time code e.g. 'H21M51S'
-        G – burned              completion / burned-off note
-        H – product_group       product type and group
-        I – operator            name of the operator who ran the job
+    Columns match the fixed Excel layout A-I:
+        A - date (Czech format  e.g. 'Y2026M 6D30')
+        B - program_number      e.g. '6670-18'
+        C - note                free-text comment
+        D - sheet_format        e.g. '1.0037 5.00T 1700.00X 1500.00'
+        E - sheet_count         number of sheets
+        F - total_time          raw time code e.g. 'H21M51S'
+        G - burned              completion / burned-off note
+        H - product_group       product type and group
+        I - operator            name of the operator who ran the job
 
     program_time is kept as an in-memory field (parsed from NC) but is no
     longer written to Excel.
@@ -35,15 +35,17 @@ class BurnRecord:
 
     def is_empty(self) -> bool:
         """Return True when the record contains no meaningful data."""
-        return not any([
-            self.date,
-            self.program_number,
-            self.sheet_format,
-            self.total_time,
-        ])
+        return not any(
+            [
+                self.date,
+                self.program_number,
+                self.sheet_format,
+                self.total_time,
+            ]
+        )
 
     def to_row(self) -> list[str | int]:
-        """Return a flat list suitable for writing to a single Excel row (9 columns A–I)."""
+        """Return a flat list suitable for writing to a single Excel row (9 columns A-I)."""
         return [
             self.date,
             self.program_number,
@@ -58,14 +60,14 @@ class BurnRecord:
 
     @classmethod
     def from_row(cls, row: list) -> "BurnRecord":
-        """Construct a BurnRecord from a flat list of cell values (A–I or legacy A–J)."""
+        """Construct a BurnRecord from a flat list of cell values (A-I or legacy A-J)."""
 
         def _str(val: object) -> str:
             return str(val).strip() if val is not None else ""
 
         def _int(val: object) -> int:
             try:
-                return int(val)
+                return int(val)  # type: ignore[call-overload, no-any-return]
             except (TypeError, ValueError):
                 return 0
 
@@ -85,7 +87,7 @@ class BurnRecord:
                 operator=_str(row[9]),
             )
 
-        # New 9-column format: A–I, no program_time column
+        # New 9-column format: A-I, no program_time column
         return cls(
             date=_str(row[0] if len(row) > 0 else None),
             program_number=_str(row[1] if len(row) > 1 else None),

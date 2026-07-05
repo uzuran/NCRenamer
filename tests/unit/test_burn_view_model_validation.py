@@ -1,7 +1,7 @@
 """Tests for BurnViewModel duplicate-program validation."""
 
-from unittest.mock import MagicMock, patch
 from pathlib import Path
+from unittest.mock import patch
 
 from app.burn_table.models.burn_record import BurnRecord
 from app.burn_table.models.table_status import TableStatus
@@ -61,14 +61,17 @@ class TestLoadAndAppendBatchDuplicates:
         fake_new = BurnRecord(program_number="9999-01")
 
         with (
-            patch.object(vm._recorder, "record_from_paths",
-                         side_effect=[fake_dup, fake_new]),
+            patch.object(
+                vm._recorder, "record_from_paths", side_effect=[fake_dup, fake_new]
+            ),
             patch.object(vm._writer, "append_record", return_value=3),
         ):
-            vm.load_and_append_batch([
-                Path("/nc/6670-18.NC"),
-                Path("/nc/9999-01.NC"),
-            ])
+            vm.load_and_append_batch(
+                [
+                    Path("/nc/6670-18.NC"),
+                    Path("/nc/9999-01.NC"),
+                ]
+            )
 
         assert vm.popup_message is not None
         assert len(vm._records) == 3  # 2 original + 1 new

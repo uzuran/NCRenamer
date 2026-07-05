@@ -3,11 +3,8 @@
 import customtkinter as ctk
 from PIL import Image
 
-from app.models.email_model import CORRECT_PASSWORD
-from app.models.password_model import PasswordModel
 from app.translations.translations import LANGUAGE_NAMES
 from app.utils.resource_path import resource_path
-from app.viewmodels.password_view_model import PasswordViewModel
 from app.viewmodels.settings_view_model import SettingsViewModel
 
 
@@ -29,14 +26,6 @@ class SettingsFrame(ctk.CTkFrame):
         self.view_model = None
         if app_instance:
             self.view_model = SettingsViewModel(app_instance, app_settings)
-
-        self.password_vm = PasswordViewModel(
-            main_view_model=self.app_instance.main_view_model
-            if self.app_instance
-            else None,
-            password_model=PasswordModel(CORRECT_PASSWORD),
-            texts=self.texts,
-        )
 
         self.setting_label = ctk.CTkLabel(
             self,
@@ -82,16 +71,6 @@ class SettingsFrame(ctk.CTkFrame):
         self.language_optionmenu.set(current_lang_name)
         self.language_optionmenu.pack(pady=10, padx=25)
 
-        self.reset_counter_btn = ctk.CTkButton(
-            self,
-            image=self.restart_icon,
-            text="",
-            width=100,
-            height=38,
-            command=self.password_vm.prompt_for_password_and_reset,
-        )
-        self.reset_counter_btn.pack(pady=(20, 10))
-
         self.back_button = ctk.CTkButton(
             self,
             text=self.texts.get("back_button", "Back"),
@@ -110,7 +89,6 @@ class SettingsFrame(ctk.CTkFrame):
             text=self.texts.get("language_setting", "Language")
         )
         self.back_button.configure(text=self.texts.get("back_button", "Back"))
-        self.password_vm.update_texts(self.texts)
         current_lang_name = (
             self.view_model.get_current_language_name(LANGUAGE_NAMES)
             if self.view_model

@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
-from pathlib import Path
+from typing import TYPE_CHECKING
 
-from app.burn_table.models.burn_record import BurnRecord
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from app.burn_table.models.burn_record import BurnRecord
 
 
 class TableFullError(Exception):
@@ -39,7 +42,7 @@ class ExcelWriter:
         if not (self.DATA_START_ROW <= row_num <= self.MAX_ROW):
             raise ValueError(
                 f"row_num {row_num} is outside data range "
-                f"{self.DATA_START_ROW}–{self.MAX_ROW}."
+                f"{self.DATA_START_ROW}-{self.MAX_ROW}."
             )
         if path.suffix.lower() == ".xls":
             self._update_xls(path, row_num, record)
@@ -79,7 +82,7 @@ class ExcelWriter:
         next_row = self._find_next_free_xlsx(ws)
         if next_row is None:
             raise TableFullError(
-                "The burn table is full (rows A3–A36 are all occupied)."
+                "The burn table is full (rows A3-A36 are all occupied)."
             )
         self._write_row_xlsx(ws, next_row, record)
         wb.save(path)
@@ -95,12 +98,18 @@ class ExcelWriter:
 
     def _find_next_free_xlsx(self, ws) -> int | None:
         for row_num in range(self.DATA_START_ROW, self.MAX_ROW + 1):
-            if ws.cell(row=row_num, column=2).value is None:  # column B = program_number
+            if (
+                ws.cell(row=row_num, column=2).value is None
+            ):  # column B = program_number
                 return row_num
         return None
 
     def _write_row_xlsx(self, ws, row_num: int, record: BurnRecord) -> None:
-        from app.burn_table.services._xlsx_format import make_border, make_center_alignment
+        from app.burn_table.services._xlsx_format import (
+            make_border,
+            make_center_alignment,
+        )
+
         border = make_border()
         center = make_center_alignment()
         for col_idx, value in enumerate(record.to_row(), start=1):
@@ -145,7 +154,7 @@ class ExcelWriter:
         next_row_idx = self._find_next_free_xls(rs)
         if next_row_idx is None:
             raise TableFullError(
-                "The burn table is full (rows A3–A36 are all occupied)."
+                "The burn table is full (rows A3-A36 are all occupied)."
             )
 
         wb = xl_copy(rb)
@@ -180,6 +189,7 @@ class ExcelWriter:
 
     def _write_row_xls(self, ws, row_idx: int, record: BurnRecord) -> None:
         import xlwt
+
         # Style must be passed explicitly — calling ws.write() without a style
         # resets the cell to xlwt defaults and destroys the existing borders.
         data_style = xlwt.easyxf(
@@ -187,14 +197,19 @@ class ExcelWriter:
             "borders: left thin, right thin, top thin, bottom thin;"
         )
         for col_idx, value in enumerate(record.to_row()):
-            ws.write(row_idx, col_idx, value if (value is not None and value != "") else "", data_style)
+            ws.write(
+                row_idx,
+                col_idx,
+                value if (value is not None and value != "") else "",
+                data_style,
+            )
 
     # ── header migration ─────────────────────────────────────────────────────
 
     def update_header(self, path: Path) -> None:
         """Rewrite row 1 of an existing file with current headers and formatting.
 
-        All data rows (3–36) are untouched.  Safe to call on old files.
+        All data rows (3-36) are untouched.  Safe to call on old files.
         """
         if path.suffix.lower() == ".xls":
             self._update_header_xls(path)
@@ -205,9 +220,14 @@ class ExcelWriter:
         import openpyxl
         from openpyxl.styles import Alignment, Border, Font, PatternFill
 
-        from app.burn_table.services._xlsx_format import apply_print_settings, make_border
+        from app.burn_table.services._xlsx_format import (
+            apply_print_settings,
+            make_border,
+        )
         from app.burn_table.services.table_factory import (
-            _COL_WIDTHS, _HEADER_ROW_HEIGHT, _ROW1_HEADERS,
+            _COL_WIDTHS,
+            _HEADER_ROW_HEIGHT,
+            _ROW1_HEADERS,
         )
 
         wb = openpyxl.load_workbook(path)
@@ -219,9 +239,11 @@ class ExcelWriter:
         if "čas" in f1 and "progr" in f1 and "celkov" not in f1:
             for row_num in range(3, 37):
                 for src, dst in ((7, 6), (8, 7), (9, 8), (10, 9)):
-                    ws.cell(row=row_num, column=dst).value = ws.cell(row=row_num, column=src).value
+                    ws.cell(row=row_num, column=dst).value = ws.cell(
+                        row=row_num, column=src
+                    ).value
 
-        # Strip column J completely — no value, no border, no fill (rows 1–36)
+        # Strip column J completely - no value, no border, no fill (rows 1-36)
         no_border = Border()
         no_fill = PatternFill(fill_type=None)
         for row_num in range(1, 37):
@@ -230,17 +252,19 @@ class ExcelWriter:
             j.border = no_border
             j.fill = no_fill
 
-        header_font  = Font(bold=True, size=9, color="000000")
+        header_font = Font(bold=True, size=9, color="000000")
         header_align = Alignment(horizontal="center", vertical="center", wrap_text=True)
-        header_fill  = PatternFill("solid", fgColor="FFFFFF")
-        border       = make_border()
+        header_fill = PatternFill("solid", fgColor="FFFFFF")
+        border = make_border()
 
-        for col_idx, (header, width) in enumerate(zip(_ROW1_HEADERS, _COL_WIDTHS), start=1):
+        for col_idx, (header, width) in enumerate(
+            zip(_ROW1_HEADERS, _COL_WIDTHS, strict=False), start=1
+        ):
             cell = ws.cell(row=1, column=col_idx, value=header)
-            cell.font      = header_font
-            cell.fill      = header_fill
+            cell.font = header_font
+            cell.fill = header_fill
             cell.alignment = header_align
-            cell.border    = border
+            cell.border = border
             ws.column_dimensions[cell.column_letter].width = width
 
         ws.row_dimensions[1].height = _HEADER_ROW_HEIGHT
@@ -258,7 +282,9 @@ class ExcelWriter:
             ) from exc
 
         from app.burn_table.services.table_factory import (
-            _COL_WIDTHS, _HEADER_ROW_HEIGHT, _ROW1_HEADERS,
+            _COL_WIDTHS,
+            _HEADER_ROW_HEIGHT,
+            _ROW1_HEADERS,
         )
 
         rb = xlrd.open_workbook(str(path), formatting_info=True)
@@ -269,7 +295,11 @@ class ExcelWriter:
         blank_style = xlwt.easyxf("")  # no borders, no fill — truly empty cell
 
         # Migrate old 10-column format: shift data columns G-J left by one
-        f1_old = str(rs.cell_value(0, 5) if rs.nrows > 0 and rs.ncols > 5 else "").strip().lower()
+        f1_old = (
+            str(rs.cell_value(0, 5) if rs.nrows > 0 and rs.ncols > 5 else "")
+            .strip()
+            .lower()
+        )
         if "čas" in f1_old and "progr" in f1_old and "celkov" not in f1_old:
             data_style = xlwt.easyxf(
                 "alignment: horiz centre, vert centre;"
@@ -289,7 +319,9 @@ class ExcelWriter:
             "borders: left thin, right thin, top thin, bottom thin;"
         )
 
-        for col_idx, (header, width) in enumerate(zip(_ROW1_HEADERS, _COL_WIDTHS)):
+        for col_idx, (header, width) in enumerate(
+            zip(_ROW1_HEADERS, _COL_WIDTHS, strict=False)
+        ):
             ws.write(0, col_idx, header, header_style)
             ws.col(col_idx).width = width * 256
         ws.write(0, 9, "", blank_style)  # J1 — empty and unstyled
@@ -300,7 +332,7 @@ class ExcelWriter:
     # ── clear all data rows ───────────────────────────────────────────────────
 
     def clear_all_records(self, path: Path) -> None:
-        """Erase all data rows (rows 3–36) from *path*, preserving the header."""
+        """Erase all data rows (rows 3-36) from *path*, preserving the header."""
         if path.suffix.lower() == ".xls":
             self._clear_xls(path)
         else:

@@ -1,8 +1,11 @@
-"""ExcelReader — reads the fixed A–J burn table from .xls or .xlsx files."""
+"""ExcelReader - reads the fixed A-J burn table from .xls or .xlsx files."""
 
 from __future__ import annotations
 
-from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 from app.burn_table.models.burn_record import BurnRecord
 
@@ -11,9 +14,9 @@ class ExcelReader:
     """Reads BurnRecord rows from the fixed-layout burn table workbook.
 
     Layout contract:
-        - Row 1–2 : header rows  (skipped)
-        - Row 3–36: data rows    (up to 34 entries)
-        - Columns A–J (1–10) map 1-to-1 to BurnRecord fields
+        - Row 1-2 : header rows  (skipped)
+        - Row 3-36: data rows    (up to 34 entries)
+        - Columns A-J (1-10) map 1-to-1 to BurnRecord fields
 
     Both .xls (xlrd) and .xlsx (openpyxl) formats are supported.
     """
@@ -81,7 +84,9 @@ class ExcelReader:
         limit = min(self.MAX_ROW, ws.nrows)
         col_count = min(10, ws.ncols)
         for row_idx in range(self.DATA_START_ROW - 1, limit):
-            val = ws.cell_value(row_idx, 1)  # column B (program_number) is the occupied-row marker
+            val = ws.cell_value(
+                row_idx, 1
+            )  # column B (program_number) is the occupied-row marker
             if not str(val).strip():
                 continue
             row = [ws.cell_value(row_idx, col) for col in range(col_count)]

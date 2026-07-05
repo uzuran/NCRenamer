@@ -68,6 +68,7 @@ class TestPerformanceRecorder:
     def test_date_cz_handles_space_before_day(self):
         # NC machines output 'Y2026M 7D 1' when month or day is single-digit
         from app.burn_table.models.parsed_info import ProgramInfo
+
         info = ProgramInfo(date_raw="Y2026M 7D 1")
         assert info.date_cz == "01.07.2026"
 
@@ -103,7 +104,9 @@ class TestPerformanceRecorder:
         xml_parser = XmlParser()
         sheet_info = xml_parser.parse(_SCH_CONTENT)
         nc_info = self.recorder.parse_nc(_NC_CONTENT)
-        record = self.recorder._build_record(nc_info, sheet_info, product_group="Ocelové díly")
+        record = self.recorder._build_record(
+            nc_info, sheet_info, product_group="Ocelové díly"
+        )
 
         assert record.date == "30.06.2026"
         assert record.program_number == "6670-18"  # from SCH parts_name
@@ -116,6 +119,7 @@ class TestPerformanceRecorder:
     def test_program_number_falls_back_to_nc_filename(self):
         # No SCH → program number comes from the NC filename stem
         from pathlib import Path
+
         nc_info = self.recorder.parse_nc(_NC_CONTENT)
         sheet_info_empty = __import__(
             "app.burn_table.models.parsed_info", fromlist=["SheetInfo"]

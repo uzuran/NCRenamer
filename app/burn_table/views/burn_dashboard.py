@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+import contextlib
 import tkinter as tk
 from pathlib import Path
 from tkinter import filedialog, messagebox, ttk
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from app.burn_table.viewmodels.burn_view_model import BurnViewModel
 
 from app.burn_table.views.counter_window import CounterWindow
@@ -26,9 +29,9 @@ class BurnDashboard(ttk.Frame):
     ``BurnDashboard.launch()``.
     """
 
-    _WARN_BG  = "#FFF3CD"
-    _CRIT_BG  = "#F8D7DA"
-    _OK_BG    = "#D1ECE1"
+    _WARN_BG = "#FFF3CD"
+    _CRIT_BG = "#F8D7DA"
+    _OK_BG = "#D1ECE1"
 
     def __init__(self, master: tk.Widget, vm: BurnViewModel) -> None:
         super().__init__(master)
@@ -53,13 +56,13 @@ class BurnDashboard(ttk.Frame):
         tb = ttk.Frame(self, relief="ridge", padding=4)
         tb.pack(fill="x", side="top")
 
-        buttons: list[tuple[str, object]] = [
-            ("📂  Načíst tabulku",     self._on_load_table),
-            ("➕  Nová tabulka",       self._on_new_table),
-            ("🗂  Načíst NC/SCH",      self._on_load_nc_sch),
-            ("🖨  Tisk",               self._on_print),
-            ("📄  Export PDF",         self._on_export_pdf),
-            ("📊  Otevřít počítadlo",  self._on_open_counter),
+        buttons: list[tuple[str, Callable[[], None]]] = [
+            ("📂  Načíst tabulku", self._on_load_table),
+            ("+  Nová tabulka", self._on_new_table),
+            ("🗂  Načíst NC/SCH", self._on_load_nc_sch),
+            ("🖨  Tisk", self._on_print),
+            ("📄  Export PDF", self._on_export_pdf),
+            ("📊  Otevřít počítadlo", self._on_open_counter),
         ]
         for text, cmd in buttons:
             ttk.Button(tb, text=text, command=cmd, width=18).pack(
@@ -113,11 +116,9 @@ class BurnDashboard(ttk.Frame):
         else:
             colour = {
                 "critical": self._CRIT_BG,
-                "warning":  self._WARN_BG,
+                "warning": self._WARN_BG,
             }.get(status.warning, self._OK_BG)
-            self._status_bar.configure(
-                text=status.status_text, background=colour
-            )
+            self._status_bar.configure(text=status.status_text, background=colour)
 
     def _refresh_pending_label(self) -> None:
         rec = self._vm.pending_record
@@ -150,9 +151,7 @@ class BurnDashboard(ttk.Frame):
                 level="warning",
             )
 
-    def _show_warning_popup(
-        self, title: str, message: str, level: str
-    ) -> None:
+    def _show_warning_popup(self, title: str, message: str, level: str) -> None:
         """Display a non-blocking popup warning."""
 
         popup = tk.Toplevel(self)
@@ -189,9 +188,7 @@ class BurnDashboard(ttk.Frame):
             BurnDashboard._popup_open = False
             popup.destroy()
 
-        ttk.Button(popup, text="Rozumím", command=_close, width=14).pack(
-            pady=(4, 12)
-        )
+        ttk.Button(popup, text="Rozumím", command=_close, width=14).pack(pady=(4, 12))
         popup.protocol("WM_DELETE_WINDOW", _close)
 
     # ══════════════════════════════════════════════════════════════════
@@ -244,6 +241,7 @@ class BurnDashboard(ttk.Frame):
 
         if self._vm.has_pending_record:
             rec = self._vm.pending_record
+            assert rec is not None
             answer = messagebox.askyesno(
                 "Přidat záznam?",
                 f"Načten program {rec.program_number}\n"
@@ -270,7 +268,8 @@ class BurnDashboard(ttk.Frame):
             filetypes=[("PDF soubory", "*.pdf")],
             initialfile=(
                 self._vm.table_path.stem + ".pdf"
-                if self._vm.table_path else "tabulka.pdf"
+                if self._vm.table_path
+                else "tabulka.pdf"
             ),
         )
         if out_str:
@@ -323,12 +322,10 @@ class BurnDashboard(ttk.Frame):
         root.minsize(960, 560)
         root.geometry("1100x640")
 
-        try:
+        with contextlib.suppress(tk.TclError):
             root.iconbitmap(default="")
-        except tk.TclError:
-            pass
 
-        app = cls(root, vm)  # noqa: F841 — keeps a reference alive
+        app = cls(root, vm)  # type: ignore[arg-type]  # noqa: F841
 
         root.protocol("WM_DELETE_WINDOW", root.destroy)
         root.mainloop()

@@ -17,7 +17,7 @@ class PrintPreview(tk.Toplevel):
     """A separate window that shows the full table for review before printing.
 
     Contains:
-        - A read-only PreviewTable (full A–J columns)
+        - A read-only PreviewTable (full A-J columns)
         - Print button
         - Export PDF button
         - Close button
@@ -48,34 +48,34 @@ class PrintPreview(tk.Toplevel):
         header.pack(fill="x", padx=10, pady=(10, 4))
 
         # ── File name label ───────────────────────────────────────────
-        file_name = (
-            self._vm.table_path.name if self._vm.table_path else "—"
-        )
+        file_name = self._vm.table_path.name if self._vm.table_path else "—"
         self._file_label = ttk.Label(
-            self, text=f"Soubor: {file_name}", anchor="center",
+            self,
+            text=f"Soubor: {file_name}",
+            anchor="center",
             foreground="#555555",
         )
         self._file_label.pack(fill="x", padx=10)
 
         # ── Preview table ─────────────────────────────────────────────
-        self._preview = PreviewTable(self)
+        self._preview = PreviewTable(self)  # type: ignore[arg-type]
         self._preview.pack(fill="both", expand=True, padx=10, pady=8)
 
         # ── Button row ────────────────────────────────────────────────
         btn_frame = ttk.Frame(self)
         btn_frame.pack(fill="x", padx=10, pady=(0, 10))
 
-        ttk.Button(
-            btn_frame, text="🖨  Tisk", width=16, command=self._on_print
-        ).pack(side="left", padx=4)
+        ttk.Button(btn_frame, text="🖨  Tisk", width=16, command=self._on_print).pack(
+            side="left", padx=4
+        )
 
         ttk.Button(
             btn_frame, text="📄  Export PDF", width=16, command=self._on_export_pdf
         ).pack(side="left", padx=4)
 
-        ttk.Button(
-            btn_frame, text="Zavřít", width=12, command=self.destroy
-        ).pack(side="right", padx=4)
+        ttk.Button(btn_frame, text="Zavřít", width=12, command=self.destroy).pack(
+            side="right", padx=4
+        )
 
     # ── data loading ─────────────────────────────────────────────────────
 
@@ -93,9 +93,7 @@ class PrintPreview(tk.Toplevel):
 
     def _on_export_pdf(self) -> None:
         if not self._vm.table_path:
-            messagebox.showinfo(
-                "Info", "Není načtena žádná tabulka.", parent=self
-            )
+            messagebox.showinfo("Info", "Není načtena žádná tabulka.", parent=self)
             return
 
         output_str = filedialog.asksaveasfilename(

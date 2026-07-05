@@ -2,9 +2,8 @@
 
 from pathlib import Path
 
-from tests.conftest import StubMaterialRepository
-
 from app.models.formatter_model import FormatterModel
+from tests.conftest import StubMaterialRepository
 
 
 def test_process_file_uses_material_mapping_for_brus(nc_file_factory):

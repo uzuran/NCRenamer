@@ -11,10 +11,10 @@ from .xml_parser import XmlParser
 __all__ = [
     "ExcelReader",
     "ExcelWriter",
-    "TableFullError",
     "FileService",
     "FreeSlotDetector",
     "PrintService",
     "TableFactory",
+    "TableFullError",
     "XmlParser",
 ]

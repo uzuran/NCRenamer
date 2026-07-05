@@ -5,7 +5,6 @@ import webbrowser
 import customtkinter as ctk
 
 from app.burn_table.main import create_view_model as create_burn_view_model
-from app.models.email_model import EmailModel
 from app.models.formatter_model import FormatterModel
 from app.models.material_repository import MaterialRepository
 from app.models.settings_model import SettingsModel
@@ -27,7 +26,6 @@ class App(ctk.CTk):
     def __init__(self):
         super().__init__()
         self.settings_model = SettingsModel()
-        self.email_model = EmailModel()
         self.material_repo = MaterialRepository()
         self.formatter_model = FormatterModel(self.material_repo)
 
@@ -60,12 +58,10 @@ class App(ctk.CTk):
         )
 
         self.main_view_model = MainViewModel(
-            email_model=self.email_model,
             formatter_model=self.formatter_model,
         )
 
         self.main_frame.vm = self.main_view_model
-        self.main_frame.post_init()
         self.main_frame.pack(fill="both", expand=True)
 
         self.settings_frame = SettingsFrame(
@@ -90,12 +86,16 @@ class App(ctk.CTk):
         )
 
         self.vm_steel = create_burn_view_model(
-            texts=self.texts, sheet_index=0,
-            sheet_name="Ocel", settings_key="last_table_path",
+            texts=self.texts,
+            sheet_index=0,
+            sheet_name="Ocel",
+            settings_key="last_table_path",
         )
         self.vm_aluminium = create_burn_view_model(
-            texts=self.texts, sheet_index=1,
-            sheet_name="Hliník", settings_key="last_table_path_alu",
+            texts=self.texts,
+            sheet_index=1,
+            sheet_name="Hliník",
+            settings_key="last_table_path_alu",
         )
         self.burn_table_frame = BurnTableFrame(
             master=self,

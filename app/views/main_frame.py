@@ -1,13 +1,15 @@
-import webbrowser
 from tkinter import filedialog, messagebox
 
 import customtkinter as ctk
 from PIL import Image
 from rich.console import Console
 
+from app.services.email_service import EmailService
 from app.utils.resource_path import resource_path
 
 cons = Console()
+
+BUG_REPORT_EMAIL = "else.artem@gmail.com"
 
 
 class MainFrame(ctk.CTkFrame):
@@ -19,7 +21,6 @@ class MainFrame(ctk.CTkFrame):
         self.vm = viewmodel
         self.texts = texts or {}
         self.app_instance = app_instance
-        self.email_counter_label = None
 
         # Create a top bar for the two buttons
         self.top_bar = ctk.CTkFrame(self, fg_color="transparent")
@@ -115,18 +116,9 @@ class MainFrame(ctk.CTkFrame):
         self.report_bug_btn = ctk.CTkButton(
             self,
             text=self.texts.get("report_bug", "Report bug"),
-            command=self.set_email,
+            command=self.report_bug,
         )
         self.report_bug_btn.pack(pady=(0, 10))
-
-    def post_init(self):
-        """Initialize need it ViewModel."""
-        # Report bug counter.
-        self.email_counter_label = ctk.CTkLabel(
-            self,
-            text=f"{self.texts.get('number_of_bugs', 'Number of bugs')} {self.vm.email_counter}",
-        )
-        self.email_counter_label.pack(pady=5)
 
     def select_files(
         self,
@@ -204,19 +196,14 @@ class MainFrame(ctk.CTkFrame):
             ).format(total),
         )
 
-    def set_email(
-        self,
-    ):
-        self.vm.increment_email_counter()
-        if self.email_counter_label is not None:
-            self.email_counter_label.configure(
-                text=self.texts.get("email_count", "Number of bug reports: {}").format(
-                    self.vm.email_counter
-                )
-            )
+    def report_bug(self) -> None:
         try:
-            webbrowser.open(self.vm.get_mailto_url())
-        except webbrowser.Error:
+            EmailService().open_email(
+                to=BUG_REPORT_EMAIL,
+                subject="Bug Report",
+                body="",
+            )
+        except OSError:
             messagebox.showerror(
                 title=self.texts.get("email_error_title", "Error"),
                 message=self.texts.get(
@@ -240,15 +227,7 @@ class MainFrame(ctk.CTkFrame):
         if self.app_instance:
             self.app_instance.show_burn_table_content()
 
-    def update_email_counter_label(self):
-        """Aktualizuje text popisku počítadla na základě aktuální hodnoty z ViewModelu."""
-        if self.email_counter_label is not None:
-            self.email_counter_label.configure(
-                text=f"{self.texts.get('number_of_bugs', 'Number of bugs')} {self.vm.email_counter}"
-            )
-
     def update_texts(self, new_texts: dict):
-        """Aktualizuje texty všech widgetů ve framu."""
         self.texts = new_texts
         self.count_label.configure(
             text=self.texts.get("selected_files", "Selected: {} files").format(
@@ -266,10 +245,6 @@ class MainFrame(ctk.CTkFrame):
         )
         self.report_bug_btn.configure(text=self.texts.get("report_bug", "Report bug"))
         self.burn_table_btn.configure(text=self.texts.get("burn_table", "Burn Table"))
-        if self.email_counter_label is not None:
-            self.email_counter_label.configure(
-                text=f"{self.texts.get('number_of_bugs', 'Number of bugs')} {self.vm.email_counter}"
-            )
 
     def unselect_selected_nc(self):
         if not self.vm.file_paths:

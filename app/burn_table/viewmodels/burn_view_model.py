@@ -2,14 +2,19 @@
 
 from __future__ import annotations
 
+import contextlib
 import dataclasses
 import json
 import os
 import sys
 from pathlib import Path
-from typing import Callable
+from typing import TYPE_CHECKING
 
-from app.burn_table.models.burn_record import BurnRecord
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
+    from app.burn_table.models.burn_record import BurnRecord
+
 from app.burn_table.models.table_status import TableStatus
 from app.burn_table.services.excel_reader import ExcelReader
 from app.burn_table.services.excel_writer import ExcelWriter, TableFullError
@@ -191,14 +196,19 @@ class BurnViewModel:
                 if rec.sheet_format and rec.sheet_format != "-----":
                     self._last_sheet_format = rec.sheet_format
                     break
-            try:
-                self._writer.update_header(path)
-            except Exception:  # noqa: BLE001
-                pass  # non-fatal — header formatting is cosmetic
-            self._set_message(self._texts.get("table_loaded", "Table loaded: {}").format(path.name))
+            with contextlib.suppress(Exception):
+                self._writer.update_header(
+                    path
+                )  # non-fatal — header formatting is cosmetic
+            self._set_message(
+                self._texts.get("table_loaded", "Table loaded: {}").format(path.name)
+            )
             self._save_settings()
-        except Exception as exc:  # noqa: BLE001
-            self._set_message(self._texts.get("table_load_error", "Error loading: {}").format(exc), ok=False)
+        except Exception as exc:
+            self._set_message(
+                self._texts.get("table_load_error", "Error loading: {}").format(exc),
+                ok=False,
+            )
         self._notify()
 
     def load_last_table(self) -> None:
@@ -217,12 +227,27 @@ class BurnViewModel:
             fallback = exe_dir / "CNCs" / "laser.xls"
             if fallback.is_file():
                 self.load_table(fallback)
+                return
+
+        # Development fallback: CNCs/laser.xls next to the project root
+        project_root = Path(__file__).resolve().parent.parent.parent.parent
+        dev_fallback = project_root / "CNCs" / "laser.xls"
+        if dev_fallback.is_file():
+            self.load_table(dev_fallback)
+
+    def create_new_table(self, path: Path) -> None:
+        """Create a new blank table file at *path* then load it."""
+        from app.burn_table.services.table_factory import TableFactory
+
+        TableFactory().create(path)
+        self.load_table(path)
 
     def load_nc_sch(
         self,
         nc_path: Path,
         sch_path: Path | None = None,
         product_group: str = "",
+        operator: str = "",
     ) -> None:
         """Parse NC (and optionally SCH) files and store as pending record.
 
@@ -230,17 +255,23 @@ class BurnViewModel:
         confirm via ``append_pending_record()``.
         """
         try:
-            record = self._recorder.record_from_paths(nc_path, sch_path, product_group)
+            record = self._recorder.record_from_paths(
+                nc_path, sch_path, product_group, operator
+            )
             self._pending_record = record
             self._last_nc_path = nc_path
             self._last_sch_path = sch_path
-            msg = self._texts.get("files_loaded", "Files loaded: {}").format(nc_path.name)
+            msg = self._texts.get("files_loaded", "Files loaded: {}").format(
+                nc_path.name
+            )
             if sch_path:
                 msg += f" + {sch_path.name}"
             self._set_message(msg)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             self._pending_record = None
-            self._set_message(self._texts.get("parse_error", "Parse error: {}").format(exc), ok=False)
+            self._set_message(
+                self._texts.get("parse_error", "Parse error: {}").format(exc), ok=False
+            )
         self._notify()
 
     def append_pending_record(self) -> None:
@@ -249,17 +280,26 @@ class BurnViewModel:
         Does nothing if there is no pending record or no table loaded.
         """
         if self._pending_record is None:
-            self._set_message(self._texts.get("no_record_to_save", "No record to save."), ok=False)
+            self._set_message(
+                self._texts.get("no_record_to_save", "No record to save."), ok=False
+            )
             self._notify()
             return
 
         if self._table_path is None:
-            self._set_message(self._texts.get("load_table_first", "Load a table first."), ok=False)
+            self._set_message(
+                self._texts.get("load_table_first", "Load a table first."), ok=False
+            )
             self._notify()
             return
 
         if self._status.is_full:
-            self._set_message(self._texts.get("table_full_add", "Table is full — cannot add more records."), ok=False)
+            self._set_message(
+                self._texts.get(
+                    "table_full_add", "Table is full — cannot add more records."
+                ),
+                ok=False,
+            )
             self._notify()
             return
 
@@ -269,11 +309,17 @@ class BurnViewModel:
             self._records.append(record_to_write)
             self._pending_record = None
             self._status = self._detector.detect_from_records(len(self._records))
-            self._set_message(self._texts.get("record_saved", "Record saved to row {}.").format(row_num))
+            self._set_message(
+                self._texts.get("record_saved", "Record saved to row {}.").format(
+                    row_num
+                )
+            )
         except TableFullError:
             self._set_message(self._texts.get("table_full", "Table is full."), ok=False)
-        except Exception as exc:  # noqa: BLE001
-            self._set_message(self._texts.get("save_error", "Save error: {}").format(exc), ok=False)
+        except Exception as exc:
+            self._set_message(
+                self._texts.get("save_error", "Save error: {}").format(exc), ok=False
+            )
         self._notify()
 
     def discard_pending_record(self) -> None:
@@ -303,7 +349,9 @@ class BurnViewModel:
         loading a second batch always writes the product_group in its first row.
         """
         if self._table_path is None:
-            self._set_message(self._texts.get("load_table_first", "Load a table first."), ok=False)
+            self._set_message(
+                self._texts.get("load_table_first", "Load a table first."), ok=False
+            )
             self._notify()
             return
 
@@ -314,49 +362,63 @@ class BurnViewModel:
 
         for nc_path in nc_paths:
             if self._status.is_full:
-                failed.append(f"{nc_path.name}: {self._texts.get('table_full_label', 'table full')}")
+                failed.append(
+                    f"{nc_path.name}: {self._texts.get('table_full_label', 'table full')}"
+                )
                 break
             resolved_sch = self.find_sch_for_nc(nc_path)
             try:
-                record = self._recorder.record_from_paths(nc_path, resolved_sch, product_group)
+                record = self._recorder.record_from_paths(
+                    nc_path, resolved_sch, product_group
+                )
                 if not self.validate_unique_program(record.program_number):
                     duplicates.append(record.program_number)
                     continue
                 record_to_write = self._prepare_record_for_writing(record)
                 # product_group is written only for the first record per batch
                 if product_group_written:
-                    record_to_write = dataclasses.replace(record_to_write, product_group="")
+                    record_to_write = dataclasses.replace(
+                        record_to_write, product_group=""
+                    )
                 else:
                     product_group_written = True
-                row_num = self._writer.append_record(self._table_path, record_to_write)
+                self._writer.append_record(self._table_path, record_to_write)
                 self._records.append(record_to_write)
                 self._status = self._detector.detect_from_records(len(self._records))
                 added += 1
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 failed.append(f"{nc_path.name}: {exc}")
 
         if duplicates:
             self._popup_message = (
-                self._texts.get("dup_program_warning", "Program already exists in table.\nDuplicate records are not allowed.")
-                + "\n\n" + ", ".join(duplicates)
+                self._texts.get(
+                    "dup_program_warning",
+                    "Program already exists in table.\nDuplicate records are not allowed.",
+                )
+                + "\n\n"
+                + ", ".join(duplicates)
             )
 
         if failed:
             self._set_message(
-                self._texts.get("added_with_errors", "Added: {0}, errors: {1} — {2}").format(
-                    added, len(failed), failed[0]
-                ),
+                self._texts.get(
+                    "added_with_errors", "Added: {0}, errors: {1} — {2}"
+                ).format(added, len(failed), failed[0]),
                 ok=added > 0,
             )
         elif duplicates and added == 0:
             self._set_message(
-                self._texts.get("skipped_duplicate", "Skipped — duplicate program: {}").format(
-                    ", ".join(duplicates)
-                ),
+                self._texts.get(
+                    "skipped_duplicate", "Skipped — duplicate program: {}"
+                ).format(", ".join(duplicates)),
                 ok=False,
             )
         else:
-            self._set_message(self._texts.get("added_records", "Added {} records to table.").format(added))
+            self._set_message(
+                self._texts.get("added_records", "Added {} records to table.").format(
+                    added
+                )
+            )
         self._notify()
 
     @staticmethod
@@ -392,42 +454,56 @@ class BurnViewModel:
                 self._status = self._detector.detect(self._table_path)
                 records = self._reader.read_all(self._table_path)
                 self._records = records
-                self._set_message(self._texts.get("status_refreshed", "Status refreshed."))
-            except Exception as exc:  # noqa: BLE001
-                self._set_message(self._texts.get("refresh_error", "Refresh error: {}").format(exc), ok=False)
+                self._set_message(
+                    self._texts.get("status_refreshed", "Status refreshed.")
+                )
+            except Exception as exc:
+                self._set_message(
+                    self._texts.get("refresh_error", "Refresh error: {}").format(exc),
+                    ok=False,
+                )
         else:
-            self._set_message(self._texts.get("status_no_table", "No table loaded."), ok=False)
+            self._set_message(
+                self._texts.get("status_no_table", "No table loaded."), ok=False
+            )
         self._notify()
 
     def print_table(self) -> None:
         """Print the current table file."""
         if self._table_path is None:
-            self._set_message(self._texts.get("load_table_first", "Load a table first."), ok=False)
+            self._set_message(
+                self._texts.get("load_table_first", "Load a table first."), ok=False
+            )
             self._notify()
             return
         success, exc_msg = self._print_manager.print_table(self._table_path)
         if success:
             self._set_message(self._texts.get("print_sent", "Print sent."))
         else:
-            self._set_message(self._texts.get("print_error", "Print error: {}").format(exc_msg), ok=False)
+            self._set_message(
+                self._texts.get("print_error", "Print error: {}").format(exc_msg),
+                ok=False,
+            )
         self._notify()
 
     def export_pdf(self, output_path: Path | None = None) -> None:
         """Export the current table to PDF."""
         if self._table_path is None:
-            self._set_message(self._texts.get("load_table_first", "Load a table first."), ok=False)
+            self._set_message(
+                self._texts.get("load_table_first", "Load a table first."), ok=False
+            )
             self._notify()
             return
-        success, msg, _ = self._print_manager.export_pdf(
-            self._table_path, output_path
-        )
+        success, msg, _ = self._print_manager.export_pdf(self._table_path, output_path)
         self._set_message(msg, ok=success)
         self._notify()
 
     def clear_table(self) -> None:
         """Remove all data records from the current table file."""
         if self._table_path is None:
-            self._set_message(self._texts.get("load_table_first", "Load a table first."), ok=False)
+            self._set_message(
+                self._texts.get("load_table_first", "Load a table first."), ok=False
+            )
             self._notify()
             return
         try:
@@ -437,8 +513,10 @@ class BurnViewModel:
             self._date_written = False
             self._last_sheet_format = ""
             self._set_message(self._texts.get("table_cleared", "Table cleared."))
-        except Exception as exc:  # noqa: BLE001
-            self._set_message(self._texts.get("clear_error", "Clear error: {}").format(exc), ok=False)
+        except Exception as exc:
+            self._set_message(
+                self._texts.get("clear_error", "Clear error: {}").format(exc), ok=False
+            )
         self._notify()
 
     def clear_message(self) -> None:
@@ -491,10 +569,8 @@ class BurnViewModel:
     def _notify(self) -> None:
         """Invoke all registered observer callbacks."""
         for cb in list(self._callbacks):
-            try:
-                cb()
-            except Exception:  # noqa: BLE001
-                pass  # Never let a broken callback crash the ViewModel
+            with contextlib.suppress(Exception):
+                cb()  # Never let a broken callback crash the ViewModel
 
     def _set_message(self, text: str, *, ok: bool = True) -> None:
         self._message = text
@@ -512,9 +588,12 @@ class BurnViewModel:
             pass  # Settings are a convenience — failure is non-fatal
 
     @staticmethod
-    def _read_settings() -> dict:
+    def _read_settings() -> dict[str, str]:
         """Read the settings file; return empty dict if missing or invalid."""
         try:
-            return json.loads(_SETTINGS_FILE.read_text(encoding="utf-8"))
+            data = json.loads(_SETTINGS_FILE.read_text(encoding="utf-8"))
+            if isinstance(data, dict):
+                return {str(k): str(v) for k, v in data.items()}
+            return {}
         except (OSError, json.JSONDecodeError):
             return {}

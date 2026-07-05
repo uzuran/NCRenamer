@@ -4,17 +4,26 @@ from __future__ import annotations
 
 from pathlib import Path
 from tkinter import filedialog, messagebox, simpledialog, ttk
+from typing import TYPE_CHECKING
 
 import customtkinter as ctk
 
-from app.burn_table.viewmodels.burn_view_model import BurnViewModel
+if TYPE_CHECKING:
+    from app.burn_table.viewmodels.burn_view_model import BurnViewModel
 
 _COLUMN_IDS = (
-    "date", "program", "note", "sheet_fmt", "count",
-    "total_time", "burned", "product", "operator",
+    "date",
+    "program",
+    "note",
+    "sheet_fmt",
+    "count",
+    "total_time",
+    "burned",
+    "product",
+    "operator",
 )
 _COLUMN_WIDTHS = (120, 85, 75, 160, 50, 90, 65, 95, 95)
-_MIN_WIDTHS    = ( 80, 60, 55, 110, 35, 65, 45, 65, 65)
+_MIN_WIDTHS = (80, 60, 55, 110, 35, 65, 45, 65, 65)
 
 
 class _BurnTabContent(ctk.CTkFrame):
@@ -43,30 +52,42 @@ class _BurnTabContent(ctk.CTkFrame):
         bar.pack(fill="x", pady=(4, 0), padx=10)
 
         self.load_nc_btn = ctk.CTkButton(
-            bar, text=self.texts.get("load_nc_sch", "Load NC/SCH"),
-            width=105, command=self._cmd_load_nc_sch,
+            bar,
+            text=self.texts.get("load_nc_sch", "Load NC/SCH"),
+            width=105,
+            command=self._cmd_load_nc_sch,
         )
         self.load_nc_btn.pack(side="left", padx=2)
 
         self.clear_table_btn = ctk.CTkButton(
-            bar, text=self.texts.get("clear_table", "Clear table"),
-            width=115, fg_color="#c0392b", hover_color="#922b21",
+            bar,
+            text=self.texts.get("clear_table", "Clear table"),
+            width=115,
+            fg_color="#c0392b",
+            hover_color="#922b21",
             command=self._cmd_clear_table,
         )
         self.clear_table_btn.pack(side="left", padx=2)
 
         self.print_btn = ctk.CTkButton(
-            bar, text=self.texts.get("print_table", "Print"),
-            width=65, command=self._cmd_print,
+            bar,
+            text=self.texts.get("print_table", "Print"),
+            width=65,
+            command=self._cmd_print,
         )
         self.print_btn.pack(side="right", padx=2)
 
     def _build_pending_banner(self) -> None:
         self.pending_frame = ctk.CTkFrame(
-            self, fg_color=("#d9f7d9", "#1a4d1a"), corner_radius=4,
+            self,
+            fg_color=("#d9f7d9", "#1a4d1a"),
+            corner_radius=4,
         )
         self.pending_lbl = ctk.CTkLabel(
-            self.pending_frame, text="", anchor="w", wraplength=950,
+            self.pending_frame,
+            text="",
+            anchor="w",
+            wraplength=950,
         )
         self.pending_lbl.pack(fill="x", padx=10, pady=4)
         # Hidden until a pending record exists
@@ -96,14 +117,21 @@ class _BurnTabContent(ctk.CTkFrame):
         self._configure_columns()
 
     def _configure_columns(self) -> None:
-        for col_id, width, min_w in zip(_COLUMN_IDS, _COLUMN_WIDTHS, _MIN_WIDTHS):
+        for col_id, width, min_w in zip(
+            _COLUMN_IDS, _COLUMN_WIDTHS, _MIN_WIDTHS, strict=False
+        ):
             header = self.texts.get(f"col_{col_id}", col_id.replace("_", " ").title())
             self.tree.heading(col_id, text=header)
-            self.tree.column(col_id, width=width, minwidth=min_w, stretch=True, anchor="center")
+            self.tree.column(
+                col_id, width=width, minwidth=min_w, stretch=True, anchor="center"
+            )
 
     def _build_status_bar(self) -> None:
         self.status_lbl = ctk.CTkLabel(
-            self, text="", anchor="w", text_color="gray50",
+            self,
+            text="",
+            anchor="w",
+            text_color="gray50",
         )
         self.status_lbl.pack(fill="x", padx=12, pady=(2, 6))
 
@@ -121,11 +149,14 @@ class _BurnTabContent(ctk.CTkFrame):
         if not nc_strs:
             return
 
-        product_group = simpledialog.askstring(
-            title=self.texts.get("product_group_dialog_title", "Load NC/SCH"),
-            prompt=self.texts.get("product_group_prompt", "Product type:"),
-            parent=self,
-        ) or ""
+        product_group = (
+            simpledialog.askstring(
+                title=self.texts.get("product_group_dialog_title", "Load NC/SCH"),
+                prompt=self.texts.get("product_group_prompt", "Product type:"),
+                parent=self,
+            )
+            or ""
+        )
 
         nc_paths = [Path(p) for p in nc_strs]
         self.vm.load_and_append_batch(nc_paths, product_group)
@@ -169,6 +200,8 @@ class _BurnTabContent(ctk.CTkFrame):
     def _refresh_pending_banner(self) -> None:
         if self.vm.has_pending_record:
             rec = self.vm.pending_record
+            if rec is None:
+                return
             has_table = self.vm.table_path is not None
 
             operator_part = (
@@ -184,12 +217,16 @@ class _BurnTabContent(ctk.CTkFrame):
             if not has_table:
                 text += f"  —  {self.texts.get('no_table_hint', 'Create or load a table first!')}"
 
-            banner_color = ("#d9f7d9", "#1a4d1a") if has_table else ("#fff3cd", "#5a4000")
+            banner_color = (
+                ("#d9f7d9", "#1a4d1a") if has_table else ("#fff3cd", "#5a4000")
+            )
             self.pending_frame.configure(fg_color=banner_color)
             self.pending_lbl.configure(text=text)
             if not self.pending_frame.winfo_ismapped():
                 self.pending_frame.pack(
-                    fill="x", padx=10, pady=(0, 4),
+                    fill="x",
+                    padx=10,
+                    pady=(0, 4),
                     before=self.tree_container,
                 )
         else:
@@ -201,7 +238,9 @@ class _BurnTabContent(ctk.CTkFrame):
         if self.vm.table_path:
             parts.append(self.vm.table_path.name)
             st = self.vm.status
-            parts.append(self.texts.get("free_rows", "Free rows: {}").format(st.free_rows))
+            parts.append(
+                self.texts.get("free_rows", "Free rows: {}").format(st.free_rows)
+            )
             if st.warning:
                 parts.append(st.warning)
 

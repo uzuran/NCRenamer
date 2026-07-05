@@ -3,7 +3,6 @@
 from dataclasses import dataclass
 from typing import Literal
 
-
 WarningLevel = Literal["", "warning", "critical"]
 
 
@@ -12,7 +11,7 @@ class TableStatus:
     """Immutable snapshot of how many rows are used and how many remain.
 
     Attributes:
-        used_rows:  Number of rows with data (rows 3–36 where column A is filled).
+        used_rows:  Number of rows with data (rows 3-36 where column A is filled).
         free_rows:  Number of remaining empty rows (max 34).
         is_full:    True when free_rows == 0.
         warning:    '' = OK, 'warning' = ≤5 free, 'critical' = ≤2 free.

@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 import re
-from pathlib import Path
+from typing import TYPE_CHECKING, ClassVar
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 from app.burn_table.models.burn_record import BurnRecord
 from app.burn_table.models.parsed_info import ProgramInfo, SheetInfo
@@ -19,11 +22,11 @@ class PerformanceRecorder:
     construction), and returns a ready-to-append BurnRecord.
 
     NC parsing recognises header lines in the format:
-        (CR/YYYYMMDD)   – creation / burn date
-        (PR/xxxxxxx)    – program number
-        (MA/x.xxxx)     – material code
-        (WK/5.00T1700.00X1500.00) – thickness × width × height
-        (TT/H21M51S)    – total cutting time
+        (CR/YYYYMMDD)   - creation / burn date
+        (PR/xxxxxxx)    - program number
+        (MA/x.xxxx)     - material code
+        (WK/5.00T1700.00X1500.00) - thickness x width x height
+        (TT/H21M51S)    - total cutting time
 
     Lines with or without parentheses are both supported.
     """
@@ -32,12 +35,12 @@ class PerformanceRecorder:
     # WK and TT often have leading whitespace after the slash; [^\n\)] is
     # greedy and stops at ) or newline — the caller strips the result.
     # CR date may be YYYYMMDD or already in Czech format (Y2026M 6D30).
-    _NC_PATTERNS: dict[str, str] = {
-        "date":      r"\(?CR/([^\n\)]+)\)?",
-        "program":   r"\(?PR/([^\s\n\)]+)\)?",
-        "material":  r"\(?MA/([^\s\n\)]+)\)?",
+    _NC_PATTERNS: ClassVar[dict[str, str]] = {
+        "date": r"\(?CR/([^\n\)]+)\)?",
+        "program": r"\(?PR/([^\s\n\)]+)\)?",
+        "material": r"\(?MA/([^\s\n\)]+)\)?",
         "workpiece": r"\(?WK/([^\n\)]+)\)?",
-        "time":      r"\(?TT/([^\n\)]+)\)?",
+        "time": r"\(?TT/([^\n\)]+)\)?",
     }
 
     # Two possible WK sub-formats (spaces between values are allowed):
@@ -61,6 +64,7 @@ class PerformanceRecorder:
         nc_path: Path,
         sch_path: Path | None = None,
         product_group: str = "",
+        operator: str = "",
     ) -> BurnRecord:
         """Parse *nc_path* (and optionally *sch_path*) into a BurnRecord.
 
@@ -88,8 +92,12 @@ class PerformanceRecorder:
                 # Override quantity with the entry that matches *this* NC program.
                 # The SCH often contains one block per program cut on the same sheet,
                 # so a generic sum would give wrong results.
-                program_number = program_info.program_number or (nc_path.stem if nc_path else "")
-                targeted_qty = self._xml_parser.find_quantity_for_program(sch_text, program_number)
+                program_number = program_info.program_number or (
+                    nc_path.stem if nc_path else ""
+                )
+                targeted_qty = self._xml_parser.find_quantity_for_program(
+                    sch_text, program_number
+                )
                 sheet_info = SheetInfo(
                     product_quantity=targeted_qty,
                     parts_name=sheet_info.parts_name,
@@ -98,7 +106,9 @@ class PerformanceRecorder:
             except ValueError:
                 pass  # SCH parse failure is non-fatal; use default quantity
 
-        return self._build_record(program_info, sheet_info, product_group, nc_path)
+        return self._build_record(
+            program_info, sheet_info, product_group, nc_path, operator
+        )
 
     def parse_nc(self, nc_text: str) -> ProgramInfo:
         """Extract header fields from the raw NC program text.
@@ -156,6 +166,7 @@ class PerformanceRecorder:
         sheet: SheetInfo,
         product_group: str,
         nc_path: Path | None = None,
+        operator: str = "",
     ) -> BurnRecord:
         """Assemble a BurnRecord from parsed data.
 
@@ -168,9 +179,7 @@ class PerformanceRecorder:
         # NC stem beats SCH parts_name because a multi-block SCH file returns
         # the first block's name regardless of which NC we're processing.
         program_number = (
-            info.program_number
-            or (nc_path.stem if nc_path else "")
-            or sheet.parts_name
+            info.program_number or (nc_path.stem if nc_path else "") or sheet.parts_name
         )
         return BurnRecord(
             date=info.date_cz,
@@ -182,5 +191,5 @@ class PerformanceRecorder:
             total_time=info.program_time_formatted,
             burned="",
             product_group=product_group,
-            operator="",
+            operator=operator,
         )

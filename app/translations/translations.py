@@ -100,6 +100,8 @@ cs = {
     "print_error": "Chyba otevření: {}",
     "table_cleared": "Tabulka byla vymazána.",
     "clear_error": "Chyba při mazání: {}",
+    "select_table": "Vybrat tabulku",
+    "select_table_file": "Vyberte soubor tabulky pálení",
 }
 
 # Slovník pro angličtinu

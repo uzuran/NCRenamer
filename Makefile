@@ -3,7 +3,7 @@ PIP    := pip3
 
 .PHONY: help run run-burn test test-unit test-integration test-verbose \
         coverage coverage-html lint format typecheck check \
-        install install-dev clean
+        install install-dev build clean
 
 # ─── Default ────────────────────────────────────────────────────────────────
 
@@ -32,6 +32,9 @@ help:
 	@echo "  Dependencies"
 	@echo "    install             Install runtime dependencies"
 	@echo "    install-dev         Install runtime + dev dependencies"
+	@echo ""
+	@echo "  Build"
+	@echo "    build               Compile Windows .exe with PyInstaller"
 	@echo ""
 	@echo "  Housekeeping"
 	@echo "    clean               Remove build artefacts and caches"
@@ -81,6 +84,16 @@ typecheck:
 check:
 	pre-commit run --all-files
 
+# ─── Build ───────────────────────────────────────────────────────────────────
+# Uses Windows Python via powershell.exe so the output is a .exe, not a Linux
+# binary.  Works from both WSL and a Windows terminal (PowerShell / CMD).
+# laser.xls is not bundled inside the exe — it lives next to it so users can
+# edit it freely.
+
+build:
+	powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "python -m PyInstaller NCRenamer.spec --clean --noconfirm"
+	powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "New-Item -Force -ItemType Directory 'dist\CNCs' | Out-Null; Copy-Item 'CNCs\laser.xls' 'dist\CNCs\laser.xls' -Force"
+
 # ─── Dependencies ───────────────────────────────────────────────────────────
 
 install:
@@ -101,3 +114,4 @@ clean:
 	find . -name "*.pyc" -delete
 	find . -name ".coverage" -delete
 	find . -name "coverage.xml" -delete
+	rm -rf dist/ build/

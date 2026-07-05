@@ -21,17 +21,17 @@ def _strip_thickness_suffix(material: str, thickness: float) -> str:
     Bare integers without a dash (e.g. '1.4016MAGNET2') are left unchanged
     to avoid stripping grade numbers that are part of the material name.
     """
-    t_dec = f"{thickness:.1f}"   # e.g. "4.0", "1.5"
+    t_dec = f"{thickness:.1f}"  # e.g. "4.0", "1.5"
     t_int = str(int(thickness))  # e.g. "4",   "1"
 
     # With dash first: '-4.0' then '-4'
     for suffix in (f"-{t_dec}", f"-{t_int}"):
         if material.endswith(suffix):
-            return material[:-len(suffix)]
+            return material[: -len(suffix)]
 
     # Without dash — only decimal form to avoid stripping grade numbers
     if material.endswith(t_dec) and len(material) > len(t_dec):
-        return material[:-len(t_dec)]
+        return material[: -len(t_dec)]
 
     return material
 
@@ -127,7 +127,7 @@ class ProgramInfo:
     def program_time_minutes(self) -> str:
         """Extract total minutes from raw time code as a string.
 
-        'H21M51S' → '22'  (0 h × 60 + 21 m + round-up seconds)
+        'H21M51S' -> '22'  (0 h x 60 + 21 m + round-up seconds)
         'H M48S'  → '1'
         '1H5M30S' → '66'
         """

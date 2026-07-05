@@ -5,7 +5,7 @@ from __future__ import annotations
 import tkinter as tk
 from pathlib import Path
 from tkinter import filedialog, messagebox, ttk
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from app.burn_table.viewmodels.burn_view_model import BurnViewModel
@@ -32,6 +32,16 @@ class CounterWindow(tk.Toplevel):
         super().__init__(parent)
         self._vm = vm
 
+        # Declared here so mypy tracks them; assigned inside _build via setattr.
+        self._lbl_used: ttk.Label
+        self._lbl_free: ttk.Label
+        self._lbl_warning: ttk.Label
+        self._lbl_file: ttk.Label
+        self._lbl_prog_num: ttk.Label
+        self._lbl_format: ttk.Label
+        self._lbl_qty: ttk.Label
+        self._lbl_prog_date: ttk.Label
+
         self.title("Stav tabulky pálení")
         self.resizable(False, False)
         self.grab_set()  # Modal-like focus (doesn't block parent updates)
@@ -45,17 +55,17 @@ class CounterWindow(tk.Toplevel):
     # ── build ────────────────────────────────────────────────────────────
 
     def _build(self) -> None:
-        pad = {"padx": 12, "pady": 4}
+        pad: dict[str, Any] = {"padx": 12, "pady": 4}
 
         # ── Status section ────────────────────────────────────────────
         status_frame = ttk.LabelFrame(self, text="Stav tabulky", padding=8)
         status_frame.grid(row=0, column=0, sticky="ew", padx=14, pady=(14, 6))
 
         rows = [
-            ("Použitých řádků:",  "_lbl_used"),
-            ("Volných řádků:",    "_lbl_free"),
-            ("Upozornění:",       "_lbl_warning"),
-            ("Soubor tabulky:",   "_lbl_file"),
+            ("Použitých řádků:", "_lbl_used"),
+            ("Volných řádků:", "_lbl_free"),
+            ("Upozornění:", "_lbl_warning"),
+            ("Soubor tabulky:", "_lbl_file"),
         ]
         for row_idx, (label_text, attr) in enumerate(rows):
             ttk.Label(status_frame, text=label_text, anchor="e", width=20).grid(
@@ -71,9 +81,9 @@ class CounterWindow(tk.Toplevel):
 
         pending_rows = [
             ("Číslo programu:", "_lbl_prog_num"),
-            ("Formát tabule:",  "_lbl_format"),
-            ("Počet kusů:",     "_lbl_qty"),
-            ("Datum:",          "_lbl_prog_date"),
+            ("Formát tabule:", "_lbl_format"),
+            ("Počet kusů:", "_lbl_qty"),
+            ("Datum:", "_lbl_prog_date"),
         ]
         for row_idx, (label_text, attr) in enumerate(pending_rows):
             ttk.Label(pending_frame, text=label_text, anchor="e", width=20).grid(
@@ -98,10 +108,10 @@ class CounterWindow(tk.Toplevel):
         btn_frame.grid(row=3, column=0, sticky="ew", padx=14, pady=(6, 14))
 
         buttons = [
-            ("📂  Načíst NC/SCH",       self._on_load_nc_sch),
-            ("💾  Převést a přidat",    self._on_append),
-            ("🔄  Obnovit stav",        self._on_refresh),
-            ("✕  Zavřít",              self._on_close),
+            ("📂  Načíst NC/SCH", self._on_load_nc_sch),
+            ("💾  Převést a přidat", self._on_append),
+            ("🔄  Obnovit stav", self._on_refresh),
+            ("✕  Zavřít", self._on_close),
         ]
         for col_idx, (text, cmd) in enumerate(buttons):
             btn = ttk.Button(btn_frame, text=text, command=cmd, width=20)
@@ -187,7 +197,9 @@ class CounterWindow(tk.Toplevel):
         if rec:
             self._lbl_prog_num.configure(text=rec.program_number or "—")
             self._lbl_format.configure(text=rec.sheet_format or "—")
-            self._lbl_qty.configure(text=str(rec.sheet_count) if rec.sheet_count else "—")
+            self._lbl_qty.configure(
+                text=str(rec.sheet_count) if rec.sheet_count else "—"
+            )
             self._lbl_prog_date.configure(text=rec.date or "—")
         else:
             for attr in ("_lbl_prog_num", "_lbl_format", "_lbl_qty", "_lbl_prog_date"):

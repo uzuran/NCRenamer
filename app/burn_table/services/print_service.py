@@ -5,7 +5,6 @@ from __future__ import annotations
 import os
 import subprocess
 import sys
-import tempfile
 from pathlib import Path
 
 
@@ -43,9 +42,7 @@ class PrintService:
             try:
                 subprocess.run(["xdg-open", str(path)], check=False)
             except FileNotFoundError:
-                raise RuntimeError(
-                    "Cannot open file — 'xdg-open' not found."
-                ) from None
+                raise RuntimeError("Cannot open file — 'xdg-open' not found.") from None
 
     def export_pdf(self, path: Path, output_path: Path) -> Path:
         """Convert *path* (.xlsx) to PDF at *output_path*.
@@ -71,8 +68,10 @@ class PrintService:
                     [
                         "soffice",
                         "--headless",
-                        "--convert-to", "pdf",
-                        "--outdir", str(output_path.parent),
+                        "--convert-to",
+                        "pdf",
+                        "--outdir",
+                        str(output_path.parent),
                         str(path),
                     ],
                     check=True,
@@ -108,6 +107,7 @@ class PrintService:
     def _libreoffice_available() -> bool:
         """Return True when the 'soffice' binary is on PATH."""
         import shutil
+
         return shutil.which("soffice") is not None
 
     @staticmethod
@@ -126,9 +126,9 @@ class PrintService:
         (e.g. \\\\wsl.localhost\\Ubuntu\\home\\...) so Windows can locate it.
         """
         try:
-            win_path = subprocess.check_output(
-                ["wslpath", "-w", str(path)]
-            ).decode().strip()
+            win_path = (
+                subprocess.check_output(["wslpath", "-w", str(path)]).decode().strip()
+            )
             # The empty-string title argument is required by 'start' when the
             # path is quoted — otherwise 'start' treats the path as the title.
             subprocess.run(["cmd.exe", "/c", "start", "", win_path], check=False)

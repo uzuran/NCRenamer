@@ -3,7 +3,6 @@
 from pathlib import Path
 from unittest.mock import patch
 
-from app.burn_table.models.parsed_info import ProgramInfo, SheetInfo
 from app.burn_table.services.xml_parser import XmlParser
 from app.burn_table.viewmodels.burn_view_model import BurnViewModel
 from app.burn_table.viewmodels.performance_recorder import PerformanceRecorder
@@ -116,10 +115,18 @@ class TestPerformanceRecorderTargetedQuantity:
     def test_picks_correct_quantity_for_program_97(self):
         nc_path = Path("/fake/6684-97.NC")
         with (
-            patch.object(self.recorder._file_service, "read_nc", return_value=self._nc_text("6684-97")),
-            patch.object(self.recorder._file_service, "read_sch", return_value=_MULTI_BLOCK_SCH),
+            patch.object(
+                self.recorder._file_service,
+                "read_nc",
+                return_value=self._nc_text("6684-97"),
+            ),
+            patch.object(
+                self.recorder._file_service, "read_sch", return_value=_MULTI_BLOCK_SCH
+            ),
         ):
-            record = self.recorder.record_from_paths(nc_path, sch_path=Path("/fake/6684-32.SCH"))
+            record = self.recorder.record_from_paths(
+                nc_path, sch_path=Path("/fake/6684-32.SCH")
+            )
 
         assert record.sheet_count == 1
         assert record.program_number == "6684-97"
@@ -127,10 +134,18 @@ class TestPerformanceRecorderTargetedQuantity:
     def test_picks_correct_quantity_for_program_04(self):
         nc_path = Path("/fake/6684-04.NC")
         with (
-            patch.object(self.recorder._file_service, "read_nc", return_value=self._nc_text("6684-04")),
-            patch.object(self.recorder._file_service, "read_sch", return_value=_MULTI_BLOCK_SCH),
+            patch.object(
+                self.recorder._file_service,
+                "read_nc",
+                return_value=self._nc_text("6684-04"),
+            ),
+            patch.object(
+                self.recorder._file_service, "read_sch", return_value=_MULTI_BLOCK_SCH
+            ),
         ):
-            record = self.recorder.record_from_paths(nc_path, sch_path=Path("/fake/6684-32.SCH"))
+            record = self.recorder.record_from_paths(
+                nc_path, sch_path=Path("/fake/6684-32.SCH")
+            )
 
         assert record.sheet_count == 2
         assert record.program_number == "6684-04"
@@ -138,20 +153,36 @@ class TestPerformanceRecorderTargetedQuantity:
     def test_picks_correct_quantity_for_program_16(self):
         nc_path = Path("/fake/6684-16.NC")
         with (
-            patch.object(self.recorder._file_service, "read_nc", return_value=self._nc_text("6684-16")),
-            patch.object(self.recorder._file_service, "read_sch", return_value=_MULTI_BLOCK_SCH),
+            patch.object(
+                self.recorder._file_service,
+                "read_nc",
+                return_value=self._nc_text("6684-16"),
+            ),
+            patch.object(
+                self.recorder._file_service, "read_sch", return_value=_MULTI_BLOCK_SCH
+            ),
         ):
-            record = self.recorder.record_from_paths(nc_path, sch_path=Path("/fake/6684-32.SCH"))
+            record = self.recorder.record_from_paths(
+                nc_path, sch_path=Path("/fake/6684-32.SCH")
+            )
 
         assert record.sheet_count == 4
 
     def test_defaults_to_1_when_program_not_in_sch(self):
         nc_path = Path("/fake/6684-55.NC")
         with (
-            patch.object(self.recorder._file_service, "read_nc", return_value=self._nc_text("6684-55")),
-            patch.object(self.recorder._file_service, "read_sch", return_value=_MULTI_BLOCK_SCH),
+            patch.object(
+                self.recorder._file_service,
+                "read_nc",
+                return_value=self._nc_text("6684-55"),
+            ),
+            patch.object(
+                self.recorder._file_service, "read_sch", return_value=_MULTI_BLOCK_SCH
+            ),
         ):
-            record = self.recorder.record_from_paths(nc_path, sch_path=Path("/fake/6684-32.SCH"))
+            record = self.recorder.record_from_paths(
+                nc_path, sch_path=Path("/fake/6684-32.SCH")
+            )
 
         assert record.sheet_count == 1
 
@@ -161,9 +192,13 @@ class TestPerformanceRecorderTargetedQuantity:
         nc_path = Path("/fake/6684-04.NC")
         with (
             patch.object(self.recorder._file_service, "read_nc", return_value=nc_text),
-            patch.object(self.recorder._file_service, "read_sch", return_value=_MULTI_BLOCK_SCH),
+            patch.object(
+                self.recorder._file_service, "read_sch", return_value=_MULTI_BLOCK_SCH
+            ),
         ):
-            record = self.recorder.record_from_paths(nc_path, sch_path=Path("/fake/6684-32.SCH"))
+            record = self.recorder.record_from_paths(
+                nc_path, sch_path=Path("/fake/6684-32.SCH")
+            )
 
         # stem wins over first SCH block ("6684-97")
         assert record.program_number == "6684-04"

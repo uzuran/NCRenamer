@@ -1,4 +1,4 @@
-"""PreviewTable — scrollable Treeview widget for the A–J burn table."""
+"""PreviewTable - scrollable Treeview widget for the A-J burn table."""
 
 from __future__ import annotations
 
@@ -11,23 +11,23 @@ if TYPE_CHECKING:
 
 # Column definitions: (id, heading, width_px, anchor)
 _COLUMNS: list[tuple[str, str, int, str]] = [
-    ("date",          "Datum",        100, "center"),
-    ("program",       "Číslo pr.",     90, "center"),
-    ("note",          "Poznámka",      70, "w"),
-    ("sheet_format",  "Formát tabule",210, "w"),
-    ("sheet_count",   "Ks",            40, "center"),
-    ("prog_time",     "Čas pr.",        60, "center"),
-    ("total_time",    "Celk. čas",     80, "center"),
-    ("burned",        "Vypáleno",      70, "center"),
-    ("product_group", "Výrobek",      100, "w"),
-    ("operator",      "Pálil",         70, "center"),
+    ("date", "Datum", 100, "center"),
+    ("program", "Číslo pr.", 90, "center"),
+    ("note", "Poznámka", 70, "w"),
+    ("sheet_format", "Formát tabule", 210, "w"),
+    ("sheet_count", "Ks", 40, "center"),
+    ("prog_time", "Čas pr.", 60, "center"),
+    ("total_time", "Celk. čas", 80, "center"),
+    ("burned", "Vypáleno", 70, "center"),
+    ("product_group", "Výrobek", 100, "w"),
+    ("operator", "Pálil", 70, "center"),
 ]
 
 
 class PreviewTable(ttk.Frame):
     """A ttk.Treeview wrapped in a Frame with horizontal and vertical scrollbars.
 
-    Displays all BurnRecord rows (columns A–J).  The widget is purely
+    Displays all BurnRecord rows (columns A-J).  The widget is purely
     presentational — it receives data by calling ``load(records)``; it
     never writes to any file or ViewModel.
     """
@@ -78,14 +78,14 @@ class PreviewTable(ttk.Frame):
 
         for col_id, heading, width, anchor in _COLUMNS:
             self._tree.heading(col_id, text=heading, anchor="center")
-            self._tree.column(col_id, width=width, anchor=anchor, minwidth=30)
+            self._tree.column(col_id, width=width, anchor=anchor, minwidth=30)  # type: ignore[call-overload]
 
         # Alternating row colours
         self._tree.tag_configure("even", background="#FFFFFF")
-        self._tree.tag_configure("odd",  background="#EEF2F8")
+        self._tree.tag_configure("odd", background="#EEF2F8")
 
         # Scrollbars
-        vsb = ttk.Scrollbar(self, orient="vertical",   command=self._tree.yview)
+        vsb = ttk.Scrollbar(self, orient="vertical", command=self._tree.yview)
         hsb = ttk.Scrollbar(self, orient="horizontal", command=self._tree.xview)
         self._tree.configure(yscrollcommand=vsb.set, xscrollcommand=hsb.set)
 

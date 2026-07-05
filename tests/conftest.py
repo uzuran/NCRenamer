@@ -47,19 +47,6 @@ class StubMaterialRepository:
         return len(self._materials) < original_len
 
 
-class StubEmailModel:
-    """Minimal in-memory stand-in for EmailModel."""
-
-    def __init__(self, counter: int = 0) -> None:
-        self.email_counter = counter
-
-    def increment_counter(self) -> None:
-        self.email_counter += 1
-
-    def reset_counter(self) -> None:
-        self.email_counter = 0
-
-
 class StubFormatterModel:
     """
     Configurable stand-in for FormatterModel.
@@ -134,12 +121,6 @@ def empty_material_repo(tmp_path):
 def stub_repo():
     """Empty StubMaterialRepository."""
     return StubMaterialRepository()
-
-
-@pytest.fixture
-def stub_email_model():
-    """StubEmailModel starting at counter=0."""
-    return StubEmailModel()
 
 
 @pytest.fixture

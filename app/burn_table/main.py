@@ -13,6 +13,14 @@ from app.burn_table.viewmodels.performance_recorder import PerformanceRecorder
 from app.burn_table.viewmodels.print_manager import PrintManager
 
 
+def main() -> None:
+    """Entry point for the standalone burn-table application."""
+    from app.burn_table.views.burn_dashboard import BurnDashboard
+
+    vm = create_view_model()
+    BurnDashboard.launch(vm)
+
+
 def create_view_model(
     texts: dict | None = None,
     sheet_index: int = 0,

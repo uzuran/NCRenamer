@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
-from pathlib import Path
+from typing import TYPE_CHECKING
 
-from app.burn_table.models.burn_record import BurnRecord
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from app.burn_table.models.burn_record import BurnRecord
+
 from app.burn_table.services.print_service import PrintService
 
 
@@ -32,7 +36,7 @@ class PrintManager:
             return True, ""
         except FileNotFoundError as exc:
             return False, str(exc)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             return False, str(exc)
 
     def export_pdf(
@@ -58,7 +62,7 @@ class PrintManager:
             return True, f"PDF uloženo: {result_path.name}", result_path
         except FileNotFoundError as exc:
             return False, str(exc), None
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             return False, f"Chyba exportu: {exc}", None
 
     def preview_lines(self, records: list[BurnRecord]) -> list[str]:
@@ -70,12 +74,21 @@ class PrintManager:
             return ["(žádná data)"]
 
         col_widths = [14, 10, 6, 34, 6, 12, 10, 16, 10]
-        headers = ["Datum", "Číslo pr.", "Note", "Formát tabule",
-                   "Ks", "Celk. čas", "Vypáleno", "Výrobek", "Pálil"]
+        headers = [
+            "Datum",
+            "Číslo pr.",
+            "Note",
+            "Formát tabule",
+            "Ks",
+            "Celk. čas",
+            "Vypáleno",
+            "Výrobek",
+            "Pálil",
+        ]
 
         def fmt_row(values: list[str]) -> str:
             return "  ".join(
-                str(v)[:w].ljust(w) for v, w in zip(values, col_widths)
+                str(v)[:w].ljust(w) for v, w in zip(values, col_widths, strict=False)
             )
 
         lines: list[str] = [
@@ -83,9 +96,19 @@ class PrintManager:
             "-" * sum(col_widths + [2] * (len(col_widths) - 1)),
         ]
         for rec in records:
-            lines.append(fmt_row([
-                rec.date, rec.program_number, rec.note,
-                rec.sheet_format, str(rec.sheet_count),
-                rec.total_time, rec.burned, rec.product_group, rec.operator,
-            ]))
+            lines.append(
+                fmt_row(
+                    [
+                        rec.date,
+                        rec.program_number,
+                        rec.note,
+                        rec.sheet_format,
+                        str(rec.sheet_count),
+                        rec.total_time,
+                        rec.burned,
+                        rec.product_group,
+                        rec.operator,
+                    ]
+                )
+            )
         return lines
