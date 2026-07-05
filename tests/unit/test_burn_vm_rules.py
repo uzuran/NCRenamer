@@ -14,21 +14,20 @@ from unittest.mock import MagicMock, patch
 
 from app.burn_table.models.burn_record import BurnRecord
 from app.burn_table.models.table_status import TableStatus
-from app.burn_table.viewmodels.burn_view_model import BurnViewModel
+from app.burn_table.viewmodels.burn_view_model import BurnViewModel, _program_sort_key
 
 # ── helpers ─────────────────────────────────────────────────────────────────
+
 
 def _empty_vm(**kwargs) -> BurnViewModel:
     """BurnViewModel with mocked services and an empty loaded table."""
     vm = BurnViewModel(**kwargs)
     vm._table_path = Path("/fake/table.xls")
     vm._records = []
-    vm._status = TableStatus(used_rows=0, free_rows=34, is_full=False, warning="")
+    vm._status = TableStatus(used_rows=0, free_rows=38, is_full=False, warning="")
     vm._date_written = False
     vm._last_sheet_format = ""
-    # Wire mocked writer so append_record doesn't touch disk
     vm._writer = MagicMock()
-    vm._writer.append_record.return_value = 3
     return vm
 
 
@@ -45,6 +44,7 @@ def _rec(**kwargs) -> BurnRecord:
 
 # ── Date write-once rule ─────────────────────────────────────────────────────
 
+
 class TestDateRule:
     def test_first_record_keeps_date(self):
         vm = _empty_vm()
@@ -54,7 +54,9 @@ class TestDateRule:
     def test_second_record_has_empty_date(self):
         vm = _empty_vm()
         vm._prepare_record_for_writing(_rec(date="30.06.2026"))  # first
-        result = vm._prepare_record_for_writing(_rec(date="30.06.2026", program_number="AAA"))
+        result = vm._prepare_record_for_writing(
+            _rec(date="30.06.2026", program_number="AAA")
+        )
         assert result.date == ""
 
     def test_date_written_flag_set_after_first(self):
@@ -75,7 +77,7 @@ class TestDateRule:
         vm._reader.read_all.return_value = []
         vm._writer = MagicMock()
         vm._detector = MagicMock()
-        vm._detector.detect_from_records.return_value = TableStatus(0, 34, False, "")
+        vm._detector.detect_from_records.return_value = TableStatus(0, 38, False, "")
         vm.load_table(Path("/fake/table.xls"))
         assert vm._date_written is False
 
@@ -85,12 +87,13 @@ class TestDateRule:
         vm._reader.read_all.return_value = [_rec()]
         vm._writer = MagicMock()
         vm._detector = MagicMock()
-        vm._detector.detect_from_records.return_value = TableStatus(1, 33, False, "")
+        vm._detector.detect_from_records.return_value = TableStatus(1, 37, False, "")
         vm.load_table(Path("/fake/table.xls"))
         assert vm._date_written is True
 
 
 # ── Sheet-format dedup rule ─────────────────────────────────────────────────
+
 
 class TestSheetFormatDedupRule:
     def test_first_occurrence_written_in_full(self):
@@ -102,7 +105,9 @@ class TestSheetFormatDedupRule:
         vm = _empty_vm()
         fmt = "1.0037-5X1700X1500"
         vm._prepare_record_for_writing(_rec(sheet_format=fmt))  # first
-        result = vm._prepare_record_for_writing(_rec(sheet_format=fmt, program_number="B"))
+        result = vm._prepare_record_for_writing(
+            _rec(sheet_format=fmt, program_number="B")
+        )
         assert result.sheet_format == "-----"
 
     def test_third_consecutive_also_becomes_dashes(self):
@@ -110,20 +115,28 @@ class TestSheetFormatDedupRule:
         fmt = "1.0037-5X1700X1500"
         for pn in ["A", "B"]:
             vm._prepare_record_for_writing(_rec(sheet_format=fmt, program_number=pn))
-        result = vm._prepare_record_for_writing(_rec(sheet_format=fmt, program_number="C"))
+        result = vm._prepare_record_for_writing(
+            _rec(sheet_format=fmt, program_number="C")
+        )
         assert result.sheet_format == "-----"
 
     def test_different_format_resets_tracker(self):
         vm = _empty_vm()
         vm._prepare_record_for_writing(_rec(sheet_format="1.0037-5X1700X1500"))
-        result = vm._prepare_record_for_writing(_rec(sheet_format="1.4301-3X2000X1000", program_number="B"))
+        result = vm._prepare_record_for_writing(
+            _rec(sheet_format="1.4301-3X2000X1000", program_number="B")
+        )
         assert result.sheet_format == "1.4301-3X2000X1000"
 
     def test_format_after_different_written_in_full(self):
         vm = _empty_vm()
         vm._prepare_record_for_writing(_rec(sheet_format="1.0037-5X1700X1500"))
-        vm._prepare_record_for_writing(_rec(sheet_format="1.4301-3X2000X1000", program_number="B"))
-        result = vm._prepare_record_for_writing(_rec(sheet_format="1.0037-5X1700X1500", program_number="C"))
+        vm._prepare_record_for_writing(
+            _rec(sheet_format="1.4301-3X2000X1000", program_number="B")
+        )
+        result = vm._prepare_record_for_writing(
+            _rec(sheet_format="1.0037-5X1700X1500", program_number="C")
+        )
         # Different from last ("1.4301-...") → written in full
         assert result.sheet_format == "1.0037-5X1700X1500"
 
@@ -131,7 +144,9 @@ class TestSheetFormatDedupRule:
         vm = _empty_vm()
         vm._prepare_record_for_writing(_rec(sheet_format=""))
         # Tracker still empty, next record with real format written in full
-        result = vm._prepare_record_for_writing(_rec(sheet_format="1.0037-5X1700X1500", program_number="B"))
+        result = vm._prepare_record_for_writing(
+            _rec(sheet_format="1.0037-5X1700X1500", program_number="B")
+        )
         assert result.sheet_format == "1.0037-5X1700X1500"
 
     def test_clear_resets_format_tracker(self):
@@ -153,7 +168,7 @@ class TestSheetFormatDedupRule:
         vm._reader.read_all.return_value = records
         vm._writer = MagicMock()
         vm._detector = MagicMock()
-        vm._detector.detect_from_records.return_value = TableStatus(4, 30, False, "")
+        vm._detector.detect_from_records.return_value = TableStatus(4, 34, False, "")
         vm.load_table(Path("/fake/table.xls"))
         # Last real format was "1.4301-3X2000X1000" (the "-----" entries are skipped)
         assert vm._last_sheet_format == "1.4301-3X2000X1000"
@@ -173,6 +188,7 @@ class TestSheetFormatDedupRule:
 
 # ── Product-group per-batch rule ─────────────────────────────────────────────
 
+
 class TestProductGroupPerBatchRule:
     def _vm_with_records_in_table(self) -> BurnViewModel:
         vm = _empty_vm()
@@ -181,17 +197,24 @@ class TestProductGroupPerBatchRule:
     def _fake_records(self, programs: list[str], format_: str = "1.0037-5X1700X1500"):
         """Return a side_effect callable that mirrors the real recorder's product_group passthrough."""
         it = iter([_rec(program_number=p, sheet_format=format_) for p in programs])
+
         def side_effect(nc_path, sch_path=None, product_group=""):
             return dataclasses.replace(next(it), product_group=product_group)
+
         return side_effect
 
     def test_first_record_has_product_group(self):
         vm = _empty_vm()
         written: list[BurnRecord] = []
-        vm._writer.append_record.side_effect = lambda path, rec: written.append(rec) or 3
+        vm._writer.write_record_at_row.side_effect = (
+            lambda path, row, rec: written.append(rec)
+        )
 
-        with patch.object(vm._recorder, "record_from_paths",
-                          side_effect=self._fake_records(["A", "B", "C"])):
+        with patch.object(
+            vm._recorder,
+            "record_from_paths",
+            side_effect=self._fake_records(["A", "B", "C"]),
+        ):
             vm.load_and_append_batch(
                 [Path("/nc/A.NC"), Path("/nc/B.NC"), Path("/nc/C.NC")],
                 product_group="pwa",
@@ -202,10 +225,15 @@ class TestProductGroupPerBatchRule:
     def test_subsequent_records_have_empty_product_group(self):
         vm = _empty_vm()
         written: list[BurnRecord] = []
-        vm._writer.append_record.side_effect = lambda path, rec: written.append(rec) or 3
+        vm._writer.write_record_at_row.side_effect = (
+            lambda path, row, rec: written.append(rec)
+        )
 
-        with patch.object(vm._recorder, "record_from_paths",
-                          side_effect=self._fake_records(["A", "B", "C"])):
+        with patch.object(
+            vm._recorder,
+            "record_from_paths",
+            side_effect=self._fake_records(["A", "B", "C"]),
+        ):
             vm.load_and_append_batch(
                 [Path("/nc/A.NC"), Path("/nc/B.NC"), Path("/nc/C.NC")],
                 product_group="pwa",
@@ -217,14 +245,18 @@ class TestProductGroupPerBatchRule:
     def test_new_batch_resets_flag(self):
         vm = _empty_vm()
         written: list[BurnRecord] = []
-        vm._writer.append_record.side_effect = lambda path, rec: written.append(rec) or 3
+        vm._writer.write_record_at_row.side_effect = (
+            lambda path, row, rec: written.append(rec)
+        )
 
-        with patch.object(vm._recorder, "record_from_paths",
-                          side_effect=self._fake_records(["A"])):
+        with patch.object(
+            vm._recorder, "record_from_paths", side_effect=self._fake_records(["A"])
+        ):
             vm.load_and_append_batch([Path("/nc/A.NC")], product_group="pwa")
 
-        with patch.object(vm._recorder, "record_from_paths",
-                          side_effect=self._fake_records(["B"])):
+        with patch.object(
+            vm._recorder, "record_from_paths", side_effect=self._fake_records(["B"])
+        ):
             vm.load_and_append_batch([Path("/nc/B.NC")], product_group="steel")
 
         assert written[0].product_group == "pwa"
@@ -232,6 +264,7 @@ class TestProductGroupPerBatchRule:
 
 
 # ── Observer notifications ────────────────────────────────────────────────────
+
 
 class TestObserverNotification:
     def test_subscribe_registers_callback(self):
@@ -263,14 +296,14 @@ class TestObserverNotification:
         notified = []
         vm.subscribe(lambda: notified.append(1))
 
-        with patch.object(vm._recorder, "record_from_paths",
-                          return_value=_rec()):
+        with patch.object(vm._recorder, "record_from_paths", return_value=_rec()):
             vm.load_and_append_batch([Path("/nc/X.NC")])
 
         assert len(notified) >= 1
 
 
 # ── Settings key isolation ───────────────────────────────────────────────────
+
 
 class TestSettingsKeyIsolation:
     def test_two_vms_save_separate_keys(self, tmp_path):
@@ -292,6 +325,7 @@ class TestSettingsKeyIsolation:
             vm_alu._save_settings()
 
             import json
+
             data = json.loads(settings_file.read_text())
             assert "last_table_path" in data
             assert "last_table_path_alu" in data
@@ -317,6 +351,7 @@ class TestSettingsKeyIsolation:
             vm_alu._save_settings()
 
             import json
+
             data = json.loads(settings_file.read_text())
             # Steel key must still be there
             assert data["last_table_path"] == str(Path("/steel.xls"))
@@ -326,6 +361,7 @@ class TestSettingsKeyIsolation:
 
 
 # ── Message and status helpers ────────────────────────────────────────────────
+
 
 class TestMessageAndStatus:
     def test_no_table_message_uses_texts(self):
@@ -337,11 +373,14 @@ class TestMessageAndStatus:
 
     def test_full_table_prevents_append(self):
         from app.burn_table.models.table_status import TableStatus
+
         vm = _empty_vm()
-        vm._status = TableStatus(used_rows=34, free_rows=0, is_full=True, warning="critical")
+        vm._status = TableStatus(
+            used_rows=38, free_rows=0, is_full=True, warning="critical"
+        )
         with patch.object(vm._recorder, "record_from_paths", return_value=_rec()):
             vm.load_and_append_batch([Path("/nc/X.NC")])
-        assert vm._writer.append_record.call_count == 0
+        assert vm._writer.write_record_at_row.call_count == 0
 
     def test_clear_popup(self):
         vm = BurnViewModel()
@@ -358,3 +397,121 @@ class TestMessageAndStatus:
         vm.update_texts({"load_table_first": "CS: načtěte"})
         vm.load_and_append_batch([Path("/nc/X.NC")])
         assert "CS: načtěte" in vm.message
+
+
+# ── Batch sort by program-number suffix ──────────────────────────────────────
+
+
+class TestProgramSortKey:
+    def test_standard_format_returns_suffix_int(self):
+        assert _program_sort_key("6678-79") == 79
+
+    def test_larger_suffix(self):
+        assert _program_sort_key("6678-120") == 120
+
+    def test_no_dash_returns_zero(self):
+        assert _program_sort_key("NODASH") == 0
+
+    def test_non_numeric_suffix_returns_zero(self):
+        assert _program_sort_key("6678-X") == 0
+
+    def test_empty_string_returns_zero(self):
+        assert _program_sort_key("") == 0
+
+
+class TestBatchSortByProgramNumber:
+    def _fake_by_stem(self, mapping: dict[str, str]):
+        """side_effect that resolves program_number from the NC path stem."""
+
+        def side_effect(nc_path, sch_path=None, product_group=""):
+            return _rec(program_number=mapping[nc_path.stem])
+
+        return side_effect
+
+    def test_uploaded_out_of_order_written_in_suffix_order(self):
+        vm = _empty_vm()
+        written: list[BurnRecord] = []
+        vm._writer.write_record_at_row.side_effect = (
+            lambda path, row, rec: written.append(rec)
+        )
+
+        mapping = {"6678-80": "6678-80", "6678-78": "6678-78", "6678-79": "6678-79"}
+        with patch.object(
+            vm._recorder, "record_from_paths", side_effect=self._fake_by_stem(mapping)
+        ):
+            vm.load_and_append_batch(
+                [
+                    Path("/nc/6678-80.NC"),
+                    Path("/nc/6678-78.NC"),
+                    Path("/nc/6678-79.NC"),
+                ]
+            )
+
+        assert [r.program_number for r in written] == ["6678-78", "6678-79", "6678-80"]
+
+    def test_already_sorted_batch_unchanged(self):
+        vm = _empty_vm()
+        written: list[BurnRecord] = []
+        vm._writer.write_record_at_row.side_effect = (
+            lambda path, row, rec: written.append(rec)
+        )
+
+        mapping = {"6678-78": "6678-78", "6678-79": "6678-79", "6678-80": "6678-80"}
+        with patch.object(
+            vm._recorder, "record_from_paths", side_effect=self._fake_by_stem(mapping)
+        ):
+            vm.load_and_append_batch(
+                [
+                    Path("/nc/6678-78.NC"),
+                    Path("/nc/6678-79.NC"),
+                    Path("/nc/6678-80.NC"),
+                ]
+            )
+
+        assert [r.program_number for r in written] == ["6678-78", "6678-79", "6678-80"]
+
+    def test_non_standard_program_sorts_before_numeric(self):
+        vm = _empty_vm()
+        written: list[BurnRecord] = []
+        vm._writer.write_record_at_row.side_effect = (
+            lambda path, row, rec: written.append(rec)
+        )
+
+        mapping = {"6678-80": "6678-80", "NOFORMAT": "NOFORMAT"}
+        with patch.object(
+            vm._recorder, "record_from_paths", side_effect=self._fake_by_stem(mapping)
+        ):
+            vm.load_and_append_batch(
+                [
+                    Path("/nc/6678-80.NC"),
+                    Path("/nc/NOFORMAT.NC"),
+                ]
+            )
+
+        assert written[0].program_number == "NOFORMAT"
+        assert written[1].program_number == "6678-80"
+
+    def test_sort_applies_before_date_dedup(self):
+        """First written record (by suffix order) gets the date, not the first uploaded."""
+        vm = _empty_vm()
+        written: list[BurnRecord] = []
+        vm._writer.write_record_at_row.side_effect = (
+            lambda path, row, rec: written.append(rec)
+        )
+
+        mapping = {"6678-80": "6678-80", "6678-78": "6678-78"}
+        with patch.object(
+            vm._recorder, "record_from_paths", side_effect=self._fake_by_stem(mapping)
+        ):
+            vm.load_and_append_batch(
+                [
+                    Path("/nc/6678-80.NC"),
+                    Path("/nc/6678-78.NC"),
+                ]
+            )
+
+        # 6678-78 sorts first, so it gets the date; 6678-80 gets an empty date
+        assert written[0].program_number == "6678-78"
+        assert written[0].date != ""
+        assert written[1].program_number == "6678-80"
+        assert written[1].date == ""

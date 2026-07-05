@@ -11,7 +11,7 @@ if TYPE_CHECKING:
 
 
 class TableFullError(Exception):
-    """Raised when all 34 data rows (A3:A36) are occupied."""
+    """Raised when all 38 data rows (A3:A40) are occupied."""
 
 
 class ExcelWriter:
@@ -22,7 +22,7 @@ class ExcelWriter:
     """
 
     DATA_START_ROW = 3
-    MAX_ROW = 36
+    MAX_ROW = 40
 
     def __init__(self, sheet_index: int = 0) -> None:
         self._sheet_index = sheet_index
@@ -48,6 +48,15 @@ class ExcelWriter:
             self._update_xls(path, row_num, record)
         else:
             self._update_xlsx(path, row_num, record)
+
+    def write_record_at_row(self, path: Path, row_num: int, record: BurnRecord) -> None:
+        """Write *record* at the specified *row_num* (1-based) and save.
+
+        Used by BurnViewModel when it manages row positioning explicitly (batch
+        uploads with a single separator row per batch).  The bounds check is
+        delegated to update_record.
+        """
+        self.update_record(path, row_num, record)
 
     def ensure_sheet_exists(self, path: Path, sheet_name: str) -> bool:
         """Create the sheet at self._sheet_index if it does not exist yet.
@@ -82,7 +91,7 @@ class ExcelWriter:
         next_row = self._find_next_free_xlsx(ws)
         if next_row is None:
             raise TableFullError(
-                "The burn table is full (rows A3-A36 are all occupied)."
+                "The burn table is full (rows A3-A40 are all occupied)."
             )
         self._write_row_xlsx(ws, next_row, record)
         wb.save(path)
@@ -98,9 +107,7 @@ class ExcelWriter:
 
     def _find_next_free_xlsx(self, ws) -> int | None:
         for row_num in range(self.DATA_START_ROW, self.MAX_ROW + 1):
-            if (
-                ws.cell(row=row_num, column=2).value is None
-            ):  # column B = program_number
+            if ws.cell(row=row_num, column=2).value is None:
                 return row_num
         return None
 
@@ -154,7 +161,7 @@ class ExcelWriter:
         next_row_idx = self._find_next_free_xls(rs)
         if next_row_idx is None:
             raise TableFullError(
-                "The burn table is full (rows A3-A36 are all occupied)."
+                "The burn table is full (rows A3-A40 are all occupied)."
             )
 
         wb = xl_copy(rb)
@@ -179,9 +186,6 @@ class ExcelWriter:
         wb.save(str(path))
 
     def _find_next_free_xls(self, ws) -> int | None:
-        # xlrd is 0-indexed; rows beyond ws.nrows are implicitly empty.
-        # Use column B (program_number, index 1) as the occupied-row marker —
-        # column A (date) can be empty for 2nd+ records by design.
         for row_idx in range(self.DATA_START_ROW - 1, self.MAX_ROW):
             if row_idx >= ws.nrows or not str(ws.cell_value(row_idx, 1)).strip():
                 return row_idx
@@ -204,12 +208,75 @@ class ExcelWriter:
                 data_style,
             )
 
+    # ── styled empty separator rows ──────────────────────────────────────────
+
+    def write_empty_row(self, path: Path, row_num: int) -> None:
+        """Write a styled empty separator row at *row_num* (1-based Excel row).
+
+        The row is formatted identically to data rows — thin black borders,
+        centred alignment, white fill — but contains no values.  Calls with
+        *row_num* outside DATA_START_ROW..MAX_ROW are silently ignored.
+
+        Args:
+            path:    Path to the .xls or .xlsx burn table workbook.
+            row_num: 1-based Excel row to style (e.g. 4 directly after row 3).
+        """
+        if not (self.DATA_START_ROW <= row_num <= self.MAX_ROW):
+            return
+        if path.suffix.lower() == ".xls":
+            self._write_empty_row_xls(path, row_num)
+        else:
+            self._write_empty_row_xlsx(path, row_num)
+
+    def _write_empty_row_xlsx(self, path: Path, row_num: int) -> None:
+        import openpyxl
+        from openpyxl.styles import PatternFill
+
+        from app.burn_table.services._xlsx_format import (
+            make_border,
+            make_center_alignment,
+        )
+
+        wb = openpyxl.load_workbook(path)
+        ws = wb.worksheets[self._sheet_index]
+        border = make_border()
+        center = make_center_alignment()
+        fill = PatternFill("solid", fgColor="FFFFFF")
+        for col in range(1, 10):  # columns A-I only
+            cell = ws.cell(row=row_num, column=col, value=None)
+            cell.border = border
+            cell.alignment = center
+            cell.fill = fill
+        wb.save(path)
+
+    def _write_empty_row_xls(self, path: Path, row_num: int) -> None:
+        try:
+            import xlrd
+            import xlwt
+            from xlutils.copy import copy as xl_copy
+        except ImportError as exc:
+            raise ImportError(
+                "xlrd and xlutils are required: pip install xlrd==1.2.0 xlutils"
+            ) from exc
+
+        rb = xlrd.open_workbook(str(path), formatting_info=True)
+        wb = xl_copy(rb)
+        ws = wb.get_sheet(self._sheet_index)
+        empty_style = xlwt.easyxf(
+            "alignment: horiz centre, vert centre;"
+            "borders: left thin, right thin, top thin, bottom thin;"
+            "pattern: pattern solid, fore_colour white;"
+        )
+        for col_idx in range(9):  # columns A-I only (0-indexed)
+            ws.write(row_num - 1, col_idx, "", empty_style)  # 1-based → 0-based
+        wb.save(str(path))
+
     # ── header migration ─────────────────────────────────────────────────────
 
     def update_header(self, path: Path) -> None:
         """Rewrite row 1 of an existing file with current headers and formatting.
 
-        All data rows (3-36) are untouched.  Safe to call on old files.
+        All data rows (3-40) are untouched.  Safe to call on old files.
         """
         if path.suffix.lower() == ".xls":
             self._update_header_xls(path)
@@ -237,16 +304,16 @@ class ExcelWriter:
         # columns G-J left by one (G→F, H→G, I→H, J→I) for all data rows.
         f1 = str(ws.cell(row=1, column=6).value or "").strip().lower()
         if "čas" in f1 and "progr" in f1 and "celkov" not in f1:
-            for row_num in range(3, 37):
+            for row_num in range(3, 41):
                 for src, dst in ((7, 6), (8, 7), (9, 8), (10, 9)):
                     ws.cell(row=row_num, column=dst).value = ws.cell(
                         row=row_num, column=src
                     ).value
 
-        # Strip column J completely - no value, no border, no fill (rows 1-36)
+        # Strip column J completely from all rows — no value, no border, no fill
         no_border = Border()
         no_fill = PatternFill(fill_type=None)
-        for row_num in range(1, 37):
+        for row_num in range(1, self.MAX_ROW + 1):
             j = ws.cell(row=row_num, column=10)
             j.value = None
             j.border = no_border
@@ -324,7 +391,11 @@ class ExcelWriter:
         ):
             ws.write(0, col_idx, header, header_style)
             ws.col(col_idx).width = width * 256
-        ws.write(0, 9, "", blank_style)  # J1 — empty and unstyled
+
+        # Strip column J completely from all rows (header + data rows 2-40)
+        limit = min(self.MAX_ROW, rs.nrows)
+        for row_idx in range(0, limit):
+            ws.write(row_idx, 9, "", blank_style)
 
         ws.row(0).height = _HEADER_ROW_HEIGHT * 20
         wb.save(str(path))
@@ -332,7 +403,7 @@ class ExcelWriter:
     # ── clear all data rows ───────────────────────────────────────────────────
 
     def clear_all_records(self, path: Path) -> None:
-        """Erase all data rows (rows 3-36) from *path*, preserving the header."""
+        """Erase all data rows (rows 3-40) from *path*, preserving the header."""
         if path.suffix.lower() == ".xls":
             self._clear_xls(path)
         else:

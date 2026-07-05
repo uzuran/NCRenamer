@@ -18,6 +18,7 @@ class TestCreateXls:
 
     def test_sheet_named_ocel(self, factory, tmp_path):
         import xlrd
+
         path = tmp_path / "table.xls"
         factory.create(path)
         wb = xlrd.open_workbook(str(path))
@@ -25,12 +26,14 @@ class TestCreateXls:
 
     def test_has_exactly_one_sheet(self, factory, tmp_path):
         import xlrd
+
         path = tmp_path / "table.xls"
         factory.create(path)
         assert xlrd.open_workbook(str(path)).nsheets == 1
 
     def test_header_row_content(self, factory, tmp_path):
         import xlrd
+
         path = tmp_path / "table.xls"
         factory.create(path)
         ws = xlrd.open_workbook(str(path)).sheet_by_index(0)
@@ -41,6 +44,7 @@ class TestCreateXls:
 
     def test_data_rows_are_empty(self, factory, tmp_path):
         import xlrd
+
         path = tmp_path / "table.xls"
         factory.create(path)
         ws = xlrd.open_workbook(str(path)).sheet_by_index(0)
@@ -60,6 +64,7 @@ class TestCreateXls:
         factory.create(path)
         # Should not raise; file should be a valid xls now
         import xlrd
+
         wb = xlrd.open_workbook(str(path))
         assert wb.nsheets == 1
 
@@ -72,6 +77,7 @@ class TestCreateXlsx:
 
     def test_sheet_named_ocel(self, factory, tmp_path):
         import openpyxl
+
         path = tmp_path / "table.xlsx"
         factory.create(path)
         wb = openpyxl.load_workbook(path)
@@ -79,6 +85,7 @@ class TestCreateXlsx:
 
     def test_header_row_content(self, factory, tmp_path):
         import openpyxl
+
         path = tmp_path / "table.xlsx"
         factory.create(path)
         ws = openpyxl.load_workbook(path, read_only=True).active
@@ -86,6 +93,7 @@ class TestCreateXlsx:
 
     def test_data_rows_have_borders_but_no_values(self, factory, tmp_path):
         import openpyxl
+
         path = tmp_path / "table.xlsx"
         factory.create(path)
         ws = openpyxl.load_workbook(path).active

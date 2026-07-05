@@ -15,7 +15,9 @@ class TestTranslationCompleteness:
     def test_all_values_are_strings(self):
         for lang, d in [("cs", cs), ("en", en)]:
             for key, val in d.items():
-                assert isinstance(val, str), f"[{lang}][{key}] is not a str: {type(val)}"
+                assert isinstance(val, str), (
+                    f"[{lang}][{key}] is not a str: {type(val)}"
+                )
 
     def test_no_empty_values(self):
         for lang, d in [("cs", cs), ("en", en)]:

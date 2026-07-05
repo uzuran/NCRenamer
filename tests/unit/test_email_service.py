@@ -10,18 +10,24 @@ from app.services.email_service import EmailService
 
 # ── helpers ──────────────────────────────────────────────────────────────────
 
+
 def _capture_mailto(platform: str) -> str:
     """Call open_email and return the mailto URL that would reach the OS."""
     captured: list[str] = []
     svc = EmailService()
     method = "_open_windows" if platform == "win32" else "_open_unix"
-    with patch("sys.platform", platform), \
-         patch.object(EmailService, method, staticmethod(lambda url: captured.append(url))):
+    with (
+        patch("sys.platform", platform),
+        patch.object(
+            EmailService, method, staticmethod(lambda url: captured.append(url))
+        ),
+    ):
         svc.open_email("user@example.com", "Test subject", "Test body")
     return captured[0]
 
 
 # ── mailto URL format ─────────────────────────────────────────────────────────
+
 
 class TestMailtoFormat:
     def test_starts_with_mailto_scheme(self):
@@ -46,13 +52,20 @@ class TestMailtoFormat:
     def test_subject_is_percent_encoded(self):
         captured: list[str] = []
         svc = EmailService()
-        with patch("sys.platform", "win32"), \
-             patch.object(EmailService, "_open_windows", staticmethod(lambda u: captured.append(u))):
+        with (
+            patch("sys.platform", "win32"),
+            patch.object(
+                EmailService,
+                "_open_windows",
+                staticmethod(lambda u: captured.append(u)),
+            ),
+        ):
             svc.open_email("x@y.com", "Hello World", "")
         assert "Hello+World" in captured[0] or "Hello%20World" in captured[0]
 
 
 # ── Windows opener ────────────────────────────────────────────────────────────
+
 
 class TestWindowsOpener:
     def _windll_patch(self, shell32_mock):
@@ -87,6 +100,7 @@ class TestWindowsOpener:
 
 
 # ── Unix opener ───────────────────────────────────────────────────────────────
+
 
 class TestUnixOpener:
     def test_calls_xdg_open(self):

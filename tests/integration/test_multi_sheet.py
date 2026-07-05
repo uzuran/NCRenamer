@@ -61,13 +61,17 @@ class TestEnsureSheetExists:
         ExcelWriter(sheet_index=1).ensure_sheet_exists(single_sheet_file, "Hliník")
         if single_sheet_file.suffix == ".xls":
             import xlrd
+
             assert xlrd.open_workbook(str(single_sheet_file)).nsheets == 2
         else:
             import openpyxl
+
             assert len(openpyxl.load_workbook(single_sheet_file).worksheets) == 2
 
     def test_returns_false_when_sheet_already_exists(self, two_sheet_file):
-        created = ExcelWriter(sheet_index=1).ensure_sheet_exists(two_sheet_file, "Hliník")
+        created = ExcelWriter(sheet_index=1).ensure_sheet_exists(
+            two_sheet_file, "Hliník"
+        )
         assert created is False
 
     def test_existing_sheet_zero_data_preserved(self, single_sheet_file):
@@ -79,7 +83,9 @@ class TestEnsureSheetExists:
 
     def test_noop_when_index_0_and_file_has_one_sheet(self, single_sheet_file):
         """Sheet 0 already exists — ensure_sheet_exists must be a no-op."""
-        created = ExcelWriter(sheet_index=0).ensure_sheet_exists(single_sheet_file, "Ocel")
+        created = ExcelWriter(sheet_index=0).ensure_sheet_exists(
+            single_sheet_file, "Ocel"
+        )
         assert created is False
 
 
@@ -106,9 +112,13 @@ class TestSheetIsolation:
 
     def test_multiple_records_per_sheet(self, two_sheet_file):
         for i in range(3):
-            ExcelWriter(sheet_index=0).append_record(two_sheet_file, _rec(f"STEEL-{i:02d}"))
+            ExcelWriter(sheet_index=0).append_record(
+                two_sheet_file, _rec(f"STEEL-{i:02d}")
+            )
         for i in range(5):
-            ExcelWriter(sheet_index=1).append_record(two_sheet_file, _rec(f"ALU-{i:02d}"))
+            ExcelWriter(sheet_index=1).append_record(
+                two_sheet_file, _rec(f"ALU-{i:02d}")
+            )
 
         assert len(ExcelReader(sheet_index=0).read_all(two_sheet_file)) == 3
         assert len(ExcelReader(sheet_index=1).read_all(two_sheet_file)) == 5
@@ -138,10 +148,10 @@ class TestFreeSlotDetectorPerSheet:
         assert steel_status.used_rows == 2
         assert alu_status.used_rows == 1
 
-    def test_empty_sheet1_shows_34_free(self, two_sheet_file):
+    def test_empty_sheet1_shows_38_free(self, two_sheet_file):
         ExcelWriter(sheet_index=0).append_record(two_sheet_file, _rec("STEEL-01"))
         alu_status = FreeSlotDetector(sheet_index=1).detect(two_sheet_file)
-        assert alu_status.free_rows == 34
+        assert alu_status.free_rows == 38
 
 
 class TestBurnViewModelTwoSheets:
@@ -162,7 +172,9 @@ class TestBurnViewModelTwoSheets:
             recorder=PerformanceRecorder(),
             print_manager=PrintManager(),
             sheet_name="Ocel" if sheet_index == 0 else "Hliník",
-            settings_key="last_table_path" if sheet_index == 0 else "last_table_path_alu",
+            settings_key="last_table_path"
+            if sheet_index == 0
+            else "last_table_path_alu",
         )
         vm.load_table(path)
         return vm
@@ -190,8 +202,9 @@ class TestBurnViewModelTwoSheets:
         vm_alu = self._vm(two_sheet_file, 1)
 
         # Write via alu VM recorder mock
-        with patch.object(vm_alu._recorder, "record_from_paths",
-                          return_value=_rec("ALU-01")):
+        with patch.object(
+            vm_alu._recorder, "record_from_paths", return_value=_rec("ALU-01")
+        ):
             vm_alu.load_and_append_batch([Path("/nc/ALU-01.NC")])
 
         # Reload steel VM from file

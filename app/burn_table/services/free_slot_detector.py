@@ -14,10 +14,12 @@ class FreeSlotDetector:
     """Inspects the workbook and returns a TableStatus snapshot.
 
     Rules:
-        - Data rows are A3-A36  (34 rows maximum).
+        - Data rows are A3-A40 (38 usable slots).
         - A row is *used* when its column B (program_number) cell is non-empty.
           Column A (date) is intentionally empty for 2nd+ records by design.
-        - free_rows  = 34 - used_rows
+        - Maximum program capacity = 38 (one blank separator row is inserted
+          after each batch upload, so actual capacity depends on batch sizes).
+        - free_rows  = 38 - used_rows
         - warning    = 'warning'  when free_rows ≤ 5
         - warning    = 'critical' when free_rows ≤ 2
         - is_full    = True       when free_rows == 0
@@ -26,8 +28,8 @@ class FreeSlotDetector:
     """
 
     DATA_START_ROW = 3
-    MAX_ROW = 36
-    MAX_DATA_ROWS = 34
+    MAX_ROW = 40
+    MAX_DATA_ROWS = 38  # maximum program rows (38 data slots, rows 3-40)
 
     WARNING_THRESHOLD = 5
     CRITICAL_THRESHOLD = 2

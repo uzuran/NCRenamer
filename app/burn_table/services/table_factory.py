@@ -33,8 +33,8 @@ class TableFactory:
     The resulting file has:
         - Row 1  : main column headers (wrapped text)
         - Row 2  : empty (reserved for sub-headers added manually)
-        - Rows 3-36: empty data area
-        - Columns A-J fixed widths
+        - Rows 3-40: empty data area
+        - Columns A-I fixed widths (column J is intentionally left unstyled)
     """
 
     def create(self, path: Path) -> None:
@@ -87,8 +87,8 @@ class TableFactory:
 
         ws.row_dimensions[1].height = _HEADER_ROW_HEIGHT
 
-        # ── Rows 2-36: data area ──────────────────────────────────────────
-        for row_num in range(2, 37):
+        # ── Rows 2-40: data area (columns A-I only; J is intentionally blank) ──
+        for row_num in range(2, 41):
             ws.row_dimensions[row_num].height = _DATA_ROW_HEIGHT
             for col_num in range(1, 10):
                 cell = ws.cell(row=row_num, column=col_num)
@@ -131,9 +131,9 @@ class TableFactory:
 
         # Pre-fill data rows with empty strings + data_style so borders are
         # stored in the file from the start (xlwt does not style empty cells).
-        for row_idx in range(1, 36):  # rows 2-36 (0-indexed 1-35)
+        for row_idx in range(1, 40):  # rows 2-40 (0-indexed 1-39)
             ws.row(row_idx).height = _DATA_ROW_HEIGHT * 20
-            for col_idx in range(9):
+            for col_idx in range(9):  # columns A-I only; J left unstyled
                 ws.write(row_idx, col_idx, "", data_style)
 
         wb.save(str(path))

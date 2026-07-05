@@ -16,7 +16,7 @@ def _make_vm() -> BurnViewModel:
         BurnRecord(program_number="6670-18"),
         BurnRecord(program_number="4041-05"),
     ]
-    vm._status = TableStatus(used_rows=2, free_rows=32, is_full=False, warning="")
+    vm._status = TableStatus(used_rows=2, free_rows=36, is_full=False, warning="")
     return vm
 
 
@@ -64,7 +64,7 @@ class TestLoadAndAppendBatchDuplicates:
             patch.object(
                 vm._recorder, "record_from_paths", side_effect=[fake_dup, fake_new]
             ),
-            patch.object(vm._writer, "append_record", return_value=3),
+            patch.object(vm._writer, "write_record_at_row", return_value=None),
         ):
             vm.load_and_append_batch(
                 [

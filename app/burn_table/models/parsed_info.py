@@ -13,10 +13,11 @@ def _strip_thickness_suffix(material: str, thickness: float) -> str:
     """Remove a trailing thickness value from a material code.
 
     Handles two formats found in the NC material CSV:
-      with dash:    '3.3535-4.0'       → '3.3535'
-                    '1.4301BRUS-8'     → '1.4301BRUS'
-      concatenated: '3.35354.0'        → '3.3535'
-                    '3.3535SPECIAL5.0' → '3.3535SPECIAL'
+      with dash:    '3.3535-4.0'           -> '3.3535'
+                    '1.4301BRUS-8'         -> '1.4301BRUS'
+                    '3.3535SPECIAL-3.0'    -> '3.3535SPECIAL'
+      concatenated: '3.35354.0'            -> '3.3535'
+                    '3.3535SPECIAL5.0'     -> '3.3535SPECIAL'
 
     Bare integers without a dash (e.g. '1.4016MAGNET2') are left unchanged
     to avoid stripping grade numbers that are part of the material name.

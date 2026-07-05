@@ -15,18 +15,57 @@ class ExcelReader:
 
     Layout contract:
         - Row 1-2 : header rows  (skipped)
-        - Row 3-36: data rows    (up to 34 entries)
+        - Row 3-40: data rows    (up to 38 programs; one blank separator row
+          is inserted after each batch, so actual capacity depends on batch sizes)
         - Columns A-J (1-10) map 1-to-1 to BurnRecord fields
 
     Both .xls (xlrd) and .xlsx (openpyxl) formats are supported.
     """
 
     DATA_START_ROW = 3
-    MAX_ROW = 36
-    MAX_DATA_ROWS = 34
+    MAX_ROW = 40
+    MAX_DATA_ROWS = 38  # maximum program rows (rows 3-40)
 
     def __init__(self, sheet_index: int = 0) -> None:
         self._sheet_index = sheet_index
+
+    def find_last_data_row(self, path: Path) -> int | None:
+        """Return the 1-based row of the last occupied column-B cell, or None.
+
+        Used by BurnViewModel on load to determine where the next write should
+        begin (last_data_row + 2 leaves room for one separator after the batch).
+        """
+        if path.suffix.lower() == ".xls":
+            return self._find_last_data_row_xls(path)
+        return self._find_last_data_row_xlsx(path)
+
+    def _find_last_data_row_xlsx(self, path: Path) -> int | None:
+        try:
+            import openpyxl
+        except ImportError as exc:
+            raise ImportError("openpyxl is required: pip install openpyxl") from exc
+        wb = openpyxl.load_workbook(path, read_only=True, data_only=True)
+        ws = wb.worksheets[self._sheet_index]
+        last: int | None = None
+        for row_num in range(self.DATA_START_ROW, self.MAX_ROW + 1):
+            if ws.cell(row=row_num, column=2).value is not None:
+                last = row_num
+        wb.close()
+        return last
+
+    def _find_last_data_row_xls(self, path: Path) -> int | None:
+        try:
+            import xlrd
+        except ImportError as exc:
+            raise ImportError("xlrd is required: pip install xlrd==1.2.0") from exc
+        wb = xlrd.open_workbook(str(path))
+        ws = wb.sheet_by_index(self._sheet_index)
+        last: int | None = None
+        limit = min(self.MAX_ROW, ws.nrows)
+        for row_idx in range(self.DATA_START_ROW - 1, limit):
+            if str(ws.cell_value(row_idx, 1)).strip():
+                last = row_idx + 1  # convert 0-based → 1-based
+        return last
 
     def get_existing_programs(self, path: Path) -> list[str]:
         """Return all non-empty program numbers currently stored in *path*."""

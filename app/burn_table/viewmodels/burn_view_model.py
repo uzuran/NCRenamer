@@ -37,10 +37,21 @@ _SETTINGS_FILE = _burn_settings_file()
 
 _EMPTY_STATUS = TableStatus(
     used_rows=0,
-    free_rows=34,
+    free_rows=38,
     is_full=False,
     warning="",
 )
+
+
+def _program_sort_key(program_number: str) -> int:
+    """Return the numeric suffix of a 'PREFIX-SUFFIX' program number for sorting.
+
+    '6678-79' → 79.  Falls back to 0 for non-standard formats so they sort first.
+    """
+    try:
+        return int(program_number.rsplit("-", 1)[-1])
+    except (ValueError, IndexError):
+        return 0
 
 
 class BurnViewModel:
@@ -100,6 +111,10 @@ class BurnViewModel:
 
         # Popup warning to show after next notify (cleared by view after display)
         self._popup_message: str | None = None
+
+        # Tracks the next Excel row to write into, managed explicitly so that
+        # batch uploads pack records consecutively with ONE separator per batch.
+        self._next_write_row: int = ExcelWriter.DATA_START_ROW
 
     # ══════════════════════════════════════════════════════════════════
     # Observable infrastructure
@@ -186,6 +201,7 @@ class BurnViewModel:
             self._records = records
             self._table_path = path.resolve()
             self._status = self._detector.detect_from_records(len(records))
+            self._next_write_row = self._compute_next_write_row(path, records)
             # If the table already has rows the date was already written;
             # new appends must leave the date cell empty.
             self._date_written = len(records) > 0
@@ -303,9 +319,25 @@ class BurnViewModel:
             self._notify()
             return
 
+        if self._next_write_row > ExcelWriter.MAX_ROW:
+            self._set_message(
+                self._texts.get(
+                    "table_full_add", "Table is full — cannot add more records."
+                ),
+                ok=False,
+            )
+            self._notify()
+            return
+
         try:
             record_to_write = self._prepare_record_for_writing(self._pending_record)
-            row_num = self._writer.append_record(self._table_path, record_to_write)
+            row_num = self._next_write_row
+            self._writer.write_record_at_row(self._table_path, row_num, record_to_write)
+            self._next_write_row += 1
+            # Insert a styled empty separator row after the single-record batch.
+            with contextlib.suppress(Exception):
+                self._writer.write_empty_row(self._table_path, self._next_write_row)
+            self._next_write_row += 1
             self._records.append(record_to_write)
             self._pending_record = None
             self._status = self._detector.detect_from_records(len(self._records))
@@ -360,34 +392,50 @@ class BurnViewModel:
         duplicates: list[str] = []
         product_group_written = False  # reset every batch call
 
+        # Phase 1: parse all records first so we can sort them before writing.
+        parsed: list[tuple[Path, BurnRecord]] = []
         for nc_path in nc_paths:
-            if self._status.is_full:
-                failed.append(
-                    f"{nc_path.name}: {self._texts.get('table_full_label', 'table full')}"
-                )
-                break
             resolved_sch = self.find_sch_for_nc(nc_path)
             try:
                 record = self._recorder.record_from_paths(
                     nc_path, resolved_sch, product_group
                 )
-                if not self.validate_unique_program(record.program_number):
-                    duplicates.append(record.program_number)
-                    continue
-                record_to_write = self._prepare_record_for_writing(record)
-                # product_group is written only for the first record per batch
-                if product_group_written:
-                    record_to_write = dataclasses.replace(
-                        record_to_write, product_group=""
-                    )
-                else:
-                    product_group_written = True
-                self._writer.append_record(self._table_path, record_to_write)
-                self._records.append(record_to_write)
-                self._status = self._detector.detect_from_records(len(self._records))
-                added += 1
+                parsed.append((nc_path, record))
             except Exception as exc:
                 failed.append(f"{nc_path.name}: {exc}")
+
+        # Sort by the numeric suffix of the program number (e.g. '6678-79' → 79).
+        parsed.sort(key=lambda pair: _program_sort_key(pair[1].program_number))
+
+        # Phase 2: validate, prepare, and write in sorted order.
+        for nc_path, record in parsed:
+            if self._status.is_full or self._next_write_row > ExcelWriter.MAX_ROW:
+                failed.append(
+                    f"{nc_path.name}: {self._texts.get('table_full_label', 'table full')}"
+                )
+                break
+            if not self.validate_unique_program(record.program_number):
+                duplicates.append(record.program_number)
+                continue
+            record_to_write = self._prepare_record_for_writing(record)
+            # product_group is written only for the first record per batch
+            if product_group_written:
+                record_to_write = dataclasses.replace(record_to_write, product_group="")
+            else:
+                product_group_written = True
+            self._writer.write_record_at_row(
+                self._table_path, self._next_write_row, record_to_write
+            )
+            self._next_write_row += 1
+            self._records.append(record_to_write)
+            self._status = self._detector.detect_from_records(len(self._records))
+            added += 1
+
+        # Insert ONE styled separator row after the entire batch.
+        if added > 0:
+            with contextlib.suppress(Exception):
+                self._writer.write_empty_row(self._table_path, self._next_write_row)
+            self._next_write_row += 1
 
         if duplicates:
             self._popup_message = (
@@ -512,6 +560,7 @@ class BurnViewModel:
             self._status = _EMPTY_STATUS
             self._date_written = False
             self._last_sheet_format = ""
+            self._next_write_row = ExcelWriter.DATA_START_ROW
             self._set_message(self._texts.get("table_cleared", "Table cleared."))
         except Exception as exc:
             self._set_message(
@@ -527,6 +576,24 @@ class BurnViewModel:
     # ══════════════════════════════════════════════════════════════════
     # Private helpers
     # ══════════════════════════════════════════════════════════════════
+
+    def _compute_next_write_row(self, path: Path, records: list) -> int:
+        """Return the row where the next write should start after loading *records*.
+
+        Scans the file for the last occupied column-B row and adds 2 to leave
+        room for a batch separator.  Falls back to DATA_START_ROW + len(records)
+        for old files or when the reader is mocked (returns a non-int).
+        """
+        if not records:
+            return ExcelWriter.DATA_START_ROW
+        try:
+            last_row = self._reader.find_last_data_row(path)
+        except Exception:
+            last_row = None
+        if isinstance(last_row, int) and last_row >= ExcelWriter.DATA_START_ROW:
+            return last_row + 2
+        # Fallback for files without separator rows or mocked readers
+        return ExcelWriter.DATA_START_ROW + len(records)
 
     def _prepare_record_for_writing(self, record: BurnRecord) -> BurnRecord:
         """Return *record* ready for Excel, applying two appearance rules.

@@ -43,9 +43,15 @@ class TestToRow:
 class TestFromRow9Col:
     def _row(self):
         return [
-            "30.06.2026", "6670-18", "note",
-            "1.0037-5X1700X1500", 3, "00:21:51",
-            "ano", "pwa", "Jan",
+            "30.06.2026",
+            "6670-18",
+            "note",
+            "1.0037-5X1700X1500",
+            3,
+            "00:21:51",
+            "ano",
+            "pwa",
+            "Jan",
         ]
 
     def test_all_fields_populated(self):
@@ -103,9 +109,16 @@ class TestFromRow10ColLegacy:
 
     def _legacy_row(self):
         return [
-            "30.06.2026", "6670-18", "note",
-            "1.0037-5X1700X1500", 3, "22",   # F = program_time (minutes)
-            "00:21:51", "ano", "pwa", "Jan",  # J = operator
+            "30.06.2026",
+            "6670-18",
+            "note",
+            "1.0037-5X1700X1500",
+            3,
+            "22",  # F = program_time (minutes)
+            "00:21:51",
+            "ano",
+            "pwa",
+            "Jan",  # J = operator
         ]
 
     def test_detects_legacy_by_nonempty_col_j(self):

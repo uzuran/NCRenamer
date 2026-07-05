@@ -23,7 +23,9 @@ from app.burn_table.services.free_slot_detector import FreeSlotDetector
 from app.burn_table.services.table_factory import TableFactory
 
 
-def _rec(program: str = "6670-18", date: str = "30.06.2026", fmt: str = "1.0037-5X1700X1500") -> BurnRecord:
+def _rec(
+    program: str = "6670-18", date: str = "30.06.2026", fmt: str = "1.0037-5X1700X1500"
+) -> BurnRecord:
     return BurnRecord(
         date=date,
         program_number=program,
@@ -96,10 +98,10 @@ class TestAppendAndRead:
 
 
 class TestFreeSlotDetector:
-    def test_empty_table_has_34_free_rows(self, empty_table):
+    def test_empty_table_has_38_free_rows(self, empty_table):
         detector = FreeSlotDetector()
         status = detector.detect(empty_table)
-        assert status.free_rows == 34
+        assert status.free_rows == 38
         assert status.used_rows == 0
         assert status.is_full is False
 
@@ -107,7 +109,7 @@ class TestFreeSlotDetector:
         ExcelWriter().append_record(empty_table, _rec())
         status = FreeSlotDetector().detect(empty_table)
         assert status.used_rows == 1
-        assert status.free_rows == 33
+        assert status.free_rows == 37
 
     def test_empty_date_row_still_counted_as_used(self, empty_table):
         """FreeSlotDetector must use col B as marker, not col A."""
@@ -129,15 +131,15 @@ class TestFreeSlotDetector:
         assert from_file.free_rows == from_count.free_rows
 
     def test_warning_threshold_at_five_free(self):
-        st = FreeSlotDetector().detect_from_records(29)  # 34 - 29 = 5 free
+        st = FreeSlotDetector().detect_from_records(33)  # 38 - 33 = 5 free
         assert st.warning == "warning"
 
     def test_critical_threshold_at_two_free(self):
-        st = FreeSlotDetector().detect_from_records(32)  # 34 - 32 = 2 free
+        st = FreeSlotDetector().detect_from_records(36)  # 38 - 36 = 2 free
         assert st.warning == "critical"
 
     def test_is_full_at_zero_free(self):
-        st = FreeSlotDetector().detect_from_records(34)
+        st = FreeSlotDetector().detect_from_records(38)
         assert st.is_full is True
         assert st.free_rows == 0
 
@@ -153,11 +155,11 @@ class TestClearAllRecords:
         records = reader.read_all(empty_table)
         assert records == []
 
-    def test_clear_resets_free_slot_to_34(self, empty_table):
+    def test_clear_resets_free_slot_to_38(self, empty_table):
         ExcelWriter().append_record(empty_table, _rec())
         ExcelWriter().clear_all_records(empty_table)
         status = FreeSlotDetector().detect(empty_table)
-        assert status.free_rows == 34
+        assert status.free_rows == 38
 
     def test_header_row_preserved_after_clear(self, empty_table):
         ExcelWriter().append_record(empty_table, _rec())
@@ -181,9 +183,11 @@ class TestUpdateHeader:
         ExcelWriter().update_header(empty_table)
         if empty_table.suffix == ".xlsx":
             import openpyxl
+
             ws = openpyxl.load_workbook(empty_table, read_only=True).active
             assert ws.cell(row=1, column=1).value == "Datum pálení"
         else:
             import xlrd
+
             ws = xlrd.open_workbook(str(empty_table)).sheet_by_index(0)
             assert "Datum" in str(ws.cell_value(0, 0))

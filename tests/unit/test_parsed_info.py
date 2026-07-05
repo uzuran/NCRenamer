@@ -42,6 +42,10 @@ class TestStripThicknessSuffix:
     def test_special_suffix_with_text(self):
         assert _strip_thickness_suffix("3.3535SPECIAL5.0", 5.0) == "3.3535SPECIAL"
 
+    def test_special_suffix_with_dash_decimal(self):
+        # MA/3.3535SPECIAL-3.0: dash-separated thickness suffix with text in base name
+        assert _strip_thickness_suffix("3.3535SPECIAL-3.0", 3.0) == "3.3535SPECIAL"
+
 
 class TestProgramInfoSheetFormat:
     def test_full_dimensions(self):
@@ -80,6 +84,16 @@ class TestProgramInfoSheetFormat:
         )
         assert info.sheet_format == "3.3535-4X2000X1000"
 
+    def test_special_material_with_dash_thickness(self):
+        # MA/3.3535SPECIAL-3.0: strips -3.0 suffix, rebuilds as 3.3535SPECIAL-3X...
+        info = ProgramInfo(
+            material_code="3.3535SPECIAL-3.0",
+            thickness=3.0,
+            width=1700.0,
+            height=1500.0,
+        )
+        assert info.sheet_format == "3.3535SPECIAL-3X1700X1500"
+
 
 class TestProgramInfoDateCz:
     def test_nc_czech_format(self):
@@ -104,23 +118,29 @@ class TestProgramInfoDateCz:
 
 
 class TestProgramInfoTime:
-    @pytest.mark.parametrize("raw,expected", [
-        ("H21M51S", "00:21:51"),
-        ("H 7M28S", "00:07:28"),
-        ("H M48S",  "00:00:48"),
-        ("1H5M30S", "01:05:30"),
-    ])
+    @pytest.mark.parametrize(
+        "raw,expected",
+        [
+            ("H21M51S", "00:21:51"),
+            ("H 7M28S", "00:07:28"),
+            ("H M48S", "00:00:48"),
+            ("1H5M30S", "01:05:30"),
+        ],
+    )
     def test_formatted_time(self, raw, expected):
         info = ProgramInfo(program_time_raw=raw)
         assert info.program_time_formatted == expected
 
-    @pytest.mark.parametrize("raw,expected", [
-        ("H21M51S", "22"),   # 21 min + round-up 51 s → 22
-        ("H M48S",  "1"),    # 0 min + round-up 48 s → 1
-        ("1H5M30S", "66"),   # 60 + 5 + round-up 30 s → 66
-        ("H21M29S", "21"),   # 21 min + 29 s (not round-up) → 21
-        ("H M0S",   "0"),    # exactly 0 minutes 0 seconds
-    ])
+    @pytest.mark.parametrize(
+        "raw,expected",
+        [
+            ("H21M51S", "22"),  # 21 min + round-up 51 s → 22
+            ("H M48S", "1"),  # 0 min + round-up 48 s → 1
+            ("1H5M30S", "66"),  # 60 + 5 + round-up 30 s → 66
+            ("H21M29S", "21"),  # 21 min + 29 s (not round-up) → 21
+            ("H M0S", "0"),  # exactly 0 minutes 0 seconds
+        ],
+    )
     def test_minutes(self, raw, expected):
         info = ProgramInfo(program_time_raw=raw)
         assert info.program_time_minutes == expected
