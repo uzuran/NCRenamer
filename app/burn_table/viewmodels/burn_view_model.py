@@ -370,6 +370,7 @@ class BurnViewModel:
         self,
         nc_paths: list[Path],
         product_group: str = "",
+        date: str = "",
     ) -> None:
         """Parse and immediately append multiple NC files (SCH auto-detected).
 
@@ -418,11 +419,13 @@ class BurnViewModel:
                 duplicates.append(record.program_number)
                 continue
             record_to_write = self._prepare_record_for_writing(record)
-            # product_group is written only for the first record per batch
+            # For the first written record: apply user date and product_group.
             if product_group_written:
                 record_to_write = dataclasses.replace(record_to_write, product_group="")
             else:
                 product_group_written = True
+                if date:
+                    record_to_write = dataclasses.replace(record_to_write, date=date)
             self._writer.write_record_at_row(
                 self._table_path, self._next_write_row, record_to_write
             )

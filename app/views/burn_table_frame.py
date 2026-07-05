@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import date as _date
 from pathlib import Path
 from tkinter import filedialog, messagebox, simpledialog, ttk
 from typing import TYPE_CHECKING
@@ -149,6 +150,17 @@ class _BurnTabContent(ctk.CTkFrame):
         if not nc_strs:
             return
 
+        today = _date.today().strftime("%d.%m.%Y")
+        date_str = (
+            simpledialog.askstring(
+                title=self.texts.get("product_group_dialog_title", "Load NC/SCH"),
+                prompt=self.texts.get("date_prompt", "Datum pálení:"),
+                initialvalue=today,
+                parent=self,
+            )
+            or ""
+        )
+
         product_group = (
             simpledialog.askstring(
                 title=self.texts.get("product_group_dialog_title", "Load NC/SCH"),
@@ -159,7 +171,7 @@ class _BurnTabContent(ctk.CTkFrame):
         )
 
         nc_paths = [Path(p) for p in nc_strs]
-        self.vm.load_and_append_batch(nc_paths, product_group)
+        self.vm.load_and_append_batch(nc_paths, product_group, date=date_str)
 
     def _cmd_clear_table(self) -> None:
         if self.vm.table_path is None:
