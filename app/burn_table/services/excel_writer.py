@@ -437,3 +437,52 @@ class ExcelWriter:
             for col_idx in range(9):
                 ws.write(row_idx, col_idx, "")
         wb.save(str(path))
+
+    # ── rewrite (used by delete) ──────────────────────────────────────────────
+
+    def rewrite_all_records(self, path: Path, records: list) -> None:
+        """Clear all data rows then write *records* consecutively from DATA_START_ROW.
+
+        Single file open/save — more efficient than clear + N individual writes.
+        """
+        if path.suffix.lower() == ".xls":
+            self._rewrite_all_xls(path, records)
+        else:
+            self._rewrite_all_xlsx(path, records)
+
+    def _rewrite_all_xlsx(self, path: Path, records: list) -> None:
+        import openpyxl
+
+        wb = openpyxl.load_workbook(path)
+        ws = wb.worksheets[self._sheet_index]
+        # Clear all data rows first
+        for row_num in range(self.DATA_START_ROW, self.MAX_ROW + 1):
+            for col in range(1, 10):
+                ws.cell(row=row_num, column=col).value = None
+        # Write records consecutively
+        for i, record in enumerate(records):
+            self._write_row_xlsx(ws, self.DATA_START_ROW + i, record)
+        wb.save(path)
+
+    def _rewrite_all_xls(self, path: Path, records: list) -> None:
+        try:
+            import xlrd
+            from xlutils.copy import copy as xl_copy
+        except ImportError as exc:
+            raise ImportError(
+                "xlrd and xlutils are required: pip install xlrd==1.2.0 xlutils"
+            ) from exc
+
+        rb = xlrd.open_workbook(str(path), formatting_info=True)
+        rs = rb.sheet_by_index(self._sheet_index)
+        wb = xl_copy(rb)
+        ws = wb.get_sheet(self._sheet_index)
+        # Clear all data rows first
+        limit = min(self.MAX_ROW, rs.nrows)
+        for row_idx in range(self.DATA_START_ROW - 1, limit):
+            for col_idx in range(9):
+                ws.write(row_idx, col_idx, "")
+        # Write records consecutively
+        for i, record in enumerate(records):
+            self._write_row_xls(ws, self.DATA_START_ROW - 1 + i, record)
+        wb.save(str(path))

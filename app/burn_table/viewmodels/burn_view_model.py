@@ -571,6 +571,36 @@ class BurnViewModel:
             )
         self._notify()
 
+    def delete_record(self, index: int) -> None:
+        """Remove the record at *index* (0-based) from the table and save."""
+        if self._table_path is None:
+            self._set_message(
+                self._texts.get("load_table_first", "Load a table first."), ok=False
+            )
+            self._notify()
+            return
+        if not (0 <= index < len(self._records)):
+            return
+        self._records.pop(index)
+        try:
+            self._writer.rewrite_all_records(self._table_path, self._records)
+        except Exception as exc:
+            self._set_message(
+                self._texts.get("save_error", "Save error: {}").format(exc), ok=False
+            )
+            self._notify()
+            return
+        self._next_write_row = ExcelWriter.DATA_START_ROW + len(self._records)
+        self._status = self._detector.detect_from_records(len(self._records))
+        self._date_written = len(self._records) > 0
+        self._last_sheet_format = ""
+        for rec in reversed(self._records):
+            if rec.sheet_format and rec.sheet_format != "-----":
+                self._last_sheet_format = rec.sheet_format
+                break
+        self._set_message(self._texts.get("record_deleted", "Record deleted."))
+        self._notify()
+
     def clear_message(self) -> None:
         """Clear the current status message."""
         self._message = ""

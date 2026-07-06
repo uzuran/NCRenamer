@@ -70,6 +70,16 @@ class _BurnTabContent(ctk.CTkFrame):
         )
         self.clear_table_btn.pack(side="left", padx=2)
 
+        self.delete_record_btn = ctk.CTkButton(
+            bar,
+            text=self.texts.get("delete_record", "Delete row"),
+            width=100,
+            fg_color="#922b21",
+            hover_color="#6e1f18",
+            command=self._cmd_delete_record,
+        )
+        self.delete_record_btn.pack(side="left", padx=2)
+
         self.print_btn = ctk.CTkButton(
             bar,
             text=self.texts.get("print_table", "Print"),
@@ -183,6 +193,19 @@ class _BurnTabContent(ctk.CTkFrame):
         ):
             self.vm.clear_table()
 
+    def _cmd_delete_record(self) -> None:
+        selected = self.tree.selection()
+        if not selected:
+            return
+        if not messagebox.askyesno(
+            title=self.texts.get("delete_record_title", "Delete record"),
+            message=self.texts.get("delete_confirm_row", "Delete selected record?"),
+            parent=self,
+        ):
+            return
+        index = int(selected[0]) - 1  # iid is 1-based string
+        self.vm.delete_record(index)
+
     def _cmd_print(self) -> None:
         self.vm.print_table()
 
@@ -277,6 +300,7 @@ class _BurnTabContent(ctk.CTkFrame):
         self.texts = new_texts
         self.load_nc_btn.configure(text=new_texts.get("load_nc_sch", "Load NC/SCH"))
         self.clear_table_btn.configure(text=new_texts.get("clear_table", "Clear table"))
+        self.delete_record_btn.configure(text=new_texts.get("delete_record", "Delete row"))
         self.print_btn.configure(text=new_texts.get("print_table", "Print"))
         self._configure_columns()
         self._refresh_status_bar()
