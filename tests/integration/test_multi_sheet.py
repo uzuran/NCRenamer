@@ -172,9 +172,7 @@ class TestBurnViewModelTwoSheets:
             recorder=PerformanceRecorder(),
             print_manager=PrintManager(),
             sheet_name="Ocel" if sheet_index == 0 else "Hliník",
-            settings_key="last_table_path"
-            if sheet_index == 0
-            else "last_table_path_alu",
+            settings_key="last_table_path",  # both sheets share the same key
         )
         vm.load_table(path)
         return vm
@@ -210,3 +208,65 @@ class TestBurnViewModelTwoSheets:
         # Reload steel VM from file
         vm_steel2 = self._vm(two_sheet_file, 0)
         assert vm_steel2.records == []
+
+    def test_both_vms_use_same_settings_key(self, two_sheet_file):
+        """Both VMs must share settings_key so they always load the same Excel file."""
+        vm_steel = self._vm(two_sheet_file, 0)
+        vm_alu = self._vm(two_sheet_file, 1)
+        assert vm_steel._settings_key == vm_alu._settings_key == "last_table_path"
+
+    def test_switching_views_preserves_data(self, two_sheet_file):
+        """Reloading each VM from the same file preserves each sheet's records."""
+        ExcelWriter(sheet_index=0).append_record(two_sheet_file, _rec("STEEL-01"))
+        ExcelWriter(sheet_index=1).append_record(two_sheet_file, _rec("ALU-01"))
+
+        # Simulate opening the steel tab then the aluminium tab
+        vm_steel = self._vm(two_sheet_file, 0)
+        vm_alu = self._vm(two_sheet_file, 1)
+
+        assert vm_steel.records[0].program_number == "STEEL-01"
+        assert vm_alu.records[0].program_number == "ALU-01"
+
+        # "Switch back" to steel — reload from same file, data must be unchanged
+        vm_steel2 = self._vm(two_sheet_file, 0)
+        assert vm_steel2.records[0].program_number == "STEEL-01"
+
+
+class TestBordersAlwaysPresent:
+    """All data rows (3-40) must have borders regardless of whether they hold data."""
+
+    @pytest.fixture
+    def xlsx_file(self, tmp_path):
+        path = tmp_path / "table.xlsx"
+        TableFactory().create(path)
+        return path
+
+    def _all_rows_have_borders(self, path: Path, sheet_index: int = 0) -> bool:
+        import openpyxl
+
+        wb = openpyxl.load_workbook(path)
+        ws = wb.worksheets[sheet_index]
+        for row_num in range(ExcelWriter.DATA_START_ROW, ExcelWriter.MAX_ROW + 1):
+            for col in range(1, 9):
+                cell = ws.cell(row=row_num, column=col)
+                if cell.border.left.style is None:
+                    return False
+        wb.close()
+        return True
+
+    def test_clear_preserves_borders_on_empty_rows(self, xlsx_file):
+        ExcelWriter().append_record(xlsx_file, _rec("6670-01"))
+        ExcelWriter().clear_all_records(xlsx_file)
+        assert self._all_rows_have_borders(xlsx_file)
+
+    def test_rewrite_preserves_borders_on_rows_after_last_record(self, xlsx_file):
+        for i in range(3):
+            ExcelWriter().append_record(xlsx_file, _rec(f"6670-{i:02d}"))
+        # Delete middle record — rewrite_all_records is called internally
+        writer = ExcelWriter()
+        writer.rewrite_all_records(xlsx_file, [_rec("6670-00"), _rec("6670-02")])
+        assert self._all_rows_have_borders(xlsx_file)
+
+    def test_borders_present_on_fresh_table(self, xlsx_file):
+        # TableFactory should already set borders on all rows
+        assert self._all_rows_have_borders(xlsx_file)

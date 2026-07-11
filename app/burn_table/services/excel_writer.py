@@ -461,17 +461,31 @@ class ExcelWriter:
 
     def _clear_xlsx(self, path: Path) -> None:
         import openpyxl
+        from openpyxl.styles import PatternFill
+
+        from app.burn_table.services._xlsx_format import (
+            make_border,
+            make_center_alignment,
+        )
 
         wb = openpyxl.load_workbook(path)
         ws = wb.worksheets[self._sheet_index]
+        border = make_border()
+        center = make_center_alignment()
+        fill = PatternFill("solid", fgColor="FFFFFF")
         for row_num in range(self.DATA_START_ROW, self.MAX_ROW + 1):
             for col in range(1, 9):
-                ws.cell(row=row_num, column=col).value = None
+                cell = ws.cell(row=row_num, column=col)
+                cell.value = None  # must be set separately — passing value=None to ws.cell() is a no-op on existing cells
+                cell.border = border
+                cell.alignment = center
+                cell.fill = fill
         wb.save(path)
 
     def _clear_xls(self, path: Path) -> None:
         try:
             import xlrd
+            import xlwt
             from xlutils.copy import copy as xl_copy
         except ImportError as exc:
             raise ImportError(
@@ -479,13 +493,15 @@ class ExcelWriter:
             ) from exc
 
         rb = xlrd.open_workbook(str(path), formatting_info=True)
-        rs = rb.sheet_by_index(self._sheet_index)
         wb = xl_copy(rb)
         ws = wb.get_sheet(self._sheet_index)
-        limit = min(self.MAX_ROW, rs.nrows)
-        for row_idx in range(self.DATA_START_ROW - 1, limit):
+        data_style = xlwt.easyxf(
+            "alignment: horiz centre, vert centre;"
+            "borders: left thin, right thin, top thin, bottom thin;"
+        )
+        for row_idx in range(self.DATA_START_ROW - 1, self.MAX_ROW):
             for col_idx in range(8):
-                ws.write(row_idx, col_idx, "")
+                ws.write(row_idx, col_idx, "", data_style)
         wb.save(str(path))
 
     # ── rewrite (used by delete) ──────────────────────────────────────────────
@@ -502,14 +518,27 @@ class ExcelWriter:
 
     def _rewrite_all_xlsx(self, path: Path, records: list) -> None:
         import openpyxl
+        from openpyxl.styles import PatternFill
+
+        from app.burn_table.services._xlsx_format import (
+            make_border,
+            make_center_alignment,
+        )
 
         wb = openpyxl.load_workbook(path)
         ws = wb.worksheets[self._sheet_index]
-        # Clear all data rows first
+        border = make_border()
+        center = make_center_alignment()
+        fill = PatternFill("solid", fgColor="FFFFFF")
+        # Apply borders to ALL data rows and clear values first
         for row_num in range(self.DATA_START_ROW, self.MAX_ROW + 1):
             for col in range(1, 9):
-                ws.cell(row=row_num, column=col).value = None
-        # Write records consecutively
+                cell = ws.cell(row=row_num, column=col)
+                cell.value = None  # must be set separately — passing value=None to ws.cell() is a no-op on existing cells
+                cell.border = border
+                cell.alignment = center
+                cell.fill = fill
+        # Write records (which also re-apply borders via _write_row_xlsx)
         for i, record in enumerate(records):
             self._write_row_xlsx(ws, self.DATA_START_ROW + i, record)
         wb.save(path)
@@ -517,6 +546,7 @@ class ExcelWriter:
     def _rewrite_all_xls(self, path: Path, records: list) -> None:
         try:
             import xlrd
+            import xlwt
             from xlutils.copy import copy as xl_copy
         except ImportError as exc:
             raise ImportError(
@@ -524,15 +554,17 @@ class ExcelWriter:
             ) from exc
 
         rb = xlrd.open_workbook(str(path), formatting_info=True)
-        rs = rb.sheet_by_index(self._sheet_index)
         wb = xl_copy(rb)
         ws = wb.get_sheet(self._sheet_index)
-        # Clear all data rows first
-        limit = min(self.MAX_ROW, rs.nrows)
-        for row_idx in range(self.DATA_START_ROW - 1, limit):
+        data_style = xlwt.easyxf(
+            "alignment: horiz centre, vert centre;"
+            "borders: left thin, right thin, top thin, bottom thin;"
+        )
+        # Clear all data rows with borders
+        for row_idx in range(self.DATA_START_ROW - 1, self.MAX_ROW):
             for col_idx in range(8):
-                ws.write(row_idx, col_idx, "")
-        # Write records consecutively
+                ws.write(row_idx, col_idx, "", data_style)
+        # Write records consecutively (also apply data_style via _write_row_xls)
         for i, record in enumerate(records):
             self._write_row_xls(ws, self.DATA_START_ROW - 1 + i, record)
         wb.save(str(path))

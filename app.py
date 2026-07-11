@@ -103,7 +103,7 @@ class App(ctk.CTk):
             texts=self.texts,
             sheet_index=1,
             sheet_name="Hliník",
-            settings_key="last_table_path_alu",
+            settings_key="last_table_path",
         )
         self.vm_steel.set_peer_vm(self.vm_aluminium)
         self.vm_aluminium.set_peer_vm(self.vm_steel)
