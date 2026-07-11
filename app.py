@@ -179,7 +179,7 @@ class App(ctk.CTk):
 
     def show_todo_content(self):
         self._hide_all_frames()
-        self.geometry("500x600")
+        self.geometry("500x700")
         self.todo_frame.update_treeview()
         self.todo_frame.pack(fill="both", expand=True)
 

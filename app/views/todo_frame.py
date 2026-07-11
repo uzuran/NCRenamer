@@ -117,7 +117,7 @@ class TodoFrame(ctk.CTkFrame):
         self.tree.heading("date", text=self.texts.get("todo_col_date", "Date"))
         self.tree.column("status", width=40, minwidth=30, anchor="center", stretch=False)
         self.tree.column("text", width=260, minwidth=100, anchor="w")
-        self.tree.column("date", width=90, minwidth=70, anchor="center", stretch=False)
+        self.tree.column("date", width=130, minwidth=90, anchor="center", stretch=False)
 
         # Done items shown in gray
         self.tree.tag_configure("done", foreground="gray60")
@@ -156,8 +156,10 @@ class TodoFrame(ctk.CTkFrame):
             tag = "done" if done else "pending"
             raw_date = item.get("created_at", "")
             try:
-                y, m, d = raw_date.split("-")
-                date_str = f"{d}.{m}.{y}"
+                parts = raw_date.split()
+                y, m, d = parts[0].split("-")
+                time_part = f" {parts[1]}" if len(parts) == 2 else ""
+                date_str = f"{d}.{m}.{y}{time_part}"
             except Exception:
                 date_str = raw_date or "—"
             self.tree.insert(
