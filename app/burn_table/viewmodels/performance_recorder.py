@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from datetime import timedelta
 from typing import TYPE_CHECKING, ClassVar
 
 if TYPE_CHECKING:
@@ -161,6 +162,30 @@ class PerformanceRecorder:
         return (0.0, 0.0, 0.0)
 
     @staticmethod
+    def _multiply_time(time_str: str, count: int) -> str:
+        """Multiply a HH:MM:SS time string by *count* and return HH:MM:SS.
+
+        Example: _multiply_time("00:03:09", 3) -> "00:09:27"
+
+        Falls back to *time_str* unchanged when *count* ≤ 1 or the format
+        cannot be parsed.
+        """
+        if not time_str or count <= 1:
+            return time_str
+        m = re.match(r"(\d+):(\d+):(\d+)$", time_str)
+        if not m:
+            return time_str
+        base = timedelta(
+            hours=int(m.group(1)),
+            minutes=int(m.group(2)),
+            seconds=int(m.group(3)),
+        )
+        total_s = int((base * count).total_seconds())
+        hh, rem = divmod(total_s, 3600)
+        mm, ss = divmod(rem, 60)
+        return f"{hh:02d}:{mm:02d}:{ss:02d}"
+
+    @staticmethod
     def _build_record(
         info: ProgramInfo,
         sheet: SheetInfo,
@@ -181,6 +206,7 @@ class PerformanceRecorder:
         program_number = (
             info.program_number or (nc_path.stem if nc_path else "") or sheet.parts_name
         )
+        count = max(1, sheet.product_quantity)
         return BurnRecord(
             date=info.date_cz,
             program_number=program_number,
@@ -188,7 +214,9 @@ class PerformanceRecorder:
             sheet_format=info.sheet_format,
             sheet_count=sheet.product_quantity,
             program_time=info.program_time_minutes,
-            total_time=info.program_time_formatted,
+            total_time=PerformanceRecorder._multiply_time(
+                info.program_time_formatted, count
+            ),
             burned="",
             product_group=product_group,
             operator=operator,
