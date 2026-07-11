@@ -199,6 +199,10 @@ class _BurnTabContent(ctk.CTkFrame):
 
         self._configure_columns()
 
+        # Non-interactive filler rows shown in muted gray
+        self.tree.tag_configure("sep_row", foreground="gray55")  # blank batch separator
+        self.tree.tag_configure("free_row", foreground="gray55")  # remaining free space
+
         self.tree.bind("<<TreeviewSelect>>", self.on_tree_select)
         self.tree.bind("<Button-1>", self._on_tree_click)
         self.tree.bind("<Escape>", lambda e: self._deselect())
@@ -231,7 +235,12 @@ class _BurnTabContent(ctk.CTkFrame):
             self._reset_edit_state()
             return
 
-        index = int(selected[0]) - 1  # iid is 1-based
+        iid = selected[0]
+        if iid.startswith("sep_") or iid.startswith("free_"):
+            self.tree.selection_remove(iid)
+            return
+
+        index = int(iid) - 1  # iid is 1-based
         records = self.vm.records
         if not (0 <= index < len(records)):
             self._reset_edit_state()
@@ -270,6 +279,9 @@ class _BurnTabContent(ctk.CTkFrame):
 
     def _on_tree_click(self, event) -> None:
         row = self.tree.identify_row(event.y)
+        if row and (row.startswith("sep_") or row.startswith("free_")):
+            self._deselect()
+            return
         # Empty-area click (not row) or re-click on the selected row both deselect.
         if not row or row in self.tree.selection():
             self._deselect()
@@ -336,6 +348,8 @@ class _BurnTabContent(ctk.CTkFrame):
     def _cmd_delete_record(self) -> None:
         selected = self.tree.selection()
         if not selected:
+            return
+        if selected[0].startswith("sep_") or selected[0].startswith("free_"):
             return
         if not messagebox.askyesno(
             title=self.texts.get("delete_record_title", "Delete record"),
@@ -405,8 +419,24 @@ class _BurnTabContent(ctk.CTkFrame):
 
     def _refresh_tree(self) -> None:
         self.tree.delete(*self.tree.get_children())
-        for i, record in enumerate(self.vm.records, start=1):
-            self.tree.insert("", "end", iid=str(i), values=record.to_row())
+        empty = ("",) * len(_COLUMN_IDS)
+        data_idx = 0
+        sep_idx = 0
+        for row in self.vm.display_rows:
+            if row is None:
+                sep_idx += 1
+                self.tree.insert(
+                    "", "end", iid=f"sep_{sep_idx}", values=empty, tags=("sep_row",)
+                )
+            else:
+                data_idx += 1
+                self.tree.insert("", "end", iid=str(data_idx), values=row.to_row())
+        # Remaining physical slots (separator rows also occupy Excel rows)
+        free_slots = max(0, self.vm.status.free_rows - sep_idx)
+        for n in range(1, free_slots + 1):
+            self.tree.insert(
+                "", "end", iid=f"free_{n}", values=empty, tags=("free_row",)
+            )
 
     def _refresh_pending_banner(self) -> None:
         if self.vm.has_pending_record:

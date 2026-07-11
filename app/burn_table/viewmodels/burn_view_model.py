@@ -92,6 +92,9 @@ class BurnViewModel:
         # State
         self._table_path: Path | None = None
         self._records: list[BurnRecord] = []
+        # Display order including None entries for blank batch-separator rows.
+        # Mirrors the physical Excel layout so the treeview can show separators.
+        self._display_rows: list[BurnRecord | None] = []
         self._status: TableStatus = _EMPTY_STATUS
         self._pending_record: BurnRecord | None = None
         self._last_nc_path: Path | None = None
@@ -145,6 +148,16 @@ class BurnViewModel:
     def records(self) -> list[BurnRecord]:
         """Current table rows (immutable snapshot)."""
         return list(self._records)
+
+    @property
+    def display_rows(self) -> list[BurnRecord | None]:
+        """Data rows and batch-separator rows in physical order.
+
+        None entries represent the blank separator rows that the writer inserts
+        between batches in the Excel file.  Use this for treeview rendering;
+        use ``records`` for business logic that indexes into data.
+        """
+        return list(self._display_rows)
 
     @property
     def status(self) -> TableStatus:
@@ -201,7 +214,9 @@ class BurnViewModel:
         """Load the table at *path* and update state."""
         try:
             self._writer.ensure_sheet_exists(path, self._sheet_name)
-            records = self._reader.read_all(path)
+            display = self._reader.read_all_with_separators(path)
+            self._display_rows = display
+            records = [r for r in display if r is not None]
             self._records = records
             self._table_path = path.resolve()
             self._status = self._detector.detect_from_records(len(records))
@@ -343,6 +358,8 @@ class BurnViewModel:
                 self._writer.write_empty_row(self._table_path, self._next_write_row)
             self._next_write_row += 1
             self._records.append(record_to_write)
+            self._display_rows.append(record_to_write)
+            self._display_rows.append(None)  # separator
             self._pending_record = None
             self._status = self._detector.detect_from_records(len(self._records))
             self._set_message(
@@ -404,6 +421,7 @@ class BurnViewModel:
         duplicates: list[str] = []
         cross_duplicates: list[str] = []
         product_group_written = False  # reset every batch call
+        batch_written: list[BurnRecord] = []  # for _display_rows update
 
         # Phase 1: parse all records first so we can sort them before writing.
         parsed: list[tuple[Path, BurnRecord]] = []
@@ -451,6 +469,7 @@ class BurnViewModel:
             )
             self._next_write_row += 1
             self._records.append(record_to_write)
+            batch_written.append(record_to_write)
             self._status = self._detector.detect_from_records(len(self._records))
             added += 1
 
@@ -459,6 +478,8 @@ class BurnViewModel:
             with contextlib.suppress(Exception):
                 self._writer.write_empty_row(self._table_path, self._next_write_row)
             self._next_write_row += 1
+            self._display_rows.extend(batch_written)
+            self._display_rows.append(None)  # separator after batch
 
         popup_parts: list[str] = []
         if duplicates:
@@ -537,8 +558,9 @@ class BurnViewModel:
         if self._table_path and self._table_path.is_file():
             try:
                 self._status = self._detector.detect(self._table_path)
-                records = self._reader.read_all(self._table_path)
-                self._records = records
+                display = self._reader.read_all_with_separators(self._table_path)
+                self._display_rows = display
+                self._records = [r for r in display if r is not None]
                 self._set_message(
                     self._texts.get("status_refreshed", "Status refreshed.")
                 )
@@ -594,6 +616,7 @@ class BurnViewModel:
         try:
             self._writer.clear_all_records(self._table_path)
             self._records = []
+            self._display_rows = []
             self._status = _EMPTY_STATUS
             self._date_written = False
             self._last_sheet_format = ""
@@ -625,6 +648,7 @@ class BurnViewModel:
             self._notify()
             return
         self._next_write_row = ExcelWriter.DATA_START_ROW + len(self._records)
+        self._display_rows = list(self._records)  # rewrite packs records; no separators
         self._set_message(self._texts.get("record_updated", "Record updated."))
         self._notify()
 
@@ -648,6 +672,7 @@ class BurnViewModel:
             self._notify()
             return
         self._next_write_row = ExcelWriter.DATA_START_ROW + len(self._records)
+        self._display_rows = list(self._records)  # rewrite packs records; no separators
         self._status = self._detector.detect_from_records(len(self._records))
         self._date_written = len(self._records) > 0
         self._last_sheet_format = ""

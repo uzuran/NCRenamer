@@ -80,7 +80,46 @@ class ExcelReader:
             return self._read_xls(path)
         return self._read_xlsx(path)
 
+    def read_all_with_separators(self, path: Path) -> list[BurnRecord | None]:
+        """Load data rows and in-batch blank separator rows.
+
+        Returns a mixed list: BurnRecord for data rows, None for blank
+        separator rows between batches.  Trailing blank rows (remaining free
+        space) are NOT included — they are represented by the gap between
+        len(result) and the physical row count.
+        """
+        if path.suffix.lower() == ".xls":
+            return self._read_with_separators_xls(path)
+        return self._read_with_separators_xlsx(path)
+
     # ── .xlsx ────────────────────────────────────────────────────────────────
+
+    def _read_with_separators_xlsx(self, path: Path) -> list[BurnRecord | None]:
+        try:
+            import openpyxl
+        except ImportError as exc:
+            raise ImportError("openpyxl is required: pip install openpyxl") from exc
+
+        try:
+            wb = openpyxl.load_workbook(path, read_only=True, data_only=True)
+        except Exception as exc:
+            raise ValueError(f"Cannot open workbook '{path}': {exc}") from exc
+
+        ws = wb.worksheets[self._sheet_index]
+        result: list[BurnRecord | None] = []
+        pending_nones: int = 0  # blank rows since the last data row
+        for row_num in range(self.DATA_START_ROW, self.MAX_ROW + 1):
+            row = [ws.cell(row=row_num, column=col).value for col in range(1, 11)]
+            if row[1] is None:
+                pending_nones += 1
+            else:
+                for _ in range(pending_nones):
+                    result.append(None)
+                pending_nones = 0
+                result.append(BurnRecord.from_row(row))
+        wb.close()
+        # pending_nones at end are free space, not separators — not appended
+        return result
 
     def _read_xlsx(self, path: Path) -> list[BurnRecord]:
         try:
@@ -104,6 +143,35 @@ class ExcelReader:
         return records
 
     # ── .xls ─────────────────────────────────────────────────────────────────
+
+    def _read_with_separators_xls(self, path: Path) -> list[BurnRecord | None]:
+        try:
+            import xlrd
+        except ImportError as exc:
+            raise ImportError("xlrd is required: pip install xlrd==1.2.0") from exc
+
+        try:
+            wb = xlrd.open_workbook(str(path))
+        except Exception as exc:
+            raise ValueError(f"Cannot open workbook '{path}': {exc}") from exc
+
+        ws = wb.sheet_by_index(self._sheet_index)
+        result: list[BurnRecord | None] = []
+        pending_nones: int = 0
+        limit = min(self.MAX_ROW, ws.nrows)
+        col_count = min(10, ws.ncols)
+        for row_idx in range(self.DATA_START_ROW - 1, limit):
+            val = ws.cell_value(row_idx, 1)
+            if not str(val).strip():
+                pending_nones += 1
+            else:
+                for _ in range(pending_nones):
+                    result.append(None)
+                pending_nones = 0
+                row = [ws.cell_value(row_idx, col) for col in range(col_count)]
+                result.append(BurnRecord.from_row(row))
+        # pending_nones at end are free space, not separators — not appended
+        return result
 
     def _read_xls(self, path: Path) -> list[BurnRecord]:
         try:
