@@ -115,9 +115,9 @@ class TodoFrame(ctk.CTkFrame):
         self.tree.heading("status", text=self.texts.get("todo_col_status", "✓"))
         self.tree.heading("text", text=self.texts.get("todo_col_text", "Task"))
         self.tree.heading("date", text=self.texts.get("todo_col_date", "Date"))
-        self.tree.column("status", width=40, minwidth=30, anchor="center", stretch=False)
-        self.tree.column("text", width=260, minwidth=100, anchor="w")
-        self.tree.column("date", width=130, minwidth=90, anchor="center", stretch=False)
+        self.tree.column("status", width=40,  minwidth=30,  anchor="center", stretch=False)
+        self.tree.column("text",   width=220,  minwidth=80,  anchor="w",      stretch=True)
+        self.tree.column("date",   width=155,  minwidth=155, anchor="center", stretch=False)
 
         # Done items shown in gray
         self.tree.tag_configure("done", foreground="gray60")

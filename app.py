@@ -179,7 +179,7 @@ class App(ctk.CTk):
 
     def show_todo_content(self):
         self._hide_all_frames()
-        self.geometry("500x700")
+        self.geometry("530x600")
         self.todo_frame.update_treeview()
         self.todo_frame.pack(fill="both", expand=True)
 
@@ -214,6 +214,11 @@ class App(ctk.CTk):
 
     def _on_global_click(self, event) -> None:
         widget = event.widget
+
+        # event.widget can be a raw Tk path string when the widget is destroyed
+        # before the event fires (common with bind_all + CTk internal callbacks).
+        if isinstance(widget, str):
+            return
 
         # Clicks inside a popup / dialog belong to that window — ignore.
         if widget.winfo_toplevel() is not self:
