@@ -507,9 +507,11 @@ class ExcelWriter:
     # ── rewrite (used by delete) ──────────────────────────────────────────────
 
     def rewrite_all_records(self, path: Path, records: list) -> None:
-        """Clear all data rows then write *records* consecutively from DATA_START_ROW.
+        """Clear all data rows then write *records* from DATA_START_ROW.
 
-        Single file open/save — more efficient than clear + N individual writes.
+        *records* may contain ``None`` values representing blank separator rows.
+        None slots are not written (the clear pass already blanked them), so they
+        appear as empty rows in the file — preserving inter-batch separators.
         """
         if path.suffix.lower() == ".xls":
             self._rewrite_all_xls(path, records)
@@ -538,9 +540,10 @@ class ExcelWriter:
                 cell.border = border
                 cell.alignment = center
                 cell.fill = fill
-        # Write records (which also re-apply borders via _write_row_xlsx)
+        # Write records; None entries are separator rows — skip them (already cleared)
         for i, record in enumerate(records):
-            self._write_row_xlsx(ws, self.DATA_START_ROW + i, record)
+            if record is not None:
+                self._write_row_xlsx(ws, self.DATA_START_ROW + i, record)
         wb.save(path)
 
     def _rewrite_all_xls(self, path: Path, records: list) -> None:
@@ -564,7 +567,8 @@ class ExcelWriter:
         for row_idx in range(self.DATA_START_ROW - 1, self.MAX_ROW):
             for col_idx in range(8):
                 ws.write(row_idx, col_idx, "", data_style)
-        # Write records consecutively (also apply data_style via _write_row_xls)
+        # Write records; None entries are separator rows — skip them (already cleared)
         for i, record in enumerate(records):
-            self._write_row_xls(ws, self.DATA_START_ROW - 1 + i, record)
+            if record is not None:
+                self._write_row_xls(ws, self.DATA_START_ROW - 1 + i, record)
         wb.save(str(path))

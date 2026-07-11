@@ -84,7 +84,7 @@ class TestDateRule:
     def test_load_nonempty_table_sets_date_flag_true(self):
         vm = BurnViewModel()
         vm._reader = MagicMock()
-        vm._reader.read_all.return_value = [_rec()]
+        vm._reader.read_all_with_separators.return_value = [_rec()]
         vm._writer = MagicMock()
         vm._detector = MagicMock()
         vm._detector.detect_from_records.return_value = TableStatus(1, 37, False, "")
@@ -165,7 +165,7 @@ class TestSheetFormatDedupRule:
             _rec(sheet_format="-----", program_number="D"),
         ]
         vm._reader = MagicMock()
-        vm._reader.read_all.return_value = records
+        vm._reader.read_all_with_separators.return_value = records
         vm._writer = MagicMock()
         vm._detector = MagicMock()
         vm._detector.detect_from_records.return_value = TableStatus(4, 34, False, "")

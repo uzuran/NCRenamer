@@ -219,7 +219,7 @@ class BurnViewModel:
             records = [r for r in display if r is not None]
             self._records = records
             self._table_path = path.resolve()
-            self._status = self._detector.detect_from_records(len(records))
+            self._status = self._detector.detect_from_records(len(display))
             self._next_write_row = self._compute_next_write_row(path, records)
             # If the table already has rows the date was already written;
             # new appends must leave the date cell empty.
@@ -361,7 +361,7 @@ class BurnViewModel:
             self._display_rows.append(record_to_write)
             self._display_rows.append(None)  # separator
             self._pending_record = None
-            self._status = self._detector.detect_from_records(len(self._records))
+            self._status = self._detector.detect_from_records(len(self._display_rows))
             self._set_message(
                 self._texts.get("record_saved", "Record saved to row {}.").format(
                     row_num
@@ -480,6 +480,7 @@ class BurnViewModel:
             self._next_write_row += 1
             self._display_rows.extend(batch_written)
             self._display_rows.append(None)  # separator after batch
+            self._status = self._detector.detect_from_records(len(self._display_rows))
 
         popup_parts: list[str] = []
         if duplicates:
@@ -557,10 +558,10 @@ class BurnViewModel:
         """Re-read the table file and refresh the capacity status."""
         if self._table_path and self._table_path.is_file():
             try:
-                self._status = self._detector.detect(self._table_path)
                 display = self._reader.read_all_with_separators(self._table_path)
                 self._display_rows = display
                 self._records = [r for r in display if r is not None]
+                self._status = self._detector.detect_from_records(len(display))
                 self._set_message(
                     self._texts.get("status_refreshed", "Status refreshed.")
                 )
@@ -639,16 +640,29 @@ class BurnViewModel:
         if not (0 <= index < len(self._records)):
             return
         self._records[index] = record
+        # Update _display_rows in-place BEFORE the rewrite so separator rows (None
+        # entries) are preserved in both the treeview and the written Excel file.
+        data_count = 0
+        for i, disp_row in enumerate(self._display_rows):
+            if disp_row is not None:
+                if data_count == index:
+                    self._display_rows[i] = record
+                    break
+                data_count += 1
+        else:
+            self._display_rows = list(self._records)
         try:
-            self._writer.rewrite_all_records(self._table_path, self._records)
+            # Pass _display_rows (with None separators) so blank rows are preserved
+            # in the physical Excel layout, not just in the treeview.
+            self._writer.rewrite_all_records(self._table_path, self._display_rows)
         except Exception as exc:
             self._set_message(
                 self._texts.get("save_error", "Save error: {}").format(exc), ok=False
             )
             self._notify()
             return
-        self._next_write_row = ExcelWriter.DATA_START_ROW + len(self._records)
-        self._display_rows = list(self._records)  # rewrite packs records; no separators
+        # Each entry in _display_rows (data or separator) occupies one physical row.
+        self._next_write_row = ExcelWriter.DATA_START_ROW + len(self._display_rows)
         self._set_message(self._texts.get("record_updated", "Record updated."))
         self._notify()
 
