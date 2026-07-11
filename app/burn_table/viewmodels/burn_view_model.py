@@ -112,6 +112,10 @@ class BurnViewModel:
         # Popup warning to show after next notify (cleared by view after display)
         self._popup_message: str | None = None
 
+        # Optional reference to the other sheet's VM for cross-sheet duplicate checks.
+        # Set by the app after both VMs are constructed.
+        self._peer_vm: BurnViewModel | None = None
+
         # Tracks the next Excel row to write into, managed explicitly so that
         # batch uploads pack records consecutively with ONE separator per batch.
         self._next_write_row: int = ExcelWriter.DATA_START_ROW
@@ -360,11 +364,16 @@ class BurnViewModel:
         self._set_message(self._texts.get("record_discarded", "Record discarded."))
         self._notify()
 
+    def set_peer_vm(self, peer: BurnViewModel) -> None:
+        """Wire the other sheet's VM so cross-sheet duplicate checks are possible."""
+        self._peer_vm = peer
+
     def validate_unique_program(self, program_number: str) -> bool:
-        """Return True when *program_number* is not already in the loaded records."""
+        """Return True when *program_number* is not already in the loaded records (case-insensitive)."""
         if not program_number:
             return True
-        return not any(r.program_number == program_number for r in self._records)
+        pn_lower = program_number.strip().lower()
+        return not any(r.program_number.strip().lower() == pn_lower for r in self._records)
 
     def load_and_append_batch(
         self,
@@ -391,6 +400,7 @@ class BurnViewModel:
         added: int = 0
         failed: list[str] = []
         duplicates: list[str] = []
+        cross_duplicates: list[str] = []
         product_group_written = False  # reset every batch call
 
         # Phase 1: parse all records first so we can sort them before writing.
@@ -418,6 +428,14 @@ class BurnViewModel:
             if not self.validate_unique_program(record.program_number):
                 duplicates.append(record.program_number)
                 continue
+            if self._peer_vm is not None and record.program_number:
+                pn_lower = record.program_number.strip().lower()
+                if any(
+                    r.program_number.strip().lower() == pn_lower
+                    for r in self._peer_vm._records
+                ):
+                    cross_duplicates.append(record.program_number)
+                    continue
             record_to_write = self._prepare_record_for_writing(record)
             # For the first written record: apply user date and product_group.
             if product_group_written:
@@ -440,8 +458,9 @@ class BurnViewModel:
                 self._writer.write_empty_row(self._table_path, self._next_write_row)
             self._next_write_row += 1
 
+        popup_parts: list[str] = []
         if duplicates:
-            self._popup_message = (
+            popup_parts.append(
                 self._texts.get(
                     "dup_program_warning",
                     "Program already exists in table.\nDuplicate records are not allowed.",
@@ -449,7 +468,20 @@ class BurnViewModel:
                 + "\n\n"
                 + ", ".join(duplicates)
             )
+        if cross_duplicates:
+            peer_name = self._peer_vm._sheet_name if self._peer_vm else ""
+            popup_parts.append(
+                self._texts.get(
+                    "dup_cross_sheet_warning",
+                    "Program already exists in the other table ({}).",
+                ).format(peer_name)
+                + "\n\n"
+                + ", ".join(cross_duplicates)
+            )
+        if popup_parts:
+            self._popup_message = "\n\n".join(popup_parts)
 
+        all_skipped = duplicates + cross_duplicates
         if failed:
             self._set_message(
                 self._texts.get(
@@ -457,11 +489,11 @@ class BurnViewModel:
                 ).format(added, len(failed), failed[0]),
                 ok=added > 0,
             )
-        elif duplicates and added == 0:
+        elif all_skipped and added == 0:
             self._set_message(
                 self._texts.get(
                     "skipped_duplicate", "Skipped — duplicate program: {}"
-                ).format(", ".join(duplicates)),
+                ).format(", ".join(all_skipped)),
                 ok=False,
             )
         else:

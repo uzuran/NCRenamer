@@ -105,6 +105,8 @@ class App(ctk.CTk):
             sheet_name="Hliník",
             settings_key="last_table_path_alu",
         )
+        self.vm_steel.set_peer_vm(self.vm_aluminium)
+        self.vm_aluminium.set_peer_vm(self.vm_steel)
         self.burn_table_frame = BurnTableFrame(
             master=self,
             app_instance=self,
