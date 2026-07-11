@@ -1,0 +1,127 @@
+================================================================================
+  NC/SCH Renamer
+  Copyright (c) 2026 Arťom Černopaščenko
+  Licensed under Creative Commons BY-NC-ND 4.0
+================================================================================
+
+FULL LEGAL TEXT
+  https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode
+
+--------------------------------------------------------------------------------
+HUMAN-READABLE SUMMARY
+--------------------------------------------------------------------------------
+
+YOU ARE FREE TO:
+
+  Share  — copy and redistribute this software in its original, unmodified
+           form, on any medium or format, for non-commercial purposes only.
+
+YOU MUST:
+
+  Give credit  — clearly state the author's name (Arťom Černopaščenko), the project name
+                 (NC/SCH Renamer), the year (2026), and include a link to
+                 this license whenever you share the software.
+
+  Keep it intact  — you may not remove or alter any copyright notices,
+                    license statements, or attribution information.
+
+YOU MAY NOT:
+
+  Use commercially  — you may not use this software, or any part of it,
+                      for commercial purposes, paid services, or any activity
+                      intended for commercial advantage or monetary compensation.
+
+  Modify  — you may not alter, transform, translate, or build upon this
+             software in any way.
+
+  Distribute derivatives  — you may not create or share modified or adapted
+                            versions of this software.
+
+NO WARRANTIES:
+
+  This software is provided "as is", without any warranty of any kind.
+  The author is not liable for any damages arising from its use.
+
+--------------------------------------------------------------------------------
+HOW TO APPLY THIS LICENSE TO YOUR PROJECT
+--------------------------------------------------------------------------------
+
+1. FILE PLACEMENT
+   Place this file as:
+     LICENSE.txt        (project root — required)
+
+2. README.MD
+   Add the following section at the bottom of your README.md:
+
+     ## License
+     Copyright (c) 2026 Arťom Černopaščenko
+     NC/SCH Renamer is licensed under the
+     Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 International License.
+     You may not modify or use this software for commercial purposes.
+     Full legal text: https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode
+
+3. ABOUT DIALOG (IN-APP)
+   Show the following text in your application's About or Info dialog:
+
+     NC/SCH Renamer  v<version>
+     Copyright (c) 2026 Arťom Černopaščenko
+
+     This software is licensed under CC BY-NC-ND 4.0.
+     Free for non-commercial use. Modification and redistribution
+     of modified versions are not permitted.
+
+     https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode
+
+4. OPTIONAL SOURCE FILE HEADER
+   You may add the following comment at the top of each Python source file:
+
+     # Copyright (c) 2026 Arťom Černopaščenko
+     # NC/SCH Renamer — licensed under CC BY-NC-ND 4.0
+     # https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode
+
+--------------------------------------------------------------------------------
+COMPATIBILITY NOTES
+--------------------------------------------------------------------------------
+
+Python source code
+  CC BY-NC-ND 4.0 applies to source code as a creative work. It prevents
+  anyone from copying, forking, or modifying your .py files without permission.
+  Note: Creative Commons licenses do not include a patent grant. For an internal
+  desktop tool this is not a concern, but it is worth knowing.
+
+Tkinter UI
+  Tkinter is part of the Python standard library (PSF License). Your use of
+  Tkinter does not conflict with applying CC BY-NC-ND 4.0 to your own code.
+
+Excel integration (openpyxl, xlrd, xlwt, xlutils)
+  These libraries are used as dependencies under their own open-source licenses.
+  CC BY-NC-ND 4.0 covers only your original code, not the libraries themselves.
+  There is no conflict.
+
+Shared material repository (materials/materials.json)
+  This is a data file generated and owned by you. It is not separately licensed
+  and is covered implicitly as part of the distributed software package.
+
+Multi-user environment
+  CC BY-NC-ND 4.0 covers distribution and copying of the software, not internal
+  use across a network. Running the same EXE from a shared network folder by
+  multiple employees of the same organisation is permitted.
+
+Distribution as EXE (PyInstaller)
+  Distributing a compiled binary is allowed under CC BY-NC-ND 4.0 as long as
+  it remains unmodified and is not used commercially. Recipients must receive
+  this LICENSE.txt alongside the EXE.
+
+--------------------------------------------------------------------------------
+COMPLIANCE CHECKLIST
+--------------------------------------------------------------------------------
+
+  [x]  LICENSE.txt is placed in the project root
+  [x]  LICENSE.txt is distributed alongside the EXE (in the same folder)
+  [x]  README.md contains a License section with author, year, and link
+  [x]  The About dialog in the application displays the license and author name
+  [x]  No third party has received a modified version of this software
+  [x]  No one is using this software for commercial purposes
+  [x]  The author name and year are not removed from any distributed copy
+
+================================================================================

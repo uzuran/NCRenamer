@@ -204,3 +204,16 @@ The resulting binary is written to `dist/`. The `.spec` file configures asset bu
 `0.1.0` — see [app/version.py](app/version.py)
 
 Author: Černopaščenko Arťom
+
+---
+
+## License
+
+Copyright (c) 2026 Arťom Černopaščenko
+
+NC/SCH Renamer is licensed under the
+[Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 International License](https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode).
+
+You may share this software in its original form for non-commercial purposes only.
+Modification, adaptation, and commercial use are not permitted.
+See [LICENSE.txt](LICENSE.txt) for the full summary.

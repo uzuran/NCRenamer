@@ -6,6 +6,7 @@ from rich.console import Console
 
 from app.services.email_service import EmailService
 from app.utils.resource_path import resource_path
+from app.views.about_dialog import AboutDialog
 
 cons = Console()
 
@@ -66,6 +67,14 @@ class MainFrame(ctk.CTkFrame):
             width=30,
         )
         self.settings_btn.pack(side="right", anchor="e")
+
+        self.about_btn = ctk.CTkButton(
+            self.top_bar,
+            text=self.texts.get("about_button", "?"),
+            width=30,
+            command=self.open_about_dialog,
+        )
+        self.about_btn.pack(side="right", anchor="e", padx=(0, 4))
 
         # Rest of your UI (centered below top bar)
         self.count_label = ctk.CTkLabel(
@@ -212,6 +221,10 @@ class MainFrame(ctk.CTkFrame):
                 ),
             )
 
+    def open_about_dialog(self):
+        """Opens the About / License dialog."""
+        AboutDialog(self, texts=self.texts)
+
     def open_settings_window(self):
         """Opens the SettingsFrame (or switches view)."""
         if self.app_instance:
@@ -245,6 +258,7 @@ class MainFrame(ctk.CTkFrame):
         )
         self.report_bug_btn.configure(text=self.texts.get("report_bug", "Report bug"))
         self.burn_table_btn.configure(text=self.texts.get("burn_table", "Burn Table"))
+        self.about_btn.configure(text=self.texts.get("about_button", "?"))
 
     def unselect_selected_nc(self):
         if not self.vm.file_paths:

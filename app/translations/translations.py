@@ -1,4 +1,4 @@
-# translations.py
+"""UI string dictionaries for Czech (cs) and English (en)."""
 
 # Slovník pro češtinu
 cs = {
@@ -28,6 +28,9 @@ cs = {
     "search_placeholder": "Zadejte hledaný materiál...",
     "search_button": "Hledat",
     "back_button": "Zpět",
+    "about_button": "?",
+    "about_title": "O programu NC/SCH Renamer",
+    "about_close": "Zavřít",
     "appearance_mode_setting": "Změnit režim vzhledu",
     "language_setting": "Zvolit jazyk",
     "email_count": "Počet hlášení chyb: {}",
@@ -40,7 +43,10 @@ cs = {
     "reset_counter_title": "Počítadlo resetováno",
     "reset_counter_message": "Počítadlo hlášení chyb bylo resetováno na 0.",
     "email_error_title": "Chyba",
-    "email_error_message": "Nepodařilo se otevřít výchozí e-mailový klient. Ujistěte se, že máte nějaký nastavený.",
+    "email_error_message": (
+        "Nepodařilo se otevřít výchozí e-mailový klient."
+        " Ujistěte se, že máte nějaký nastavený."
+    ),
     "password_prompt": "Zadejte heslo pro resetování počítadla.",
     "password_required_title": "Vyžadováno heslo",
     "password_incorrect": "Nesprávné heslo!",
@@ -140,6 +146,9 @@ en = {
     "search_placeholder": "Enter search material...",
     "search_button": "Search",
     "back_button": "Back",
+    "about_button": "?",
+    "about_title": "About NC/SCH Renamer",
+    "about_close": "Close",
     "appearance_mode_setting": "Change Appearance Mode",
     "language_setting": "Select Language",
     "email_count": "Number of bug reports: {}",
