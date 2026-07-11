@@ -9,14 +9,14 @@ if TYPE_CHECKING:
 
 # Column headers for row 1 — capitalized, single-line, white background
 _ROW1_HEADERS = [
-    "Datum pálení",               # A
-    "Číslo progr.",               # B
-    "Formát tabule délka x šířka",# C
-    "Počet tabulí Ks",            # D
-    "Celkový čas progr.",         # E
-    "Vypáleno",                   # F
-    "Druh výrobku skupina",       # G
-    "Pálil",                      # H
+    "Datum pálení",  # A
+    "Číslo progr.",  # B
+    "Formát tabule délka x šířka",  # C
+    "Počet tabulí Ks",  # D
+    "Celkový čas progr.",  # E
+    "Vypáleno",  # F
+    "Druh výrobku skupina",  # G
+    "Pálil",  # H
 ]
 
 # Character widths per column (A-H)

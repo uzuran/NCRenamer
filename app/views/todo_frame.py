@@ -115,15 +115,21 @@ class TodoFrame(ctk.CTkFrame):
         self.tree.heading("status", text=self.texts.get("todo_col_status", "✓"))
         self.tree.heading("text", text=self.texts.get("todo_col_text", "Task"))
         self.tree.heading("date", text=self.texts.get("todo_col_date", "Date"))
-        self.tree.column("status", width=40,  minwidth=30,  anchor="center", stretch=False)
-        self.tree.column("text",   width=220,  minwidth=80,  anchor="w",      stretch=True)
-        self.tree.column("date",   width=155,  minwidth=155, anchor="center", stretch=False)
+        self.tree.column(
+            "status", width=40, minwidth=30, anchor="center", stretch=False
+        )
+        self.tree.column("text", width=220, minwidth=80, anchor="w", stretch=True)
+        self.tree.column(
+            "date", width=155, minwidth=155, anchor="center", stretch=False
+        )
 
         # Done items shown in gray
         self.tree.tag_configure("done", foreground="gray60")
         self.tree.tag_configure("pending", foreground="")
 
-        scrollbar = ttk.Scrollbar(tree_frame, orient="vertical", command=self.tree.yview)
+        scrollbar = ttk.Scrollbar(
+            tree_frame, orient="vertical", command=self.tree.yview
+        )
         self.tree.configure(yscrollcommand=scrollbar.set)
         self.tree.pack(side="left", fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
@@ -163,7 +169,11 @@ class TodoFrame(ctk.CTkFrame):
             except Exception:
                 date_str = raw_date or "—"
             self.tree.insert(
-                "", "end", iid=item["id"], values=(status, item["text"], date_str), tags=(tag,)
+                "",
+                "end",
+                iid=item["id"],
+                values=(status, item["text"], date_str),
+                tags=(tag,),
             )
 
     # ─── Selection handling (mirrors add_material_frame.py) ──────────────────
@@ -306,7 +316,11 @@ class TodoFrame(ctk.CTkFrame):
         self.tree.heading("date", text=new_texts.get("todo_col_date", "Date"))
         # Done button label depends on current selection state
         if self._editing_id:
-            values = self.tree.item(self._editing_id, "values") if self.tree.exists(self._editing_id) else ()
+            values = (
+                self.tree.item(self._editing_id, "values")
+                if self.tree.exists(self._editing_id)
+                else ()
+            )
             is_done = len(values) > 0 and values[0] == "✓"
             self.done_btn.configure(
                 text=new_texts.get("todo_mark_pending", "Mark pending")

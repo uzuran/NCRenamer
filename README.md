@@ -1,22 +1,35 @@
 # NC Renamer
 
-A desktop utility that validates and corrects material codes embedded in CNC NC files.
-NC Renamer reads line 4 of each file (the `(MA/...)` field), looks up the code against
-a configurable CSV mapping table, and rewrites it in the canonical format — in bulk,
-with a progress bar, and without leaving the GUI.
+A desktop utility that validates and corrects material codes embedded in CNC NC files,
+manages a laser burn table, and tracks work tasks — all from a single GUI with Czech/English support.
 
 ---
 
 ## Features
 
+### NC File Renamer
 - **Bulk processing** — select any number of `.NC` files and fix them in one click
 - **CSV-driven material mapping** — add, edit, or remove incorrect→correct code pairs through the built-in materials manager
 - **Space-inference fallback** — automatically inserts the missing space between numeric code and suffix (e.g. `1.4301Brus` → `1.4301 Brus`) when no explicit mapping exists
 - **Real-time progress bar** — file-by-file feedback during processing
+
+### Burn Table
+- **Steel and aluminium tabs** — each backed by its own Excel sheet, loaded from the same file
+- **Batch NC loading** — drag and drop or select multiple `.NC` / `.SCH` files; records are sorted and written in one operation with a separator row
+- **Duplicate detection** — rejects programs already in the **same** sheet or the **other** sheet (cross-sheet validation, case-insensitive)
+- **Print support** — print selected rows directly from the table view
+- **Free-slot detection** — shows how many rows remain before the table is full
+
+### Todo List
+- **Add / edit / delete tasks** with a timestamp (date and time recorded on creation)
+- **Mark done / pending** — done items shown in grey, sorted to the bottom
+- **Double-click detail popup** — opens the full note text in a scrollable window
+
+### General
 - **Bug report email** — one-click mailto with an auto-incremented subject line; counter is password-protected and persists between sessions
 - **Light / Dark mode toggle** — stored in user settings
 - **Czech / English UI** — switchable at runtime without restart
-- **Auto-update check** — on launch, queries GitHub for a newer version
+- **Auto-update check** — queries GitHub for a newer release on launch
 
 ---
 
@@ -25,34 +38,44 @@ with a progress bar, and without leaving the GUI.
 ```
 NCRenamer/
 ├── app/
-│   ├── models/             # Domain logic and data (no UI imports)
-│   │   ├── email_model.py          # Bug-report counter persistence
-│   │   ├── formatter_model.py      # NC file validation and rewriting
-│   │   ├── material_repository.py  # Tab-separated CSV CRUD
-│   │   ├── password_model.py       # Password verification
-│   │   └── settings_model.py       # JSON settings persistence
-│   ├── viewmodels/         # Mediators between models and views (no CTk imports)
+│   ├── models/                     # Domain logic and data (no UI imports)
+│   │   ├── email_model.py              # Bug-report counter persistence
+│   │   ├── formatter_model.py          # NC file validation and rewriting
+│   │   ├── material_repository.py      # Tab-separated CSV CRUD
+│   │   ├── password_model.py           # Password verification
+│   │   ├── settings_model.py           # JSON settings persistence
+│   │   └── todo_repository.py          # Todo-item JSON CRUD
+│   ├── viewmodels/                 # Mediators between models and views (no CTk imports)
 │   │   ├── main_view_model.py
 │   │   ├── materials_view_model.py
 │   │   ├── password_view_model.py
-│   │   └── settings_view_model.py
-│   ├── views/              # customtkinter frames (UI only)
+│   │   ├── settings_view_model.py
+│   │   └── todo_view_model.py
+│   ├── views/                      # customtkinter frames (UI only)
 │   │   ├── main_frame.py
 │   │   ├── materials_frame.py
 │   │   ├── add_material_frame.py
-│   │   └── settings_frame.py
+│   │   ├── burn_table_frame.py
+│   │   ├── settings_frame.py
+│   │   └── todo_frame.py
+│   ├── burn_table/                 # Burn-table sub-application
+│   │   ├── models/                     # BurnRecord, TableStatus
+│   │   ├── services/                   # ExcelReader, ExcelWriter, XmlParser, …
+│   │   ├── viewmodels/                 # BurnViewModel, PerformanceRecorder, PrintManager
+│   │   ├── views/                      # BurnDashboard (standalone mode)
+│   │   └── main.py                     # Factory: create_view_model()
 │   ├── services/
-│   │   └── update_checker.py       # GitHub version check
+│   │   └── update_checker.py           # GitHub version check
 │   ├── translations/
-│   │   └── translations.py         # Czech / English string dictionaries
+│   │   └── translations.py             # Czech / English string dictionaries
 │   └── utils/
-│       └── resource_path.py        # PyInstaller-aware asset resolution
+│       ├── resource_path.py            # PyInstaller-aware asset resolution
+│       └── shared_storage.py           # exe_dir() + file_lock() shared by repositories
 ├── CNCs/
-│   └── materials_new.csv   # Seed mapping table (incorrect_code → correct_code)
+│   └── laser.xls           # Burn table Excel file (steel sheet 0, aluminium sheet 1)
 ├── tests/
 │   ├── unit/               # Pure unit tests, no filesystem or GUI
 │   └── integration/        # Real filesystem, real repository
-├── resources/              # Runtime JSON (settings, email counter)
 ├── img/                    # UI icons
 ├── app.py                  # Entry point
 ├── Makefile
@@ -72,6 +95,8 @@ The project follows **MVVM** (Model – View – ViewModel):
 | Model | stdlib, third-party | views, viewmodels, customtkinter |
 | ViewModel | models | views, customtkinter |
 | View | viewmodels, customtkinter | models directly |
+
+The burn table reuses the same pattern as the main app — `BurnViewModel` is assembled by a factory function (`create_view_model`) and injected into the view with no direct service access from the UI layer.
 
 ---
 
@@ -98,7 +123,8 @@ pre-commit install
 ## Running
 
 ```bash
-make run
+make run          # Main application
+make run-burn     # Burn table (standalone)
 ```
 
 Or directly:
@@ -148,6 +174,7 @@ On first launch the seed CSV is copied to the user's AppData directory so change
 
 ```
 make run                 Launch the application
+make run-burn            Launch the burn table (standalone)
 make test                Full test suite
 make test-unit           Unit tests only
 make test-integration    Integration tests only
@@ -170,7 +197,7 @@ make test
 python3 -m pytest tests/
 ```
 
-153 tests — unit and integration — covering models, viewmodels, and the NC processing pipeline.
+521 tests — unit and integration — covering models, viewmodels, the NC processing pipeline, burn table validation (including cross-sheet duplicate detection), todo repository, and shared storage.
 
 ### Code quality
 
@@ -192,16 +219,16 @@ make lint
 ## Building a Windows executable
 
 ```bash
-pyinstaller app.spec
+make build
 ```
 
-The resulting binary is written to `dist/`. The `.spec` file configures asset bundling (icons, CSV, translations).
+Uses PyInstaller via `NCRenamer.spec`. The resulting binary is written to `dist/`. The `laser.xls` burn table is placed next to the executable (not bundled inside it) so users can edit it freely.
 
 ---
 
 ## Version
 
-`0.1.0` — see [app/version.py](app/version.py)
+`2.3.0` — see [app/version.py](app/version.py)
 
 Author: Černopaščenko Arťom
 

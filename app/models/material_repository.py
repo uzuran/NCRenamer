@@ -36,8 +36,8 @@ import json
 import os
 from pathlib import Path
 
-from app.utils.shared_storage import exe_dir as _exe_dir, file_lock as _file_lock
-
+from app.utils.shared_storage import exe_dir as _exe_dir
+from app.utils.shared_storage import file_lock as _file_lock
 
 # ---------------------------------------------------------------------------
 # Repository
@@ -93,7 +93,9 @@ class MaterialRepository:
                 continue
             try:
                 with open(csv_path, encoding="utf-8-sig") as f:
-                    rows = [row for row in csv.reader(f, delimiter="\t") if len(row) >= 2]
+                    rows = [
+                        row for row in csv.reader(f, delimiter="\t") if len(row) >= 2
+                    ]
                 if rows:
                     self._write_atomic(rows)
                     return True

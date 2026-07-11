@@ -153,9 +153,7 @@ class AboutDialog(ctk.CTkToplevel):
                 ).pack(side="left", anchor="nw", padx=(0, 6))
 
         # ── Full legal text link ──────────────────────────────────────────────
-        ctk.CTkFrame(scroll, height=1, fg_color="gray40").pack(
-            fill="x", pady=(12, 6)
-        )
+        ctk.CTkFrame(scroll, height=1, fg_color="gray40").pack(fill="x", pady=(12, 6))
 
         ctk.CTkLabel(
             scroll,

@@ -195,9 +195,12 @@ class App(ctk.CTk):
             ctk.CTkOptionMenu,
         )
         _tk_interactive_classes = {
-            "TScrollbar", "Scrollbar",
-            "TCombobox",  "Combobox",
-            "TButton",    "Button",
+            "TScrollbar",
+            "Scrollbar",
+            "TCombobox",
+            "Combobox",
+            "TButton",
+            "Button",
         }
         current = widget
         while current is not None:

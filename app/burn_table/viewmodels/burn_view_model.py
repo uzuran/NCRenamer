@@ -373,7 +373,9 @@ class BurnViewModel:
         if not program_number:
             return True
         pn_lower = program_number.strip().lower()
-        return not any(r.program_number.strip().lower() == pn_lower for r in self._records)
+        return not any(
+            r.program_number.strip().lower() == pn_lower for r in self._records
+        )
 
     def load_and_append_batch(
         self,

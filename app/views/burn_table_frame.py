@@ -29,14 +29,14 @@ _MIN_WIDTHS = (80, 60, 110, 35, 65, 45, 65, 65)
 # Maps each treeview column to its BurnRecord attribute and edit entry width.
 # (text_key, attr_name, entry_width, fallback_label)
 _EDIT_FIELDS = (
-    ("col_date",       "date",          70,  "Date"),
-    ("col_program",    "program_number", 80,  "Program"),
-    ("col_sheet_fmt",  "sheet_format",  150,  "Format"),
-    ("col_count",      "sheet_count",    45,  "Count"),
-    ("col_total_time", "total_time",     70,  "Time"),
-    ("col_burned",     "burned",         55,  "Burned"),
-    ("col_product",    "product_group",  90,  "Product"),
-    ("col_operator",   "operator",       85,  "Operator"),
+    ("col_date", "date", 70, "Date"),
+    ("col_program", "program_number", 80, "Program"),
+    ("col_sheet_fmt", "sheet_format", 150, "Format"),
+    ("col_count", "sheet_count", 45, "Count"),
+    ("col_total_time", "total_time", 70, "Time"),
+    ("col_burned", "burned", 55, "Burned"),
+    ("col_product", "product_group", 90, "Product"),
+    ("col_operator", "operator", 85, "Operator"),
 )
 
 
@@ -476,10 +476,16 @@ class _BurnTabContent(ctk.CTkFrame):
         self.texts = new_texts
         self.load_nc_btn.configure(text=new_texts.get("load_nc_sch", "Load NC/SCH"))
         self.clear_table_btn.configure(text=new_texts.get("clear_table", "Clear table"))
-        self.delete_record_btn.configure(text=new_texts.get("delete_record", "Delete row"))
+        self.delete_record_btn.configure(
+            text=new_texts.get("delete_record", "Delete row")
+        )
         self.print_btn.configure(text=new_texts.get("print_table", "Print"))
-        self.update_record_btn.configure(text=new_texts.get("update_record", "Save changes"))
-        self.cancel_edit_btn.configure(text=new_texts.get("cancel_edit_record", "Unselect"))
+        self.update_record_btn.configure(
+            text=new_texts.get("update_record", "Save changes")
+        )
+        self.cancel_edit_btn.configure(
+            text=new_texts.get("cancel_edit_record", "Unselect")
+        )
         for text_key, attr, _, fallback in _EDIT_FIELDS:
             self._edit_labels[attr].configure(text=new_texts.get(text_key, fallback))
         self._configure_columns()

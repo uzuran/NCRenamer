@@ -2,8 +2,6 @@
 
 from pathlib import Path
 
-import pytest
-
 from app.utils.shared_storage import exe_dir, file_lock
 
 

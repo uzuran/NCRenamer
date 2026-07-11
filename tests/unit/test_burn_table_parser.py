@@ -135,7 +135,7 @@ class TestMultiplyTime:
     """PerformanceRecorder._multiply_time unit tests."""
 
     def test_multiplies_base_time_by_count(self):
-        # 00:03:09 × 3 = 189s × 3 = 567s = 9m27s
+        # 00:03:09 x 3 = 189s x 3 = 567s = 9m27s
         assert PerformanceRecorder._multiply_time("00:03:09", 3) == "00:09:27"
 
     def test_count_one_returns_unchanged(self):
@@ -145,7 +145,7 @@ class TestMultiplyTime:
         assert PerformanceRecorder._multiply_time("00:21:51", 0) == "00:21:51"
 
     def test_overflow_into_hours(self):
-        # 00:21:51 × 3 = 1311s = 65m33s = 1h5m33s
+        # 00:21:51 x 3 = 1311s = 65m33s = 1h5m33s
         assert PerformanceRecorder._multiply_time("00:21:51", 3) == "01:05:33"
 
     def test_empty_string_returns_empty(self):

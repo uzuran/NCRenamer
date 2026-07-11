@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import json
-import os
 import sys
 import threading
 from pathlib import Path
@@ -14,7 +13,6 @@ import pytest
 from app.models.material_repository import MaterialRepository
 from app.utils.shared_storage import exe_dir
 
-
 # --------------------------------------------------------------------------- #
 # Helpers
 # --------------------------------------------------------------------------- #
@@ -23,7 +21,10 @@ from app.utils.shared_storage import exe_dir
 def _make_json(tmp_path: Path, rows: list[list[str]] | None = None) -> Path:
     """Write a JSON material file and return its path (always creates the file)."""
     p = tmp_path / "materials.json"
-    p.write_text(json.dumps(rows if rows is not None else [], ensure_ascii=False), encoding="utf-8")
+    p.write_text(
+        json.dumps(rows if rows is not None else [], ensure_ascii=False),
+        encoding="utf-8",
+    )
     return p
 
 
@@ -41,7 +42,9 @@ def repo(tmp_path) -> MaterialRepository:
 @pytest.fixture
 def repo_with_data(tmp_path) -> MaterialRepository:
     """Repository pre-loaded with two entries."""
-    p = _make_json(tmp_path, [["1.4301BRUS-4.0", "1.4301 brus"], ["1.0037-2.0", "1.0037"]])
+    p = _make_json(
+        tmp_path, [["1.4301BRUS-4.0", "1.4301 brus"], ["1.0037-2.0", "1.0037"]]
+    )
     return MaterialRepository(path=p)
 
 
@@ -150,7 +153,10 @@ def test_delete_material_strips_whitespace(repo_with_data):
 
 
 def test_update_material_returns_true(repo_with_data):
-    assert repo_with_data.update_material("1.4301BRUS-4.0", "1.4301BRUS-4.0", "new") is True
+    assert (
+        repo_with_data.update_material("1.4301BRUS-4.0", "1.4301BRUS-4.0", "new")
+        is True
+    )
 
 
 def test_update_material_changes_value(repo_with_data):
@@ -264,7 +270,11 @@ def test_exe_dir_is_parent_of_argv0():
 
 
 def test_default_path_is_under_exe_dir():
-    expected = exe_dir() / MaterialRepository._DEFAULT_SUBDIR / MaterialRepository._DEFAULT_FILENAME
+    expected = (
+        exe_dir()
+        / MaterialRepository._DEFAULT_SUBDIR
+        / MaterialRepository._DEFAULT_FILENAME
+    )
     assert expected == exe_dir() / "materials" / "materials.json"
 
 
@@ -279,7 +289,7 @@ def test_path_override_is_respected(tmp_path):
 
 def test_repository_creates_parent_directories(tmp_path):
     p = tmp_path / "deep" / "nested" / "materials.json"
-    repo = MaterialRepository(path=p)
+    MaterialRepository(path=p)
     assert p.parent.is_dir()
 
 

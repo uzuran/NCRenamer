@@ -15,6 +15,7 @@ def repo(tmp_path: Path) -> TodoRepository:
 
 # ── add_item ─────────────────────────────────────────────────────────────────
 
+
 class TestAddItem:
     def test_returns_id_string(self, repo):
         item_id = repo.add_item("Buy milk")
@@ -64,23 +65,20 @@ class TestAddItem:
 
 # ── load_items ───────────────────────────────────────────────────────────────
 
+
 class TestLoadItems:
     def test_empty_on_fresh_repo(self, repo):
         assert repo.load_items() == []
 
     def test_skips_items_without_id(self, tmp_path):
         path = tmp_path / "todo.json"
-        path.write_text(
-            json.dumps([{"text": "no id here"}]), encoding="utf-8"
-        )
+        path.write_text(json.dumps([{"text": "no id here"}]), encoding="utf-8")
         r = TodoRepository(path=path)
         assert r.load_items() == []
 
     def test_skips_items_without_text(self, tmp_path):
         path = tmp_path / "todo.json"
-        path.write_text(
-            json.dumps([{"id": "abc", "done": False}]), encoding="utf-8"
-        )
+        path.write_text(json.dumps([{"id": "abc", "done": False}]), encoding="utf-8")
         r = TodoRepository(path=path)
         assert r.load_items() == []
 
@@ -92,6 +90,7 @@ class TestLoadItems:
 
 
 # ── update_item ──────────────────────────────────────────────────────────────
+
 
 class TestUpdateItem:
     def test_updates_existing_item(self, repo):
@@ -113,6 +112,7 @@ class TestUpdateItem:
 
 
 # ── toggle_done ──────────────────────────────────────────────────────────────
+
 
 class TestToggleDone:
     def test_flips_false_to_true(self, repo):
@@ -137,6 +137,7 @@ class TestToggleDone:
 
 # ── delete_item ──────────────────────────────────────────────────────────────
 
+
 class TestDeleteItem:
     def test_removes_existing_item(self, repo):
         item_id = repo.add_item("Task")
@@ -156,6 +157,7 @@ class TestDeleteItem:
 
 
 # ── persistence ──────────────────────────────────────────────────────────────
+
 
 class TestPersistence:
     def test_data_survives_new_instance(self, tmp_path):

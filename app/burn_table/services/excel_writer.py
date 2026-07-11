@@ -400,7 +400,11 @@ class ExcelWriter:
                 data[(r, c)] = rs.cell_value(r, c)
 
         # ── Step 2: apply 10-col migration in memory ─────────────────────────────
-        f1_old = str(rs.cell_value(0, 5) if rs.nrows > 0 and rs.ncols > 5 else "").strip().lower()
+        f1_old = (
+            str(rs.cell_value(0, 5) if rs.nrows > 0 and rs.ncols > 5 else "")
+            .strip()
+            .lower()
+        )
         if "čas" in f1_old and "progr" in f1_old and "celkov" not in f1_old:
             for r in range(self.DATA_START_ROW - 1, src_row_count):
                 for src, dst in ((6, 5), (7, 6), (8, 7), (9, 8)):
@@ -408,8 +412,12 @@ class ExcelWriter:
                 data[(r, 9)] = ""
 
         # ── Step 3: apply 9-col migration in memory ──────────────────────────────
-        c1_old = str(rs.cell_value(0, 2) if rs.nrows > 0 and rs.ncols > 2 else "").strip()
-        d1_old = str(rs.cell_value(0, 3) if rs.nrows > 0 and rs.ncols > 3 else "").strip()
+        c1_old = str(
+            rs.cell_value(0, 2) if rs.nrows > 0 and rs.ncols > 2 else ""
+        ).strip()
+        d1_old = str(
+            rs.cell_value(0, 3) if rs.nrows > 0 and rs.ncols > 3 else ""
+        ).strip()
         if not c1_old and d1_old:
             for r in range(self.DATA_START_ROW - 1, src_row_count):
                 for src, dst in ((3, 2), (4, 3), (5, 4), (6, 5), (7, 6), (8, 7)):

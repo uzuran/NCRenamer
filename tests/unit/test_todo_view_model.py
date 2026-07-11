@@ -2,8 +2,6 @@
 
 from unittest.mock import MagicMock
 
-import pytest
-
 from app.viewmodels.todo_view_model import TodoViewModel
 
 
@@ -20,12 +18,15 @@ def _make_vm(items=None, texts=None) -> tuple[TodoViewModel, MagicMock]:
 
 # ── get_items ────────────────────────────────────────────────────────────────
 
+
 class TestGetItems:
     def test_pending_items_sort_before_done(self):
-        vm, _ = _make_vm(items=[
-            {"id": "1", "text": "Done task", "done": True},
-            {"id": "2", "text": "Pending task", "done": False},
-        ])
+        vm, _ = _make_vm(
+            items=[
+                {"id": "1", "text": "Done task", "done": True},
+                {"id": "2", "text": "Pending task", "done": False},
+            ]
+        )
         result = vm.get_items()
         assert result[0]["text"] == "Pending task"
         assert result[1]["text"] == "Done task"
@@ -41,6 +42,7 @@ class TestGetItems:
 
 
 # ── add_item ─────────────────────────────────────────────────────────────────
+
 
 class TestAddItem:
     def test_success_returns_true_and_message(self):
@@ -75,6 +77,7 @@ class TestAddItem:
 
 # ── update_item ──────────────────────────────────────────────────────────────
 
+
 class TestUpdateItem:
     def test_success_returns_true_and_message(self):
         vm, _ = _make_vm(texts={"todo_updated": "Task updated."})
@@ -97,6 +100,7 @@ class TestUpdateItem:
 
 
 # ── toggle_done ──────────────────────────────────────────────────────────────
+
 
 class TestToggleDone:
     def test_marking_done_returns_done_message(self):
@@ -123,6 +127,7 @@ class TestToggleDone:
 
 # ── delete_item ──────────────────────────────────────────────────────────────
 
+
 class TestDeleteItem:
     def test_success_returns_true_and_message(self):
         vm, _ = _make_vm(texts={"todo_deleted": "Task deleted."})
@@ -145,6 +150,7 @@ class TestDeleteItem:
 
 
 # ── update_texts ─────────────────────────────────────────────────────────────
+
 
 class TestUpdateTexts:
     def test_replaces_texts_dict(self):

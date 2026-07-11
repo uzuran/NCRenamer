@@ -80,7 +80,7 @@ class BurnRecord:
 
         def _is_numeric(val: object) -> bool:
             try:
-                float(str(val))  # type: ignore[arg-type]
+                float(str(val))
                 return True
             except (ValueError, TypeError):
                 return False
