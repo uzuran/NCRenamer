@@ -73,7 +73,7 @@ class TodoFrame(ctk.CTkFrame):
         )
         self.delete_btn.pack(side="left", padx=6)
 
-        # Button row 2: Update + Toggle Done + Cancel (enabled only on selection)
+        # Button row 2: Update + Toggle Done (enabled only on selection)
         row2 = ctk.CTkFrame(self, fg_color="transparent")
         row2.pack(pady=(0, 4))
 
@@ -96,17 +96,6 @@ class TodoFrame(ctk.CTkFrame):
             command=self._cmd_toggle_done,
         )
         self.done_btn.pack(side="left", padx=6)
-
-        self.cancel_btn = ctk.CTkButton(
-            row2,
-            text=self.texts.get("todo_cancel", "Cancel"),
-            width=90,
-            state="disabled",
-            fg_color="gray40",
-            hover_color="gray30",
-            command=self._deselect,
-        )
-        self.cancel_btn.pack(side="left", padx=6)
 
         # Flash label
         flash_frame = ctk.CTkFrame(self, fg_color="transparent")
@@ -141,6 +130,7 @@ class TodoFrame(ctk.CTkFrame):
 
         self.tree.bind("<<TreeviewSelect>>", self._on_tree_select)
         self.tree.bind("<Button-1>", self._on_tree_click)
+        self.tree.bind("<Double-1>", self._on_tree_double_click)
         self.tree.bind("<Escape>", lambda e: self._deselect())
 
         # Back button
@@ -198,7 +188,6 @@ class TodoFrame(ctk.CTkFrame):
             if is_done
             else self.texts.get("todo_mark_done", "Mark done"),
         )
-        self.cancel_btn.configure(state="normal")
         self.add_btn.configure(state="disabled")
 
     def _reset_edit_state(self) -> None:
@@ -209,7 +198,6 @@ class TodoFrame(ctk.CTkFrame):
             state="disabled",
             text=self.texts.get("todo_mark_done", "Mark done"),
         )
-        self.cancel_btn.configure(state="disabled")
         self.add_btn.configure(state="normal")
 
     def _deselect(self, event=None) -> None:
@@ -218,8 +206,31 @@ class TodoFrame(ctk.CTkFrame):
 
     def _on_tree_click(self, event) -> None:
         row = self.tree.identify_row(event.y)
+        # Empty-area click (not row) or re-click on the selected row both deselect.
         if not row or row in self.tree.selection():
             self._deselect()
+
+    def _on_tree_double_click(self, event) -> None:
+        row = self.tree.identify_row(event.y)
+        if not row:
+            return
+        values = self.tree.item(row, "values")
+        text = values[1] if len(values) > 1 else ""
+        if not text:
+            return
+        popup = ctk.CTkToplevel(self)
+        popup.title(self.texts.get("todo_detail_title", "Task detail"))
+        popup.geometry("420x280")
+        popup.after(100, popup.grab_set)
+        textbox = ctk.CTkTextbox(popup, wrap="word")
+        textbox.pack(fill="both", expand=True, padx=12, pady=(12, 6))
+        textbox.insert("1.0", text)
+        textbox.configure(state="disabled")
+        ctk.CTkButton(
+            popup,
+            text=self.texts.get("about_close", "Close"),
+            command=popup.destroy,
+        ).pack(pady=(0, 12))
 
     # ─── Commands ─────────────────────────────────────────────────────────────
 
@@ -287,7 +298,6 @@ class TodoFrame(ctk.CTkFrame):
         self.add_btn.configure(text=new_texts.get("todo_add", "Add"))
         self.delete_btn.configure(text=new_texts.get("todo_remove", "Delete"))
         self.update_btn.configure(text=new_texts.get("todo_update", "Update"))
-        self.cancel_btn.configure(text=new_texts.get("todo_cancel", "Cancel"))
         self.back_btn.configure(text=new_texts.get("back_button", "Back"))
         self.tree.heading("status", text=new_texts.get("todo_col_status", "✓"))
         self.tree.heading("text", text=new_texts.get("todo_col_text", "Task"))

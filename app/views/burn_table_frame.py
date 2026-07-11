@@ -269,8 +269,8 @@ class _BurnTabContent(ctk.CTkFrame):
             self.tree.selection_remove(iid)
 
     def _on_tree_click(self, event) -> None:
-        """Deselect when clicking on an already-selected row or empty space."""
         row = self.tree.identify_row(event.y)
+        # Empty-area click (not row) or re-click on the selected row both deselect.
         if not row or row in self.tree.selection():
             self._deselect()
 

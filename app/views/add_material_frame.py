@@ -71,14 +71,6 @@ class AddMaterialFrame(ctk.CTkFrame):
         )
         self.update_button.pack(side="left", padx=10)
 
-        self.cancel_button = ctk.CTkButton(
-            buttons_row2,
-            text=self.texts.get("cancel_edit", "Cancel edit"),
-            command=self._deselect,
-            state="disabled",
-        )
-        self.cancel_button.pack(side="left", padx=10)
-
         # ─── FLASH MESSAGE ────────────────────────────────────────────
         flash_message_frame = ctk.CTkFrame(self)
         flash_message_frame.pack()
@@ -148,7 +140,6 @@ class AddMaterialFrame(ctk.CTkFrame):
         self.correct_entry.insert(0, str(item["values"][1]))
 
         self.update_button.configure(state="normal")
-        self.cancel_button.configure(state="normal")
         self.add_button.configure(state="disabled")
 
     def _reset_edit_state(self):
@@ -158,7 +149,6 @@ class AddMaterialFrame(ctk.CTkFrame):
         self.incorrect_entry.delete(0, "end")
         self.correct_entry.delete(0, "end")
         self.update_button.configure(state="disabled")
-        self.cancel_button.configure(state="disabled")
         self.add_button.configure(state="normal")
 
     def _deselect(self, event=None):
@@ -171,8 +161,8 @@ class AddMaterialFrame(ctk.CTkFrame):
             self.tree.selection_remove(iid)
 
     def _on_tree_click(self, event):
-        """Deselect when clicking on empty space or the already-selected row."""
         row = self.tree.identify_row(event.y)
+        # Empty-area click (not row) or re-click on the selected row both deselect.
         if not row or row in self.tree.selection():
             self._deselect()
 
@@ -269,7 +259,6 @@ class AddMaterialFrame(ctk.CTkFrame):
         self.update_button.configure(
             text=self.texts.get("update_material", "Update material")
         )
-        self.cancel_button.configure(text=self.texts.get("cancel_edit", "Cancel edit"))
         self.remove_button.configure(
             text=self.texts.get("remove_material", "Remove material")
         )

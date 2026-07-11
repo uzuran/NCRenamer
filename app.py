@@ -126,6 +126,10 @@ class App(ctk.CTk):
 
         self._update_check_in_progress = False
 
+        # Global deselect: bind_all fires for every widget in the app regardless
+        # of whether CTk frames propagate the event up to the root window.
+        self.bind_all("<Button-1>", self._on_global_click, add="+")
+
         # update check po startu aplikace
         self.after(2000, self.start_update_check)
 
@@ -178,6 +182,72 @@ class App(ctk.CTk):
         self.geometry("500x600")
         self.todo_frame.update_treeview()
         self.todo_frame.pack(fill="both", expand=True)
+
+    def _is_inside_interactive(self, widget) -> bool:
+        """Walk up the parent chain; return True if any ancestor is an interactive widget."""
+        _ctk_interactive = (
+            ctk.CTkEntry,
+            ctk.CTkButton,
+            ctk.CTkTextbox,
+            ctk.CTkComboBox,
+            ctk.CTkOptionMenu,
+        )
+        _tk_interactive_classes = {
+            "TScrollbar", "Scrollbar",
+            "TCombobox",  "Combobox",
+            "TButton",    "Button",
+        }
+        current = widget
+        while current is not None:
+            if isinstance(current, _ctk_interactive):
+                return True
+            if current.winfo_class() in _tk_interactive_classes:
+                return True
+            parent_name = current.winfo_parent()
+            if not parent_name:
+                break
+            try:
+                current = self.nametowidget(parent_name)
+            except Exception:
+                break
+        return False
+
+    def _on_global_click(self, event) -> None:
+        widget = event.widget
+
+        # Clicks inside a popup / dialog belong to that window — ignore.
+        if widget.winfo_toplevel() is not self:
+            return
+
+        # Walk up widget ancestors: any interactive CTk or ttk control → preserve.
+        if self._is_inside_interactive(widget):
+            return
+
+        cls = widget.winfo_class()
+
+        # Treeview: only clear if the click hit empty space (no row under cursor).
+        if cls == "Treeview":
+            if not widget.identify_row(event.y):
+                widget.selection_remove(widget.selection())
+                widget.focus("")
+            return
+
+        # Background frame or root window → clear every TreeView in the app.
+        cleared = False
+        for tree in (
+            self.materials_frame.tree,
+            self.add_material_frame.tree,
+            self.burn_table_frame.steel_tab.tree,
+            self.burn_table_frame.alu_tab.tree,
+            self.todo_frame.tree,
+        ):
+            selected = tree.selection()
+            if selected:
+                tree.selection_remove(selected)
+                tree.focus("")
+                cleared = True
+        if cleared:
+            self.focus_set()
 
     def _hide_all_frames(self):
         for frame in (
