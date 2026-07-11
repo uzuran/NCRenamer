@@ -33,6 +33,12 @@ class TestValidateUniqueProgram:
         vm = _make_vm()
         assert vm.validate_unique_program("") is True
 
+    def test_case_insensitive_match(self):
+        vm = BurnViewModel()
+        vm._records = [BurnRecord(program_number="6670-AB")]
+        assert vm.validate_unique_program("6670-ab") is False
+        assert vm.validate_unique_program("6670-Ab") is False
+
 
 class TestLoadAndAppendBatchDuplicates:
     def test_duplicate_sets_popup_message(self):
