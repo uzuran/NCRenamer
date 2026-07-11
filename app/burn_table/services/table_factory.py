@@ -9,19 +9,18 @@ if TYPE_CHECKING:
 
 # Column headers for row 1 — capitalized, single-line, white background
 _ROW1_HEADERS = [
-    "Datum pálení",  # A
-    "Číslo progr.",  # B
-    "",  # C (note / free)
-    "Formát Tabule délka x šířka",  # D
-    "Počet Tabulí Ks",  # E
-    "Celkový čas progr.",  # F
-    "Vypáleno",  # G
-    "Druh výrobku skupina",  # H
-    "Pálil",  # I
+    "Datum pálení",               # A
+    "Číslo progr.",               # B
+    "Formát Tabule délka x šířka",  # C
+    "Počet Tabulí Ks",            # D
+    "Celkový čas progr.",         # E
+    "Vypáleno",                   # F
+    "Druh výrobku skupina",       # G
+    "Pálil",                      # H
 ]
 
-# Character widths per column (A-I)
-_COL_WIDTHS = [15, 15, 10, 30, 12, 15, 12, 20, 12]
+# Character widths per column (A-H)
+_COL_WIDTHS = [15, 15, 30, 12, 15, 12, 20, 12]
 
 _HEADER_ROW_HEIGHT = 36  # pt - fits two-line text at size 9
 _DATA_ROW_HEIGHT = 18  # pt - compact data rows
@@ -34,7 +33,7 @@ class TableFactory:
         - Row 1  : main column headers (wrapped text)
         - Row 2  : empty (reserved for sub-headers added manually)
         - Rows 3-40: empty data area
-        - Columns A-I fixed widths (column J is intentionally left unstyled)
+        - Columns A-H fixed widths (columns I-J are intentionally left unstyled)
     """
 
     def create(self, path: Path) -> None:
@@ -87,10 +86,10 @@ class TableFactory:
 
         ws.row_dimensions[1].height = _HEADER_ROW_HEIGHT
 
-        # ── Rows 2-40: data area (columns A-I only; J is intentionally blank) ──
+        # ── Rows 2-40: data area (columns A-H only; I-J intentionally blank) ──
         for row_num in range(2, 41):
             ws.row_dimensions[row_num].height = _DATA_ROW_HEIGHT
-            for col_num in range(1, 10):
+            for col_num in range(1, 9):
                 cell = ws.cell(row=row_num, column=col_num)
                 cell.border = border
                 cell.alignment = center
@@ -133,7 +132,7 @@ class TableFactory:
         # stored in the file from the start (xlwt does not style empty cells).
         for row_idx in range(1, 40):  # rows 2-40 (0-indexed 1-39)
             ws.row(row_idx).height = _DATA_ROW_HEIGHT * 20
-            for col_idx in range(9):  # columns A-I only; J left unstyled
+            for col_idx in range(8):  # columns A-H only; I-J left unstyled
                 ws.write(row_idx, col_idx, "", data_style)
 
         wb.save(str(path))

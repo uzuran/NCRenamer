@@ -242,7 +242,7 @@ class ExcelWriter:
         border = make_border()
         center = make_center_alignment()
         fill = PatternFill("solid", fgColor="FFFFFF")
-        for col in range(1, 10):  # columns A-I only
+        for col in range(1, 9):  # columns A-H only
             cell = ws.cell(row=row_num, column=col, value=None)
             cell.border = border
             cell.alignment = center
@@ -267,7 +267,7 @@ class ExcelWriter:
             "borders: left thin, right thin, top thin, bottom thin;"
             "pattern: pattern solid, fore_colour white;"
         )
-        for col_idx in range(9):  # columns A-I only (0-indexed)
+        for col_idx in range(8):  # columns A-H only (0-indexed)
             ws.write(row_num - 1, col_idx, "", empty_style)  # 1-based → 0-based
         wb.save(str(path))
 
@@ -310,14 +310,27 @@ class ExcelWriter:
                         row=row_num, column=src
                     ).value
 
-        # Strip column J completely from all rows — no value, no border, no fill
+        # Migrate old 9-column format: if C1 is empty (unused note column) and D1
+        # is non-empty (sheet_format header), shift data columns D-I → C-H.
+        c1 = str(ws.cell(row=1, column=3).value or "").strip()
+        d1 = str(ws.cell(row=1, column=4).value or "").strip()
+        if not c1 and d1:
+            for row_num in range(3, self.MAX_ROW + 1):
+                for src, dst in ((4, 3), (5, 4), (6, 5), (7, 6), (8, 7), (9, 8)):
+                    ws.cell(row=row_num, column=dst).value = ws.cell(
+                        row=row_num, column=src
+                    ).value
+                ws.cell(row=row_num, column=9).value = None  # clear vacated I
+
+        # Strip columns I and J from all rows — no value, no border, no fill
         no_border = Border()
         no_fill = PatternFill(fill_type=None)
         for row_num in range(1, self.MAX_ROW + 1):
-            j = ws.cell(row=row_num, column=10)
-            j.value = None
-            j.border = no_border
-            j.fill = no_fill
+            for col in (9, 10):
+                cell = ws.cell(row=row_num, column=col)
+                cell.value = None
+                cell.border = no_border
+                cell.fill = no_fill
 
         header_font = Font(bold=True, size=9, color="000000")
         header_align = Alignment(horizontal="center", vertical="center", wrap_text=True)
@@ -335,6 +348,18 @@ class ExcelWriter:
             ws.column_dimensions[cell.column_letter].width = width
 
         ws.row_dimensions[1].height = _HEADER_ROW_HEIGHT
+
+        # Normalise borders/alignment for ALL data rows A-H so that old files
+        # with missing borders on empty rows look consistent.
+        from app.burn_table.services._xlsx_format import make_center_alignment
+
+        center = make_center_alignment()
+        for row_num in range(self.DATA_START_ROW, self.MAX_ROW + 1):
+            for col_num in range(1, 9):
+                cell = ws.cell(row=row_num, column=col_num)
+                cell.border = border
+                cell.alignment = center
+
         apply_print_settings(ws)
         wb.save(path)
 
@@ -360,42 +385,59 @@ class ExcelWriter:
         ws = wb.get_sheet(self._sheet_index)
 
         blank_style = xlwt.easyxf("")  # no borders, no fill — truly empty cell
-
-        # Migrate old 10-column format: shift data columns G-J left by one
-        f1_old = (
-            str(rs.cell_value(0, 5) if rs.nrows > 0 and rs.ncols > 5 else "")
-            .strip()
-            .lower()
+        data_style = xlwt.easyxf(
+            "alignment: horiz centre, vert centre;"
+            "borders: left thin, right thin, top thin, bottom thin;"
         )
-        if "čas" in f1_old and "progr" in f1_old and "celkov" not in f1_old:
-            data_style = xlwt.easyxf(
-                "alignment: horiz centre, vert centre;"
-                "borders: left thin, right thin, top thin, bottom thin;"
-            )
-            limit = min(self.MAX_ROW, rs.nrows)
-            for row_idx in range(self.DATA_START_ROW - 1, limit):
-                for src, dst in ((6, 5), (7, 6), (8, 7), (9, 8)):
-                    val = rs.cell_value(row_idx, src) if rs.ncols > src else ""
-                    ws.write(row_idx, dst, val, data_style)
-                ws.write(row_idx, 9, "", blank_style)  # J — empty and unstyled
 
+        # ── Step 1: read all data rows into memory (up to 10 old cols) ──────────
+        src_row_count = min(self.MAX_ROW, rs.nrows)
+        src_col_count = min(10, rs.ncols)
+        # data[(row_idx, col_idx)] = cell value (0-based)
+        data: dict[tuple[int, int], object] = {}
+        for r in range(self.DATA_START_ROW - 1, src_row_count):
+            for c in range(src_col_count):
+                data[(r, c)] = rs.cell_value(r, c)
+
+        # ── Step 2: apply 10-col migration in memory ─────────────────────────────
+        f1_old = str(rs.cell_value(0, 5) if rs.nrows > 0 and rs.ncols > 5 else "").strip().lower()
+        if "čas" in f1_old and "progr" in f1_old and "celkov" not in f1_old:
+            for r in range(self.DATA_START_ROW - 1, src_row_count):
+                for src, dst in ((6, 5), (7, 6), (8, 7), (9, 8)):
+                    data[(r, dst)] = data.get((r, src), "")
+                data[(r, 9)] = ""
+
+        # ── Step 3: apply 9-col migration in memory ──────────────────────────────
+        c1_old = str(rs.cell_value(0, 2) if rs.nrows > 0 and rs.ncols > 2 else "").strip()
+        d1_old = str(rs.cell_value(0, 3) if rs.nrows > 0 and rs.ncols > 3 else "").strip()
+        if not c1_old and d1_old:
+            for r in range(self.DATA_START_ROW - 1, src_row_count):
+                for src, dst in ((3, 2), (4, 3), (5, 4), (6, 5), (7, 6), (8, 7)):
+                    data[(r, dst)] = data.get((r, src), "")
+                data[(r, 8)] = ""
+
+        # ── Step 4: write ALL data rows A-H with consistent borders ──────────────
+        # This also fixes old files where A/B had no borders on empty rows.
+        for r in range(self.DATA_START_ROW - 1, self.MAX_ROW):
+            for c in range(8):
+                ws.write(r, c, data.get((r, c), ""), data_style)
+            ws.write(r, 8, "", blank_style)  # clear I
+            ws.write(r, 9, "", blank_style)  # clear J
+
+        # ── Step 5: write header row ──────────────────────────────────────────────
         header_style = xlwt.easyxf(
             "font: bold True, height 180, colour black;"
             "alignment: wrap True, horiz centre, vert centre;"
             "pattern: pattern solid, fore_colour white;"
             "borders: left thin, right thin, top thin, bottom thin;"
         )
-
         for col_idx, (header, width) in enumerate(
             zip(_ROW1_HEADERS, _COL_WIDTHS, strict=False)
         ):
             ws.write(0, col_idx, header, header_style)
             ws.col(col_idx).width = width * 256
-
-        # Strip column J completely from all rows (header + data rows 2-40)
-        limit = min(self.MAX_ROW, rs.nrows)
-        for row_idx in range(0, limit):
-            ws.write(row_idx, 9, "", blank_style)
+        ws.write(0, 8, "", blank_style)  # clear I header
+        ws.write(0, 9, "", blank_style)  # clear J header
 
         ws.row(0).height = _HEADER_ROW_HEIGHT * 20
         wb.save(str(path))
@@ -415,7 +457,7 @@ class ExcelWriter:
         wb = openpyxl.load_workbook(path)
         ws = wb.worksheets[self._sheet_index]
         for row_num in range(self.DATA_START_ROW, self.MAX_ROW + 1):
-            for col in range(1, 10):
+            for col in range(1, 9):
                 ws.cell(row=row_num, column=col).value = None
         wb.save(path)
 
@@ -434,7 +476,7 @@ class ExcelWriter:
         ws = wb.get_sheet(self._sheet_index)
         limit = min(self.MAX_ROW, rs.nrows)
         for row_idx in range(self.DATA_START_ROW - 1, limit):
-            for col_idx in range(9):
+            for col_idx in range(8):
                 ws.write(row_idx, col_idx, "")
         wb.save(str(path))
 
@@ -457,7 +499,7 @@ class ExcelWriter:
         ws = wb.worksheets[self._sheet_index]
         # Clear all data rows first
         for row_num in range(self.DATA_START_ROW, self.MAX_ROW + 1):
-            for col in range(1, 10):
+            for col in range(1, 9):
                 ws.cell(row=row_num, column=col).value = None
         # Write records consecutively
         for i, record in enumerate(records):
@@ -480,7 +522,7 @@ class ExcelWriter:
         # Clear all data rows first
         limit = min(self.MAX_ROW, rs.nrows)
         for row_idx in range(self.DATA_START_ROW - 1, limit):
-            for col_idx in range(9):
+            for col_idx in range(8):
                 ws.write(row_idx, col_idx, "")
         # Write records consecutively
         for i, record in enumerate(records):

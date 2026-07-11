@@ -4,15 +4,14 @@ from app.burn_table.models.burn_record import BurnRecord
 
 
 class TestToRow:
-    def test_returns_nine_elements(self):
+    def test_returns_eight_elements(self):
         rec = BurnRecord()
-        assert len(rec.to_row()) == 9
+        assert len(rec.to_row()) == 8
 
     def test_correct_column_order(self):
         rec = BurnRecord(
             date="30.06.2026",
             program_number="6670-18",
-            note="test",
             sheet_format="1.0037-5X1700X1500",
             sheet_count=3,
             total_time="00:21:51",
@@ -23,21 +22,20 @@ class TestToRow:
         row = rec.to_row()
         assert row[0] == "30.06.2026"
         assert row[1] == "6670-18"
-        assert row[2] == "test"
-        assert row[3] == "1.0037-5X1700X1500"
-        assert row[4] == 3
-        assert row[5] == "00:21:51"
-        assert row[6] == "ano"
-        assert row[7] == "pwa"
-        assert row[8] == "Jan"
+        assert row[2] == "1.0037-5X1700X1500"
+        assert row[3] == 3
+        assert row[4] == "00:21:51"
+        assert row[5] == "ano"
+        assert row[6] == "pwa"
+        assert row[7] == "Jan"
 
     def test_zero_sheet_count_becomes_empty_string(self):
         rec = BurnRecord(sheet_count=0)
-        assert rec.to_row()[4] == ""
+        assert rec.to_row()[3] == ""
 
     def test_nonzero_sheet_count_is_integer(self):
         rec = BurnRecord(sheet_count=5)
-        assert rec.to_row()[4] == 5
+        assert rec.to_row()[3] == 5
 
 
 class TestFromRow9Col:

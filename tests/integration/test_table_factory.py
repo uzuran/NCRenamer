@@ -37,7 +37,7 @@ class TestCreateXls:
         path = tmp_path / "table.xls"
         factory.create(path)
         ws = xlrd.open_workbook(str(path)).sheet_by_index(0)
-        row0 = [ws.cell_value(0, col) for col in range(9)]
+        row0 = [ws.cell_value(0, col) for col in range(8)]
         # First header should be 'Datum pálení'
         assert "Datum" in row0[0]
         assert "Číslo" in row0[1]

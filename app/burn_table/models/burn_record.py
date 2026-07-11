@@ -45,11 +45,10 @@ class BurnRecord:
         )
 
     def to_row(self) -> list[str | int]:
-        """Return a flat list suitable for writing to a single Excel row (9 columns A-I)."""
+        """Return a flat list suitable for writing to a single Excel row (8 columns A-H)."""
         return [
             self.date,
             self.program_number,
-            self.note,
             self.sheet_format,
             self.sheet_count if self.sheet_count else "",
             self.total_time,
@@ -60,7 +59,15 @@ class BurnRecord:
 
     @classmethod
     def from_row(cls, row: list) -> "BurnRecord":
-        """Construct a BurnRecord from a flat list of cell values (A-I or legacy A-J)."""
+        """Construct a BurnRecord from a flat list of cell values.
+
+        Handles three on-disk formats:
+          - Legacy 10-col (A-J): operator at J (index 9), program_time at F (index 5).
+          - Old 9-col  (A-I): note at C (index 2), sheet_format at D (index 3).
+            Detected when index 3 is a non-numeric string (i.e. the format string,
+            not the sheet count integer).
+          - New 8-col  (A-H): no note column; sheet_format now at C (index 2).
+        """
 
         def _str(val: object) -> str:
             return str(val).strip() if val is not None else ""
@@ -71,8 +78,14 @@ class BurnRecord:
             except (TypeError, ValueError):
                 return 0
 
-        # Old 10-column format had program_time at F (index 5) and operator at J (index 9).
-        # Detect it by a non-empty J cell.
+        def _is_numeric(val: object) -> bool:
+            try:
+                float(str(val))  # type: ignore[arg-type]
+                return True
+            except (ValueError, TypeError):
+                return False
+
+        # Legacy 10-col: non-empty J cell (operator) → program_time at F, operator at J.
         if len(row) >= 10 and row[9] is not None and str(row[9]).strip():
             return cls(
                 date=_str(row[0]),
@@ -87,15 +100,31 @@ class BurnRecord:
                 operator=_str(row[9]),
             )
 
-        # New 9-column format: A-I, no program_time column
+        # Old 9-col: index 3 holds sheet_format (a non-numeric string like
+        # "1.0037-5X1700X1500").  New 8-col: index 3 holds sheet_count (an int).
+        d_val = str(row[3]).strip() if len(row) > 3 and row[3] is not None else ""
+        if d_val and not _is_numeric(d_val):
+            # Old 9-col format (note at C, sheet_format at D)
+            return cls(
+                date=_str(row[0] if len(row) > 0 else None),
+                program_number=_str(row[1] if len(row) > 1 else None),
+                note=_str(row[2] if len(row) > 2 else None),
+                sheet_format=_str(row[3] if len(row) > 3 else None),
+                sheet_count=_int(row[4] if len(row) > 4 else None),
+                total_time=_str(row[5] if len(row) > 5 else None),
+                burned=_str(row[6] if len(row) > 6 else None),
+                product_group=_str(row[7] if len(row) > 7 else None),
+                operator=_str(row[8] if len(row) > 8 else None),
+            )
+
+        # New 8-col format (A-H): sheet_format at C (index 2), no note column.
         return cls(
             date=_str(row[0] if len(row) > 0 else None),
             program_number=_str(row[1] if len(row) > 1 else None),
-            note=_str(row[2] if len(row) > 2 else None),
-            sheet_format=_str(row[3] if len(row) > 3 else None),
-            sheet_count=_int(row[4] if len(row) > 4 else None),
-            total_time=_str(row[5] if len(row) > 5 else None),
-            burned=_str(row[6] if len(row) > 6 else None),
-            product_group=_str(row[7] if len(row) > 7 else None),
-            operator=_str(row[8] if len(row) > 8 else None),
+            sheet_format=_str(row[2] if len(row) > 2 else None),
+            sheet_count=_int(row[3] if len(row) > 3 else None),
+            total_time=_str(row[4] if len(row) > 4 else None),
+            burned=_str(row[5] if len(row) > 5 else None),
+            product_group=_str(row[6] if len(row) > 6 else None),
+            operator=_str(row[7] if len(row) > 7 else None),
         )

@@ -27,8 +27,8 @@ def apply_cell_style(cell, *, border, alignment) -> None:
 
 
 def apply_print_settings(ws) -> None:
-    """Configure landscape A4 layout, fit to width, print area A1:I40."""
-    ws.print_area = "A1:I40"
+    """Configure landscape A4 layout, fit to width, print area A1:H40."""
+    ws.print_area = "A1:H40"
     ws.page_setup.orientation = "landscape"
     ws.page_setup.paperSize = 9  # 9 = A4 in openpyxl
     ws.page_setup.fitToWidth = 1

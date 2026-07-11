@@ -15,7 +15,6 @@ if TYPE_CHECKING:
 _COLUMN_IDS = (
     "date",
     "program",
-    "note",
     "sheet_fmt",
     "count",
     "total_time",
@@ -23,8 +22,8 @@ _COLUMN_IDS = (
     "product",
     "operator",
 )
-_COLUMN_WIDTHS = (120, 85, 75, 160, 50, 90, 65, 95, 95)
-_MIN_WIDTHS = (80, 60, 55, 110, 35, 65, 45, 65, 65)
+_COLUMN_WIDTHS = (120, 85, 160, 50, 90, 65, 95, 95)
+_MIN_WIDTHS = (80, 60, 110, 35, 65, 45, 65, 65)
 
 
 class _BurnTabContent(ctk.CTkFrame):
