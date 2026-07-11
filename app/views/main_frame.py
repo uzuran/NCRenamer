@@ -51,6 +51,14 @@ class MainFrame(ctk.CTkFrame):
         )
         self.burn_table_btn.pack(side="left", anchor="w", padx=(6, 0))
 
+        self.todo_btn = ctk.CTkButton(
+            self.top_bar,
+            text=self.texts.get("todo_button", "Tasks"),
+            width=70,
+            command=self.open_todo_frame,
+        )
+        self.todo_btn.pack(side="left", anchor="w", padx=(6, 0))
+
         # Settings Button (right corner)
         try:
             self.settings_icon = ctk.CTkImage(
@@ -240,6 +248,11 @@ class MainFrame(ctk.CTkFrame):
         if self.app_instance:
             self.app_instance.show_burn_table_content()
 
+    def open_todo_frame(self):
+        """Opens the TodoFrame."""
+        if self.app_instance:
+            self.app_instance.show_todo_content()
+
     def update_texts(self, new_texts: dict):
         self.texts = new_texts
         self.count_label.configure(
@@ -258,6 +271,7 @@ class MainFrame(ctk.CTkFrame):
         )
         self.report_bug_btn.configure(text=self.texts.get("report_bug", "Report bug"))
         self.burn_table_btn.configure(text=self.texts.get("burn_table", "Burn Table"))
+        self.todo_btn.configure(text=self.texts.get("todo_button", "Tasks"))
         self.about_btn.configure(text=self.texts.get("about_button", "?"))
 
     def unselect_selected_nc(self):

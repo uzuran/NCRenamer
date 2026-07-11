@@ -32,68 +32,11 @@ any data it finds there, so existing users keep their mappings.
 
 from __future__ import annotations
 
-import contextlib
 import json
 import os
-import sys
 from pathlib import Path
 
-
-# ---------------------------------------------------------------------------
-# Path helpers
-# ---------------------------------------------------------------------------
-
-
-def _exe_dir() -> Path:
-    """Return the directory of the running executable / entry script.
-
-    - ``python app.py``  →  parent of *app.py*
-    - PyInstaller EXE (incl. via shortcut)  →  parent of the real *.exe*
-      because ``sys.argv[0]`` always reflects the physical executable path,
-      not the shortcut that launched it.
-    """
-    return Path(sys.argv[0]).resolve().parent
-
-
-# ---------------------------------------------------------------------------
-# Platform file locking
-# ---------------------------------------------------------------------------
-
-if sys.platform == "win32":
-    import msvcrt as _msvcrt
-
-    @contextlib.contextmanager
-    def _file_lock(lock_path: Path):
-        """Exclusive blocking lock using msvcrt (Windows only)."""
-        lock_path.parent.mkdir(parents=True, exist_ok=True)
-        # The lock file must contain at least one byte for msvcrt.locking.
-        if not lock_path.exists():
-            lock_path.write_bytes(b"\x00")
-        fd = os.open(str(lock_path), os.O_RDWR)
-        try:
-            os.lseek(fd, 0, 0)
-            _msvcrt.locking(fd, _msvcrt.LK_LOCK, 1)  # retries for ~10 s
-            try:
-                yield
-            finally:
-                os.lseek(fd, 0, 0)
-                _msvcrt.locking(fd, _msvcrt.LK_UNLCK, 1)
-        finally:
-            os.close(fd)
-
-else:
-    import fcntl as _fcntl
-
-    @contextlib.contextmanager
-    def _file_lock(lock_path: Path):
-        """Exclusive blocking lock using fcntl (POSIX)."""
-        lock_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(lock_path, "a") as _f:
-            _fcntl.flock(_f, _fcntl.LOCK_EX)
-            try:
-                yield
-            finally:
-                _fcntl.flock(_f, _fcntl.LOCK_UN)
+from app.utils.shared_storage import exe_dir as _exe_dir, file_lock as _file_lock
 
 
 # ---------------------------------------------------------------------------

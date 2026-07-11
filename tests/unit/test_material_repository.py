@@ -11,7 +11,8 @@ from pathlib import Path
 
 import pytest
 
-from app.models.material_repository import MaterialRepository, _exe_dir
+from app.models.material_repository import MaterialRepository
+from app.utils.shared_storage import exe_dir
 
 
 # --------------------------------------------------------------------------- #
@@ -259,16 +260,12 @@ def test_empty_json_array_returns_empty(tmp_path):
 
 def test_exe_dir_is_parent_of_argv0():
     expected = Path(sys.argv[0]).resolve().parent
-    assert _exe_dir() == expected
+    assert exe_dir() == expected
 
 
 def test_default_path_is_under_exe_dir():
-    repo = MaterialRepository.__new__(MaterialRepository)
-    from app.models.material_repository import _exe_dir as _d
-    expected = _d() / MaterialRepository._DEFAULT_SUBDIR / MaterialRepository._DEFAULT_FILENAME
-    # Instantiate normally with a tmp override to check the logic in isolation
-    # (we cannot call the real constructor without creating the real dir)
-    assert expected == _d() / "materials" / "materials.json"
+    expected = exe_dir() / MaterialRepository._DEFAULT_SUBDIR / MaterialRepository._DEFAULT_FILENAME
+    assert expected == exe_dir() / "materials" / "materials.json"
 
 
 def test_path_override_is_respected(tmp_path):
@@ -397,8 +394,6 @@ def test_migration_graceful_when_no_csv(tmp_path, monkeypatch):
 
 def test_path_unchanged_regardless_of_cwd(tmp_path, monkeypatch):
     """Changing CWD must not change the resolved path."""
-    from app.models.material_repository import _exe_dir
-
-    original = _exe_dir()
+    original = exe_dir()
     monkeypatch.chdir(tmp_path)
-    assert _exe_dir() == original
+    assert exe_dir() == original

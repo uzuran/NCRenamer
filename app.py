@@ -8,16 +8,19 @@ from app.burn_table.main import create_view_model as create_burn_view_model
 from app.models.formatter_model import FormatterModel
 from app.models.material_repository import MaterialRepository
 from app.models.settings_model import SettingsModel
+from app.models.todo_repository import TodoRepository
 from app.services.update_checker import check_for_updates
 from app.translations.translations import LANGUAGES
 from app.version import APP_NAME, APP_VERSION
 from app.viewmodels.main_view_model import MainViewModel
 from app.viewmodels.materials_view_model import MaterialsViewModel
+from app.viewmodels.todo_view_model import TodoViewModel
 from app.views.add_material_frame import AddMaterialFrame
 from app.views.burn_table_frame import BurnTableFrame
 from app.views.main_frame import MainFrame
 from app.views.materials_frame import MaterialsFrame
 from app.views.settings_frame import SettingsFrame
+from app.views.todo_frame import TodoFrame
 
 
 class App(ctk.CTk):
@@ -27,6 +30,7 @@ class App(ctk.CTk):
         super().__init__()
         self.settings_model = SettingsModel()
         self.material_repo = MaterialRepository()
+        self.todo_repo = TodoRepository()
         self.formatter_model = FormatterModel(self.material_repo)
 
         self.settings_model.load()
@@ -36,6 +40,10 @@ class App(ctk.CTk):
         self.materials_view_model = MaterialsViewModel(
             app_instance=self,
             repo=self.material_repo,
+            texts=self.texts,
+        )
+        self.todo_view_model = TodoViewModel(
+            repo=self.todo_repo,
             texts=self.texts,
         )
 
@@ -105,6 +113,13 @@ class App(ctk.CTk):
             texts=self.texts,
         )
 
+        self.todo_frame = TodoFrame(
+            master=self,
+            view_model=self.todo_view_model,
+            app_instance=self,
+            texts=self.texts,
+        )
+
         self.show_main_content()
         self.vm_steel.load_last_table()
         self.vm_aluminium.load_last_table()
@@ -123,6 +138,7 @@ class App(ctk.CTk):
 
             self.title(self.texts.get("app_title", "NC Renamer"))
             self.materials_view_model.update_texts(self.texts)
+            self.todo_view_model.update_texts(self.texts)
             self.vm_steel.update_texts(self.texts)
             self.vm_aluminium.update_texts(self.texts)
             self.main_frame.update_texts(self.texts)
@@ -130,6 +146,7 @@ class App(ctk.CTk):
             self.materials_frame.update_texts(self.texts)
             self.add_material_frame.update_texts(self.texts)
             self.burn_table_frame.update_texts(self.texts)
+            self.todo_frame.update_texts(self.texts)
 
     def show_main_content(self):
         self._hide_all_frames()
@@ -156,6 +173,11 @@ class App(ctk.CTk):
         self._hide_all_frames()
         self.add_material_frame.pack(fill="both", expand=True)
 
+    def show_todo_content(self):
+        self._hide_all_frames()
+        self.todo_frame.update_treeview()
+        self.todo_frame.pack(fill="both", expand=True)
+
     def _hide_all_frames(self):
         for frame in (
             self.main_frame,
@@ -163,6 +185,7 @@ class App(ctk.CTk):
             self.materials_frame,
             self.add_material_frame,
             self.burn_table_frame,
+            self.todo_frame,
         ):
             frame.pack_forget()
 
