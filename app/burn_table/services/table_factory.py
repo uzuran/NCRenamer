@@ -11,8 +11,8 @@ if TYPE_CHECKING:
 _ROW1_HEADERS = [
     "Datum pálení",               # A
     "Číslo progr.",               # B
-    "Formát Tabule délka x šířka",  # C
-    "Počet Tabulí Ks",            # D
+    "Formát tabule délka x šířka",# C
+    "Počet tabulí Ks",            # D
     "Celkový čas progr.",         # E
     "Vypáleno",                   # F
     "Druh výrobku skupina",       # G

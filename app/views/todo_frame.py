@@ -120,13 +120,15 @@ class TodoFrame(ctk.CTkFrame):
 
         self.tree = ttk.Treeview(
             tree_frame,
-            columns=("status", "text"),
+            columns=("status", "text", "date"),
             show="headings",
         )
         self.tree.heading("status", text=self.texts.get("todo_col_status", "✓"))
         self.tree.heading("text", text=self.texts.get("todo_col_text", "Task"))
+        self.tree.heading("date", text=self.texts.get("todo_col_date", "Date"))
         self.tree.column("status", width=40, minwidth=30, anchor="center", stretch=False)
-        self.tree.column("text", width=360, minwidth=120, anchor="w")
+        self.tree.column("text", width=260, minwidth=100, anchor="w")
+        self.tree.column("date", width=90, minwidth=70, anchor="center", stretch=False)
 
         # Done items shown in gray
         self.tree.tag_configure("done", foreground="gray60")
@@ -162,8 +164,14 @@ class TodoFrame(ctk.CTkFrame):
             done = item.get("done", False)
             status = "✓" if done else "○"
             tag = "done" if done else "pending"
+            raw_date = item.get("created_at", "")
+            try:
+                y, m, d = raw_date.split("-")
+                date_str = f"{d}.{m}.{y}"
+            except Exception:
+                date_str = raw_date or "—"
             self.tree.insert(
-                "", "end", iid=item["id"], values=(status, item["text"]), tags=(tag,)
+                "", "end", iid=item["id"], values=(status, item["text"], date_str), tags=(tag,)
             )
 
     # ─── Selection handling (mirrors add_material_frame.py) ──────────────────
@@ -283,6 +291,7 @@ class TodoFrame(ctk.CTkFrame):
         self.back_btn.configure(text=new_texts.get("back_button", "Back"))
         self.tree.heading("status", text=new_texts.get("todo_col_status", "✓"))
         self.tree.heading("text", text=new_texts.get("todo_col_text", "Task"))
+        self.tree.heading("date", text=new_texts.get("todo_col_date", "Date"))
         # Done button label depends on current selection state
         if self._editing_id:
             values = self.tree.item(self._editing_id, "values") if self.tree.exists(self._editing_id) else ()

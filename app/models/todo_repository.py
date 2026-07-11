@@ -10,6 +10,7 @@ from __future__ import annotations
 import json
 import os
 import uuid
+from datetime import date
 from pathlib import Path
 
 from app.utils.shared_storage import exe_dir as _exe_dir, file_lock as _file_lock
@@ -75,7 +76,7 @@ class TodoRepository:
         item_id = str(uuid.uuid4())
         with _file_lock(self._lock_path):
             data = self._read()
-            data.append({"id": item_id, "text": text, "done": False})
+            data.append({"id": item_id, "text": text, "done": False, "created_at": date.today().isoformat()})
             self._write_atomic(data)
         return item_id
 
