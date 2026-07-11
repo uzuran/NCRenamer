@@ -1,5 +1,6 @@
 """Unit tests for shared_storage — exe_dir and file_lock."""
 
+import sys
 from pathlib import Path
 
 from app.utils.shared_storage import exe_dir, file_lock
@@ -26,10 +27,13 @@ class TestFileLock:
             pass  # should not raise
 
     def test_creates_lock_file(self, tmp_path):
+        # On POSIX, fcntl opens/creates the lock file.
+        # On Windows, the threading-based impl only creates the parent dir.
         lock_path = tmp_path / "sub" / "test.lock"
         with file_lock(lock_path):
             pass
-        assert lock_path.exists()
+        if sys.platform != "win32":
+            assert lock_path.exists()
 
     def test_creates_parent_directories(self, tmp_path):
         lock_path = tmp_path / "a" / "b" / "c" / "test.lock"

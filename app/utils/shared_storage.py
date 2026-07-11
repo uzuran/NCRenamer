@@ -7,9 +7,16 @@ future repository that stores data in the EXE directory).
 from __future__ import annotations
 
 import contextlib
-import os
 import sys
+import threading
 from pathlib import Path
+
+# Per-path threading locks used by the Windows branch.
+# On POSIX, fcntl.flock already provides inter-process safety on top of
+# thread safety; on Windows we skip msvcrt (broken in PyInstaller) and
+# use a threading.Lock instead.
+_lock_registry: dict[str, threading.Lock] = {}
+_registry_mutex = threading.Lock()
 
 
 def exe_dir() -> Path:
@@ -23,26 +30,28 @@ def exe_dir() -> Path:
     return Path(sys.argv[0]).resolve().parent
 
 
+def _get_thread_lock(path: Path) -> threading.Lock:
+    key = str(path.resolve())
+    with _registry_mutex:
+        if key not in _lock_registry:
+            _lock_registry[key] = threading.Lock()
+        return _lock_registry[key]
+
+
 if sys.platform == "win32":
-    import msvcrt as _msvcrt
 
     @contextlib.contextmanager
     def file_lock(lock_path: Path):
-        """Exclusive blocking lock using msvcrt (Windows only)."""
+        """Exclusive lock via threading.Lock (Windows-safe, PyInstaller-compatible).
+
+        msvcrt.locking raises EDEADLK inside PyInstaller frozen builds, so we
+        use a module-level threading.Lock keyed by resolved path instead.
+        This provides intra-process thread safety; for this single-user desktop
+        app that is sufficient.
+        """
         lock_path.parent.mkdir(parents=True, exist_ok=True)
-        if not lock_path.exists():
-            lock_path.write_bytes(b"\x00")
-        fd = os.open(str(lock_path), os.O_RDWR)
-        try:
-            os.lseek(fd, 0, 0)
-            _msvcrt.locking(fd, _msvcrt.LK_LOCK, 1)
-            try:
-                yield
-            finally:
-                os.lseek(fd, 0, 0)
-                _msvcrt.locking(fd, _msvcrt.LK_UNLCK, 1)
-        finally:
-            os.close(fd)
+        with _get_thread_lock(lock_path):
+            yield
 
 else:
     import fcntl as _fcntl
