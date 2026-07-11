@@ -571,6 +571,29 @@ class BurnViewModel:
             )
         self._notify()
 
+    def update_record(self, index: int, record: BurnRecord) -> None:
+        """Replace the record at *index* (0-based) with *record* and save."""
+        if self._table_path is None:
+            self._set_message(
+                self._texts.get("load_table_first", "Load a table first."), ok=False
+            )
+            self._notify()
+            return
+        if not (0 <= index < len(self._records)):
+            return
+        self._records[index] = record
+        try:
+            self._writer.rewrite_all_records(self._table_path, self._records)
+        except Exception as exc:
+            self._set_message(
+                self._texts.get("save_error", "Save error: {}").format(exc), ok=False
+            )
+            self._notify()
+            return
+        self._next_write_row = ExcelWriter.DATA_START_ROW + len(self._records)
+        self._set_message(self._texts.get("record_updated", "Record updated."))
+        self._notify()
+
     def delete_record(self, index: int) -> None:
         """Remove the record at *index* (0-based) from the table and save."""
         if self._table_path is None:

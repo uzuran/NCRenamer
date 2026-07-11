@@ -24,9 +24,9 @@ TEXTS_EN = {
 
 @pytest.fixture
 def repo(tmp_path) -> MaterialRepository:
-    csv_file = tmp_path / "materials.csv"
-    csv_file.write_text("", encoding="utf-8")
-    return MaterialRepository(csv_path=csv_file)
+    p = tmp_path / "materials.json"
+    p.write_text("[]", encoding="utf-8")
+    return MaterialRepository(path=p)
 
 
 @pytest.fixture

@@ -111,10 +111,10 @@ def nc_file_factory(tmp_path):
 
 @pytest.fixture
 def empty_material_repo(tmp_path):
-    """MaterialRepository backed by an empty temp CSV."""
-    csv_file = tmp_path / "materials.csv"
-    csv_file.write_text("", encoding="utf-8")
-    return MaterialRepository(csv_path=csv_file)
+    """MaterialRepository backed by an empty temp JSON file."""
+    p = tmp_path / "materials.json"
+    p.write_text("[]", encoding="utf-8")
+    return MaterialRepository(path=p)
 
 
 @pytest.fixture
