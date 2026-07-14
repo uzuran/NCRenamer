@@ -39,7 +39,10 @@ class PerformanceRecorder:
     _NC_PATTERNS: ClassVar[dict[str, str]] = {
         "date": r"\(?CR/([^\n\)]+)\)?",
         "program": r"\(?PR/([^\s\n\)]+)\)?",
-        "material": r"\(?MA/([^\s\n\)]+)\)?",
+        # Allow spaces so that material codes with text suffixes are captured even
+        # when FormatterModel has inserted a space (e.g. "1.0037 S235JRG2").
+        # Spaces are later collapsed in parse_nc() to produce a normalised code.
+        "material": r"\(?MA/([^\n\)]+)\)?",
         "workpiece": r"\(?WK/([^\n\)]+)\)?",
         "time": r"\(?TT/([^\n\)]+)\)?",
     }
@@ -124,7 +127,11 @@ class PerformanceRecorder:
 
         date_raw = _find("date")
         program_number = _find("program")
-        material_code = _find("material")
+        # Collapse internal whitespace: FormatterModel may have inserted a space
+        # between the numeric base and the text suffix (e.g. "1.0037 S235JRG2"
+        # → "1.0037S235JRG2") so both pre- and post-rename NC files produce the
+        # same material code.
+        material_code = re.sub(r"\s+", "", _find("material"))
         wk_raw = _find("workpiece")
         time_raw = _find("time")
 
