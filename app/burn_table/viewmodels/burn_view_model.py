@@ -247,28 +247,55 @@ class BurnViewModel:
         self._notify()
 
     def load_last_table(self) -> None:
-        """Attempt to load the table saved in the settings file on startup."""
+        """Attempt to load the table saved in the settings file on startup.
+
+        Search order:
+          1. Path stored in the settings JSON.
+          2. CNCs/laser.xls next to the frozen executable (production fallback).
+          3. CNCs/laser.xls next to the project root (development fallback).
+          4. Auto-create a blank table at the default location when no file is
+             found — happens on first launch after a fresh build.
+        """
+        path = self._find_existing_table_path()
+        if path is not None:
+            self.load_table(path)
+            return
+
+        default = self._default_new_table_path()
+        if default is not None:
+            self.create_new_table(default)
+
+    def _find_existing_table_path(self) -> Path | None:
+        """Return a path to an existing burn-table file, or None."""
         settings = self._read_settings()
         last = settings.get(self._settings_key) or settings.get("last_table_path")
         if last:
             path = Path(last)
             if path.is_file():
-                self.load_table(path)
-                return
+                return path
 
-        # Frozen exe fallback: look for laser.xls next to the executable
         if getattr(sys, "frozen", False):
             exe_dir = Path(sys.executable).parent
             fallback = exe_dir / "CNCs" / "laser.xls"
             if fallback.is_file():
-                self.load_table(fallback)
-                return
+                return fallback
 
-        # Development fallback: CNCs/laser.xls next to the project root
         project_root = Path(__file__).resolve().parent.parent.parent.parent
         dev_fallback = project_root / "CNCs" / "laser.xls"
         if dev_fallback.is_file():
-            self.load_table(dev_fallback)
+            return dev_fallback
+
+        return None
+
+    def _default_new_table_path(self) -> Path | None:
+        """Return the path for an auto-created table on first launch after build.
+
+        Returns None in development mode — CNCs/laser.xls covers that case.
+        """
+        if getattr(sys, "frozen", False):
+            base = Path(os.environ.get("APPDATA") or str(Path.home()))
+            return base / "NCRenamer" / "laser.xlsx"
+        return None
 
     def create_new_table(self, path: Path) -> None:
         """Create a new blank table file at *path* then load it."""
@@ -677,17 +704,26 @@ class BurnViewModel:
         if not (0 <= index < len(self._records)):
             return
         self._records.pop(index)
+        # Remove only the target slot from _display_rows so separator rows (None
+        # entries) stay exactly where they are.
+        data_count = 0
+        for i, disp_row in enumerate(self._display_rows):
+            if disp_row is not None:
+                if data_count == index:
+                    del self._display_rows[i]
+                    break
+                data_count += 1
         try:
-            self._writer.rewrite_all_records(self._table_path, self._records)
+            # Rewrite with separators preserved — same approach as update_record.
+            self._writer.rewrite_all_records(self._table_path, self._display_rows)
         except Exception as exc:
             self._set_message(
                 self._texts.get("save_error", "Save error: {}").format(exc), ok=False
             )
             self._notify()
             return
-        self._next_write_row = ExcelWriter.DATA_START_ROW + len(self._records)
-        self._display_rows = list(self._records)  # rewrite packs records; no separators
-        self._status = self._detector.detect_from_records(len(self._records))
+        self._next_write_row = ExcelWriter.DATA_START_ROW + len(self._display_rows)
+        self._status = self._detector.detect_from_records(len(self._display_rows))
         self._date_written = len(self._records) > 0
         self._last_sheet_format = ""
         for rec in reversed(self._records):

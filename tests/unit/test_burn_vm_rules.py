@@ -515,3 +515,89 @@ class TestBatchSortByProgramNumber:
         assert written[0].date != ""
         assert written[1].program_number == "6678-80"
         assert written[1].date == ""
+
+
+# ── Separator-row preservation during delete ──────────────────────────────────
+
+
+def _vm_with_two_batches() -> BurnViewModel:
+    """Return a ViewModel pre-loaded with two batches separated by a None entry.
+
+    _display_rows = [R0, R1, None, R2, R3, None]   (two 2-record batches)
+    _records      = [R0, R1, R2, R3]
+    """
+    vm = _empty_vm()
+    r0 = _rec(program_number="6670-10")
+    r1 = _rec(program_number="6670-11")
+    r2 = _rec(program_number="6670-12")
+    r3 = _rec(program_number="6670-13")
+    vm._records = [r0, r1, r2, r3]
+    vm._display_rows = [r0, r1, None, r2, r3, None]
+    vm._next_write_row = 3 + 6  # DATA_START_ROW + len(_display_rows)
+    return vm
+
+
+class TestDeleteRecordSeparatorPreservation:
+    def test_delete_first_record_keeps_separator(self):
+        vm = _vm_with_two_batches()
+        vm.delete_record(0)
+        # Separator (None) must still be present somewhere in _display_rows
+        assert None in vm._display_rows
+
+    def test_delete_middle_record_separator_stays_in_position(self):
+        vm = _vm_with_two_batches()
+        # Delete R1 (index 1); separator was at position 2 in original
+        # After deletion: [R0, None, R2, R3, None]
+        vm.delete_record(1)
+        assert vm._display_rows[1] is None
+
+    def test_delete_first_record_in_second_batch(self):
+        vm = _vm_with_two_batches()
+        # Delete R2 (index 2); display_rows was [R0, R1, None, R2, R3, None]
+        # After: [R0, R1, None, R3, None]
+        vm.delete_record(2)
+        assert vm._display_rows == [
+            _rec(program_number="6670-10"),
+            _rec(program_number="6670-11"),
+            None,
+            _rec(program_number="6670-13"),
+            None,
+        ]
+
+    def test_delete_does_not_call_rewrite_with_records_only(self):
+        vm = _vm_with_two_batches()
+        vm.delete_record(0)
+        call_args = vm._writer.rewrite_all_records.call_args
+        rows_passed = call_args[0][1]  # second positional arg
+        assert None in rows_passed, "rewrite must receive _display_rows with None separators"
+
+    def test_delete_updates_next_write_row_for_separators(self):
+        vm = _vm_with_two_batches()
+        # Before: _display_rows has 6 entries → _next_write_row = 3+6 = 9
+        # After deleting one record: 5 entries → _next_write_row = 3+5 = 8
+        vm.delete_record(0)
+        from app.burn_table.services.excel_writer import ExcelWriter
+        assert vm._next_write_row == ExcelWriter.DATA_START_ROW + len(vm._display_rows)
+
+    def test_delete_status_counts_separator_rows(self):
+        vm = _vm_with_two_batches()
+        # After delete: _display_rows has 5 entries (3 records + 2 separators)
+        vm.delete_record(0)
+        # status.used_rows should reflect all 5 physical rows, not 3 data rows
+        assert vm._status.used_rows == 5
+
+    def test_delete_leaves_correct_records_list(self):
+        vm = _vm_with_two_batches()
+        vm.delete_record(1)  # remove 6670-11
+        assert [r.program_number for r in vm._records] == [
+            "6670-10",
+            "6670-12",
+            "6670-13",
+        ]
+
+    def test_delete_second_separator_also_preserved(self):
+        vm = _vm_with_two_batches()
+        vm.delete_record(3)  # remove last record (6670-13)
+        # Both separators must remain: [R0, R1, None, R2, None]
+        nones = [i for i, r in enumerate(vm._display_rows) if r is None]
+        assert len(nones) == 2

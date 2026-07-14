@@ -169,6 +169,59 @@ class TestClearAllRecords:
         assert records == []
 
 
+class TestDeletePreservesSeparators:
+    """After a delete, blank separator rows must still exist in the physical file."""
+
+    def _write_two_batches(self, path: Path) -> None:
+        """Write batch-1 (A, B) + separator + batch-2 (C, D) + separator."""
+        writer = ExcelWriter()
+        writer.append_record(path, _rec("A"))
+        writer.append_record(path, _rec("B"))
+        writer.write_empty_row(path, 3 + 2)  # separator after batch-1 at row 5
+        writer.append_record.__func__  # ensure path exists
+        # Use rewrite_all_records with Nones to lay out the full structure
+        rows = [_rec("A"), _rec("B"), None, _rec("C"), _rec("D"), None]
+        writer.rewrite_all_records(path, rows)
+
+    def test_delete_middle_record_separator_survives_in_file(self, empty_table):
+        writer = ExcelWriter()
+        reader = ExcelReader()
+        # Layout: [A, B, None, C, D, None] → delete B → [A, None, C, D, None]
+        writer.rewrite_all_records(empty_table, [_rec("A"), _rec("B"), None, _rec("C"), _rec("D"), None])
+        writer.rewrite_all_records(empty_table, [_rec("A"), None, _rec("C"), _rec("D"), None])
+        result = reader.read_all_with_separators(empty_table)
+        assert result[1] is None, "separator must survive between batch-1 and batch-2"
+        programs = [r.program_number for r in result if r is not None]
+        assert programs == ["A", "C", "D"]
+
+    def test_delete_does_not_collapse_inter_batch_separator(self, empty_table):
+        writer = ExcelWriter()
+        reader = ExcelReader()
+        # Two batches: [A, B] | sep | [C, D] — delete B → [A] | sep | [C, D]
+        writer.rewrite_all_records(empty_table, [_rec("A"), _rec("B"), None, _rec("C"), _rec("D"), None])
+        writer.rewrite_all_records(empty_table, [_rec("A"), None, _rec("C"), _rec("D"), None])
+        result = reader.read_all_with_separators(empty_table)
+        # read_all_with_separators excludes trailing blanks (free space), but the
+        # inter-batch separator between batch-1 and batch-2 must still be present.
+        none_positions = [i for i, r in enumerate(result) if r is None]
+        assert len(none_positions) == 1, "exactly one inter-batch separator expected"
+        # It must sit between A and C
+        assert result[none_positions[0] - 1].program_number == "A"
+        assert result[none_positions[0] + 1].program_number == "C"
+
+    def test_free_rows_counted_correctly_after_delete(self, empty_table):
+        writer = ExcelWriter()
+        # 3 data rows + 1 inter-batch separator = 4 entries in read_all_with_separators
+        # (trailing None is excluded as free space — only inter-batch ones appear)
+        writer.rewrite_all_records(empty_table, [_rec("A"), None, _rec("B"), _rec("C"), None])
+        display = ExcelReader().read_all_with_separators(empty_table)
+        # [A, None, B, C] — trailing None excluded by reader
+        assert len(display) == 4
+        from app.burn_table.services.free_slot_detector import FreeSlotDetector
+        status = FreeSlotDetector().detect_from_records(len(display))
+        assert status.free_rows == 38 - 4
+
+
 class TestUpdateHeader:
     def test_update_header_does_not_destroy_data(self, empty_table):
         writer = ExcelWriter()
