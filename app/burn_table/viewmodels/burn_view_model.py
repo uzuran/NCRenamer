@@ -130,6 +130,14 @@ class BurnViewModel:
         # Set by the app after both VMs are constructed.
         self._peer_vm: BurnViewModel | None = None
 
+        # Callback registered by the View to ask the user whether to add a duplicate.
+        # Signature: (program_number: str, sheet_name: str) -> bool
+        # Returns True  → "Add anyway" chosen by the user.
+        # Returns False → "Cancel" chosen (or no callback registered).
+        # Default None preserves the old silent-reject behaviour for the standalone
+        # burn-table app and for tests that do not test the confirmation flow.
+        self._confirm_duplicate: Callable[[str, str], bool] | None = None
+
         # Tracks the next Excel row to write into, managed explicitly so that
         # batch uploads pack records consecutively with ONE separator per batch.
         self._next_write_row: int = ExcelWriter.DATA_START_ROW
@@ -423,6 +431,20 @@ class BurnViewModel:
         """Wire the other sheet's VM so cross-sheet duplicate checks are possible."""
         self._peer_vm = peer
 
+    def set_confirm_duplicate(self, callback: Callable[[str, str], bool]) -> None:
+        """Register the View's per-duplicate confirmation dialog.
+
+        The *callback* is called once per duplicate detected during
+        ``load_and_append_batch``.  It receives ``(program_number, sheet_name)``
+        and must return True when the user chooses "Add anyway", False when
+        they choose "Cancel".
+
+        Called by ``_BurnTabContent`` immediately after the widget is built.
+        When no callback is registered every duplicate is silently rejected —
+        the safe default for the standalone app and unit tests.
+        """
+        self._confirm_duplicate = callback
+
     def validate_unique_program(self, program_number: str) -> bool:
         """Return True when *program_number* is not already in the loaded records (case-insensitive)."""
         if not program_number:
@@ -483,17 +505,32 @@ class BurnViewModel:
                     f"{nc_path.name}: {self._texts.get('table_full_label', 'table full')}"
                 )
                 break
+
+            # Same-sheet duplicate check.
             if not self.validate_unique_program(record.program_number):
-                duplicates.append(record.program_number)
-                continue
-            if self._peer_vm is not None and record.program_number:
+                # Ask the user; skip if no callback is registered or user cancels.
+                if self._confirm_duplicate is None or not self._confirm_duplicate(
+                    record.program_number, self._sheet_name
+                ):
+                    duplicates.append(record.program_number)
+                    continue
+                # User chose "Add anyway" → fall through to write.
+
+            # Cross-sheet duplicate check (only when same-sheet passed).
+            elif self._peer_vm is not None and record.program_number:
                 pn_lower = record.program_number.strip().lower()
                 if any(
                     r.program_number.strip().lower() == pn_lower
                     for r in self._peer_vm._records
                 ):
-                    cross_duplicates.append(record.program_number)
-                    continue
+                    peer_sheet = self._peer_vm._sheet_name
+                    if self._confirm_duplicate is None or not self._confirm_duplicate(
+                        record.program_number, peer_sheet
+                    ):
+                        cross_duplicates.append(record.program_number)
+                        continue
+                    # User chose "Add anyway" → fall through to write.
+
             record_to_write = self._prepare_record_for_writing(record)
             # For the first written record: apply user date and product_group.
             if product_group_written:
@@ -520,29 +557,8 @@ class BurnViewModel:
             self._display_rows.append(None)  # separator after batch
             self._status = self._detector.detect_from_records(len(self._display_rows))
 
-        popup_parts: list[str] = []
-        if duplicates:
-            popup_parts.append(
-                self._texts.get(
-                    "dup_program_warning",
-                    "Program already exists in table.\nDuplicate records are not allowed.",
-                )
-                + "\n\n"
-                + ", ".join(duplicates)
-            )
-        if cross_duplicates:
-            peer_name = self._peer_vm._sheet_name if self._peer_vm else ""
-            popup_parts.append(
-                self._texts.get(
-                    "dup_cross_sheet_warning",
-                    "Program already exists in the other table ({}).",
-                ).format(peer_name)
-                + "\n\n"
-                + ", ".join(cross_duplicates)
-            )
-        if popup_parts:
-            self._popup_message = "\n\n".join(popup_parts)
-
+        # The per-duplicate askyesno dialogs already informed the user for
+        # every skipped program.  No second popup is needed here.
         all_skipped = duplicates + cross_duplicates
         if failed:
             self._set_message(

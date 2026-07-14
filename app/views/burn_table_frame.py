@@ -61,6 +61,7 @@ class _BurnTabContent(ctk.CTkFrame):
         self._build_tree()
         self._build_status_bar()
         self.vm.subscribe(self._on_vm_change)
+        self.vm.set_confirm_duplicate(self._make_confirm_duplicate())
 
     # ─── Build ───────────────────────────────────────────────────────────────
 
@@ -297,6 +298,28 @@ class _BurnTabContent(ctk.CTkFrame):
 
     def _hide_edit_panel(self) -> None:
         self.edit_frame.pack_forget()
+
+    # ─── Duplicate confirmation ───────────────────────────────────────────────
+
+    def _make_confirm_duplicate(self):
+        """Return a callable that shows an askyesno dialog for each duplicate.
+
+        The callable is injected into the ViewModel via ``set_confirm_duplicate``
+        so the ViewModel never imports tkinter directly.  Because it closes over
+        *self* the message is automatically re-translated whenever
+        ``update_texts`` swaps ``self.texts``.
+        """
+        def confirm(program_number: str, sheet_name: str) -> bool:
+            msg = self.texts.get(
+                "dup_confirm_override",
+                "Program {} already exists in {}. Add anyway?",
+            ).format(program_number, sheet_name)
+            return messagebox.askyesno(
+                title=self.texts.get("duplicate_warning_title", "Duplicitní program"),
+                message=msg,
+                parent=self,
+            )
+        return confirm
 
     # ─── Commands ────────────────────────────────────────────────────────────
 
