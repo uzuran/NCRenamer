@@ -25,6 +25,12 @@ from app.burn_table.viewmodels.print_manager import PrintManager
 
 
 def _burn_settings_file() -> Path:
+    """Return the default settings file path (standalone / legacy use only).
+
+    The main App wires the per-user path via the ``settings_file`` constructor
+    parameter on ``BurnViewModel`` — this function is retained for the
+    standalone burn-table app (``app/burn_table/main.py``) and as a fallback.
+    """
     if getattr(sys, "frozen", False):
         base = os.environ.get("APPDATA") or str(Path.home())
         d = Path(base) / "NCRenamer"
@@ -77,6 +83,7 @@ class BurnViewModel:
         texts: dict | None = None,
         sheet_name: str = "Pálení",
         settings_key: str = "last_table_path",
+        settings_file: Path | None = None,
     ) -> None:
         # Services (injectable for testing)
         self._reader = reader or ExcelReader()
@@ -84,6 +91,10 @@ class BurnViewModel:
         self._detector = detector or FreeSlotDetector()
         self._sheet_name = sheet_name
         self._settings_key = settings_key
+        # Per-instance settings file — allows the main App to inject a
+        # user-specific path while the standalone burn-table app falls back
+        # to the module-level default.
+        self._settings_file: Path = settings_file or _SETTINGS_FILE
         self._file_service = file_service or FileService()
         self._recorder = recorder or PerformanceRecorder()
         self._print_manager = print_manager or PrintManager()
@@ -815,15 +826,15 @@ class BurnViewModel:
         try:
             existing = self._read_settings()
             existing[self._settings_key] = str(self._table_path)
-            _SETTINGS_FILE.write_text(json.dumps(existing, indent=2), encoding="utf-8")
+            self._settings_file.parent.mkdir(parents=True, exist_ok=True)
+            self._settings_file.write_text(json.dumps(existing, indent=2), encoding="utf-8")
         except OSError:
             pass  # Settings are a convenience — failure is non-fatal
 
-    @staticmethod
-    def _read_settings() -> dict[str, str]:
+    def _read_settings(self) -> dict[str, str]:
         """Read the settings file; return empty dict if missing or invalid."""
         try:
-            data = json.loads(_SETTINGS_FILE.read_text(encoding="utf-8"))
+            data = json.loads(self._settings_file.read_text(encoding="utf-8"))
             if isinstance(data, dict):
                 return {str(k): str(v) for k, v in data.items()}
             return {}

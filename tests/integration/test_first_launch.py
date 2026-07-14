@@ -23,7 +23,12 @@ from app.burn_table.viewmodels.burn_view_model import BurnViewModel
 from app.burn_table.viewmodels.print_manager import PrintManager
 
 
-def _vm(sheet_index: int, sheet_name: str, settings_key: str) -> BurnViewModel:
+def _vm(
+    sheet_index: int,
+    sheet_name: str,
+    settings_key: str,
+    settings_file: Path | None = None,
+) -> BurnViewModel:
     return BurnViewModel(
         reader=ExcelReader(sheet_index=sheet_index),
         writer=ExcelWriter(sheet_index=sheet_index),
@@ -32,6 +37,7 @@ def _vm(sheet_index: int, sheet_name: str, settings_key: str) -> BurnViewModel:
         print_manager=PrintManager(),
         sheet_name=sheet_name,
         settings_key=settings_key,
+        settings_file=settings_file,
     )
 
 
@@ -41,36 +47,34 @@ class TestFirstLaunchAutoCreate:
     def _launch_both_vms(
         self, default_path: Path, settings_file: Path
     ) -> tuple[BurnViewModel, BurnViewModel]:
-        """Run load_last_table() on both VMs with no pre-existing file."""
-        import app.burn_table.viewmodels.burn_view_model as bvm_module
+        """Run load_last_table() on both VMs with no pre-existing file.
 
-        vm_steel = _vm(0, "Ocel", "last_table_path")
-        vm_alu = _vm(1, "Hliník", "last_table_path")
+        ``settings_file`` is injected at construction time so each VM writes
+        the last-opened path to the same per-user file (mirrors App.__init__).
+        No module-level patching needed.
+        """
+        vm_steel = _vm(0, "Ocel", "last_table_path", settings_file=settings_file)
+        vm_alu = _vm(1, "Hliník", "last_table_path", settings_file=settings_file)
 
-        orig_settings = bvm_module._SETTINGS_FILE
-        bvm_module._SETTINGS_FILE = settings_file
-        try:
-            # Patch both VMs so _find_existing_table_path returns None (no file)
-            # and _default_new_table_path returns our tmp location.
-            with (
-                patch.object(vm_steel, "_find_existing_table_path", return_value=None),
-                patch.object(vm_steel, "_default_new_table_path", return_value=default_path),
-                patch.object(vm_alu, "_find_existing_table_path", return_value=None),
-                patch.object(vm_alu, "_default_new_table_path", return_value=default_path),
-            ):
-                vm_steel.load_last_table()
-                # After steel creates the file, alu finds it via settings —
-                # but with _find_existing_table_path also patched to None for alu,
-                # alu would also try to auto-create.  That is idempotent (TableFactory
-                # overwrites, then load_table runs).  For the two-VM flow used in
-                # App.__init__ the real _find_existing_table_path WOULD find the path
-                # saved by steel's _save_settings, so test the real alu path too:
-                vm_alu._find_existing_table_path = lambda: (  # type: ignore[method-assign]
-                    default_path if default_path.is_file() else None
-                )
-                vm_alu.load_last_table()
-        finally:
-            bvm_module._SETTINGS_FILE = orig_settings
+        # Patch both VMs so _find_existing_table_path returns None (no file)
+        # and _default_new_table_path returns our tmp location.
+        with (
+            patch.object(vm_steel, "_find_existing_table_path", return_value=None),
+            patch.object(vm_steel, "_default_new_table_path", return_value=default_path),
+            patch.object(vm_alu, "_find_existing_table_path", return_value=None),
+            patch.object(vm_alu, "_default_new_table_path", return_value=default_path),
+        ):
+            vm_steel.load_last_table()
+            # After steel creates the file, alu finds it via settings —
+            # but with _find_existing_table_path also patched to None for alu,
+            # alu would also try to auto-create.  That is idempotent (TableFactory
+            # overwrites, then load_table runs).  For the two-VM flow used in
+            # App.__init__ the real _find_existing_table_path WOULD find the path
+            # saved by steel's _save_settings, so test the real alu path too:
+            vm_alu._find_existing_table_path = lambda: (  # type: ignore[method-assign]
+                default_path if default_path.is_file() else None
+            )
+            vm_alu.load_last_table()
 
         return vm_steel, vm_alu
 

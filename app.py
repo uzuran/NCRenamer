@@ -11,6 +11,7 @@ from app.models.settings_model import SettingsModel
 from app.models.todo_repository import TodoRepository
 from app.services.update_checker import check_for_updates
 from app.translations.translations import LANGUAGES
+from app.utils.workspace import create_workspace
 from app.version import APP_NAME, APP_VERSION
 from app.viewmodels.main_view_model import MainViewModel
 from app.viewmodels.materials_view_model import MaterialsViewModel
@@ -28,11 +29,23 @@ class App(ctk.CTk):
 
     def __init__(self):
         super().__init__()
-        self.settings_model = SettingsModel()
-        self.material_repo = MaterialRepository()
-        self.todo_repo = TodoRepository()
+
+        # ── Workspace (must happen first — all paths derive from it) ──────────
+        self._workspace, self._username = create_workspace()
+
+        # ── Shared repositories (same file for every Windows login) ───────────
+        self.material_repo = MaterialRepository(
+            path=self._workspace.materials_path()
+        )
+        self.todo_repo = TodoRepository(
+            path=self._workspace.todo_path()
+        )
         self.formatter_model = FormatterModel(self.material_repo)
 
+        # ── Per-user settings ─────────────────────────────────────────────────
+        self.settings_model = SettingsModel(
+            path=str(self._workspace.user_settings_path(self._username))
+        )
         self.settings_model.load()
 
         self.current_language_code = self.settings_model.settings.get("language", "cs")
@@ -93,17 +106,22 @@ class App(ctk.CTk):
             texts=self.texts,
         )
 
+        # Per-user burn-table VMs — both share the same settings file so the
+        # last-opened path is saved once and loaded by either VM on next startup.
+        _user_settings_file = self._workspace.user_settings_path(self._username)
         self.vm_steel = create_burn_view_model(
             texts=self.texts,
             sheet_index=0,
             sheet_name="Ocel",
             settings_key="last_table_path",
+            settings_file=_user_settings_file,
         )
         self.vm_aluminium = create_burn_view_model(
             texts=self.texts,
             sheet_index=1,
             sheet_name="Hliník",
             settings_key="last_table_path",
+            settings_file=_user_settings_file,
         )
         self.vm_steel.set_peer_vm(self.vm_aluminium)
         self.vm_aluminium.set_peer_vm(self.vm_steel)
@@ -123,8 +141,7 @@ class App(ctk.CTk):
         )
 
         self.show_main_content()
-        self.vm_steel.load_last_table()
-        self.vm_aluminium.load_last_table()
+        self._init_burn_tables()
 
         self._update_check_in_progress = False
 
@@ -134,6 +151,26 @@ class App(ctk.CTk):
 
         # update check po startu aplikace
         self.after(2000, self.start_update_check)
+
+    def _init_burn_tables(self) -> None:
+        """Load or create the per-user burn-table workbook on startup.
+
+        The path is always ``users/<username>/burn_table.xlsx`` inside the
+        workspace root, so it is deterministic — no settings-file lookup
+        needed.  Both VM sheets (Steel and Aluminium) share the same file.
+
+        Load order:
+          1. vm_steel.load_table() / create_new_table() — writes the "Ocel"
+             sheet and saves the path to the user settings file.
+          2. vm_aluminium.load_table() — ``ensure_sheet_exists`` creates the
+             "Hliník" sheet on the same file if it is not present yet.
+        """
+        path = self._workspace.user_burn_table_path(self._username)
+        if path.is_file():
+            self.vm_steel.load_table(path)
+        else:
+            self.vm_steel.create_new_table(path)
+        self.vm_aluminium.load_table(path)
 
     def set_language(self, lang_code: str):
         if self.current_language_code != lang_code:

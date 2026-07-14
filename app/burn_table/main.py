@@ -26,6 +26,7 @@ def create_view_model(
     sheet_index: int = 0,
     sheet_name: str = "Pálení",
     settings_key: str = "last_table_path",
+    settings_file=None,
 ) -> BurnViewModel:
     """Assemble and return a fully wired BurnViewModel."""
     file_service = FileService()
@@ -46,4 +47,5 @@ def create_view_model(
         texts=texts,
         sheet_name=sheet_name,
         settings_key=settings_key,
+        settings_file=settings_file,
     )
