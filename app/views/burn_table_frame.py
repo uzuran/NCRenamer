@@ -603,6 +603,15 @@ class BurnTableFrame(ctk.CTkFrame):
         self.alu_tab = _BurnTabContent(tab_alu_frame, vm_aluminium, self.texts)
         self.alu_tab.pack(fill="both", expand=True)
 
+    # ─── External refresh (file watcher) ─────────────────────────────────────
+
+    def reload_treeview(self) -> None:
+        """Reload both sheets from disk — called when burn_table.xlsx changes externally."""
+        path = self.steel_tab.vm.table_path
+        if path is not None and path.is_file():
+            self.steel_tab.vm.load_table(path)
+            self.alu_tab.vm.load_table(path)
+
     # ─── Language switch ─────────────────────────────────────────────────────
 
     def update_texts(self, new_texts: dict) -> None:

@@ -14,6 +14,18 @@ class TodoViewModel:
     def __init__(self, repo: TodoRepository, texts: dict | None = None) -> None:
         self.repo = repo
         self.texts = texts or {}
+        self._subscribers: list = []
+
+    def subscribe(self, callback) -> None:
+        if callback not in self._subscribers:
+            self._subscribers.append(callback)
+
+    def unsubscribe(self, callback) -> None:
+        self._subscribers = [c for c in self._subscribers if c != callback]
+
+    def _notify(self) -> None:
+        for cb in list(self._subscribers):
+            cb()
 
     def update_texts(self, texts: dict) -> None:
         self.texts = texts or {}
@@ -38,6 +50,7 @@ class TodoViewModel:
         item_id = self.repo.add_item(text)
         if item_id is None:
             return False, self.texts.get("todo_empty", "Task cannot be empty.")
+        self._notify()
         return True, self.texts.get("todo_added", "Task added.")
 
     def update_item(self, item_id: str, text: str) -> tuple[bool, str]:
@@ -47,12 +60,14 @@ class TodoViewModel:
         success = self.repo.update_item(item_id, text)
         if not success:
             return False, self.texts.get("todo_not_found", "Task not found.")
+        self._notify()
         return True, self.texts.get("todo_updated", "Task updated.")
 
     def toggle_done(self, item_id: str) -> tuple[bool, str]:
         new_done = self.repo.toggle_done(item_id)
         if new_done is None:
             return False, self.texts.get("todo_not_found", "Task not found.")
+        self._notify()
         if new_done:
             return True, self.texts.get("todo_toggled_done", "Marked as done.")
         return True, self.texts.get("todo_toggled_pending", "Marked as pending.")
@@ -63,4 +78,5 @@ class TodoViewModel:
         success = self.repo.delete_item(item_id)
         if not success:
             return False, self.texts.get("todo_not_found", "Task not found.")
+        self._notify()
         return True, self.texts.get("todo_deleted", "Task deleted.")

@@ -148,8 +148,13 @@ class TodoFrame(ctk.CTkFrame):
         self.back_btn.pack(pady=10, padx=25, fill="x")
 
         self.update_treeview()
+        if self.vm is not None:
+            self.vm.subscribe(self.reload_treeview)
 
     # ─── Treeview helpers ─────────────────────────────────────────────────────
+
+    def reload_treeview(self) -> None:
+        self.update_treeview()
 
     def update_treeview(self) -> None:
         """Reload the treeview from the ViewModel."""

@@ -11,6 +11,7 @@ from app.models.settings_model import SettingsModel
 from app.models.todo_repository import TodoRepository
 from app.services.update_checker import check_for_updates
 from app.translations.translations import LANGUAGES
+from app.utils.file_watcher import FileWatcher
 from app.utils.workspace import create_workspace
 from app.version import APP_NAME, APP_VERSION
 from app.viewmodels.main_view_model import MainViewModel
@@ -143,6 +144,22 @@ class App(ctk.CTk):
         self.show_main_content()
         self._init_burn_tables()
 
+        self._file_watcher = FileWatcher(self)
+        self._file_watcher.watch(
+            self._workspace.materials_path(),
+            self._on_materials_changed,
+        )
+        self._file_watcher.watch(
+            self._workspace.todo_path(),
+            self._on_todo_changed,
+        )
+        self._file_watcher.watch(
+            self._workspace.user_burn_table_path(self._username),
+            self._on_burn_table_changed,
+        )
+        self._file_watcher.start()
+        self.protocol("WM_DELETE_WINDOW", self._on_close)
+
         self._update_check_in_progress = False
 
         # Global deselect: bind_all fires for every widget in the app regardless
@@ -171,6 +188,22 @@ class App(ctk.CTk):
         else:
             self.vm_steel.create_new_table(path)
         self.vm_aluminium.load_table(path)
+
+    def _on_close(self) -> None:
+        self._file_watcher.stop()
+        self.destroy()
+
+    # ── File-watcher callbacks (always called on the main thread) ─────────────
+
+    def _on_materials_changed(self) -> None:
+        self.materials_frame.reload_treeview()
+        self.add_material_frame.reload_treeview()
+
+    def _on_todo_changed(self) -> None:
+        self.todo_frame.reload_treeview()
+
+    def _on_burn_table_changed(self) -> None:
+        self.burn_table_frame.reload_treeview()
 
     def set_language(self, lang_code: str):
         if self.current_language_code != lang_code:

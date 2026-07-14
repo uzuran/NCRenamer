@@ -121,6 +121,9 @@ class AddMaterialFrame(ctk.CTkFrame):
         )
         self.back_button.pack(pady=10, padx=25, fill="x")
 
+        if self.view_model is not None:
+            self.view_model.subscribe(self.reload_treeview)
+
     # ── Treeview selection ─────────────────────────────────────────────
 
     def on_tree_select(self, event=None):
@@ -223,6 +226,9 @@ class AddMaterialFrame(ctk.CTkFrame):
             self.update_treeview_display()
 
     # ── Display helpers ────────────────────────────────────────────────
+
+    def reload_treeview(self) -> None:
+        self.update_treeview_display()
 
     def return_to_main_content(self):
         "Navigate back to the materials list."

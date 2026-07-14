@@ -95,6 +95,12 @@ class MaterialsFrame(ctk.CTkFrame):
         )
         self.back_button.pack(pady=10, padx=25, fill="x")
 
+        if self.view_model is not None:
+            self.view_model.subscribe(self.reload_treeview)
+
+    def reload_treeview(self) -> None:
+        self.update_treeview_display()
+
     def return_to_main_content(self):
         if self.app_instance:
             self.app_instance.show_main_content()

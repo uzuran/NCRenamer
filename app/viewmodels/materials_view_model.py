@@ -8,6 +8,18 @@ class MaterialsViewModel:
         self.app = app_instance
         self.repo = repo
         self.texts = texts or {}
+        self._subscribers: list = []
+
+    def subscribe(self, callback) -> None:
+        if callback not in self._subscribers:
+            self._subscribers.append(callback)
+
+    def unsubscribe(self, callback) -> None:
+        self._subscribers = [c for c in self._subscribers if c != callback]
+
+    def _notify(self) -> None:
+        for cb in list(self._subscribers):
+            cb()
 
     def update_texts(self, texts: dict):
         """Store the current UI texts for translated messages."""
@@ -41,6 +53,7 @@ class MaterialsViewModel:
         if not success:
             return False, self.texts.get("material_exists", "Material already exists")
 
+        self._notify()
         return True, self.texts.get("material_added", "Material added")
 
     def update_material(self, incorrect: str, new_incorrect: str, new_correct: str):
@@ -56,6 +69,7 @@ class MaterialsViewModel:
         if not success:
             return False, self.texts.get("material_not_found", "Material not found")
 
+        self._notify()
         return True, self.texts.get("material_updated", "Material updated")
 
     def remove_material(self, incorrect: str):
@@ -70,6 +84,7 @@ class MaterialsViewModel:
         if not success:
             return False, self.texts.get("material_not_found", "Material not found")
 
+        self._notify()
         return True, self.texts.get("material_removed", "Material removed")
 
     def get_materials(self):
