@@ -9,14 +9,14 @@ manages a laser burn table, and tracks work tasks — all from a single GUI with
 
 ### NC File Renamer
 - **Bulk processing** — select any number of `.NC` files and fix them in one click
-- **CSV-driven material mapping** — add, edit, or remove incorrect→correct code pairs through the built-in materials manager
+- **Material mapping** — add, edit, or remove incorrect→correct code pairs through the built-in materials manager; stored as shared JSON visible to all users
 - **Space-inference fallback** — automatically inserts the missing space between numeric code and suffix (e.g. `1.4301Brus` → `1.4301 Brus`) when no explicit mapping exists
 - **Real-time progress bar** — file-by-file feedback during processing
 
 ### Burn Table
-- **Steel and aluminium tabs** — each backed by its own Excel sheet, loaded from the same file
-- **Batch NC loading** — drag and drop or select multiple `.NC` / `.SCH` files; records are sorted and written in one operation with a separator row
-- **Duplicate detection** — rejects programs already in the **same** sheet or the **other** sheet (cross-sheet validation, case-insensitive)
+- **Steel and aluminium tabs** — each backed by its own Excel sheet inside one workbook per user
+- **Batch NC loading** — select multiple `.NC` / `.SCH` files; records are sorted and written in one operation with a separator row
+- **Duplicate detection with confirmation** — warns when a program already exists in the same sheet or the other sheet; lets the operator override and add it anyway
 - **Print support** — print selected rows directly from the table view
 - **Free-slot detection** — shows how many rows remain before the table is full
 
@@ -24,6 +24,12 @@ manages a laser burn table, and tracks work tasks — all from a single GUI with
 - **Add / edit / delete tasks** with a timestamp (date and time recorded on creation)
 - **Mark done / pending** — done items shown in grey, sorted to the bottom
 - **Double-click detail popup** — opens the full note text in a scrollable window
+- **Shared across all users** — any user's additions or completions are visible to every other user in real time
+
+### Multi-user / Real-time sync
+- **Hybrid workspace** — shared data (materials, todos) in one place; per-user data (burn table, settings) isolated per Windows login name
+- **File-watcher auto-refresh** — all TreeViews update automatically within ~500 ms when another user or app instance changes a shared file; no reload button required
+- **Network deployment** — place the executable on a shared network drive; every machine that launches it shares the same `shared/` directory and gets its own `users/<name>/` folder automatically
 
 ### General
 - **Bug report email** — one-click mailto with an auto-incremented subject line; counter is password-protected and persists between sessions
@@ -41,11 +47,12 @@ NCRenamer/
 │   ├── models/                     # Domain logic and data (no UI imports)
 │   │   ├── email_model.py              # Bug-report counter persistence
 │   │   ├── formatter_model.py          # NC file validation and rewriting
-│   │   ├── material_repository.py      # Tab-separated CSV CRUD
+│   │   ├── material_repository.py      # Material mapping JSON CRUD
 │   │   ├── password_model.py           # Password verification
 │   │   ├── settings_model.py           # JSON settings persistence
 │   │   └── todo_repository.py          # Todo-item JSON CRUD
 │   ├── viewmodels/                 # Mediators between models and views (no CTk imports)
+│   │   ├── add_material_view_model.py
 │   │   ├── main_view_model.py
 │   │   ├── materials_view_model.py
 │   │   ├── password_view_model.py
@@ -69,10 +76,10 @@ NCRenamer/
 │   ├── translations/
 │   │   └── translations.py             # Czech / English string dictionaries
 │   └── utils/
+│       ├── file_watcher.py             # Polling file-watcher for real-time sync
 │       ├── resource_path.py            # PyInstaller-aware asset resolution
-│       └── shared_storage.py           # exe_dir() + file_lock() shared by repositories
-├── CNCs/
-│   └── laser.xls           # Burn table Excel file (steel sheet 0, aluminium sheet 1)
+│       ├── shared_storage.py           # exe_dir() + file_lock() shared by repositories
+│       └── workspace.py                # Hybrid shared/per-user path resolver
 ├── tests/
 │   ├── unit/               # Pure unit tests, no filesystem or GUI
 │   └── integration/        # Real filesystem, real repository
@@ -88,6 +95,8 @@ NCRenamer/
 
 ## Architecture
 
+### MVVM layers
+
 The project follows **MVVM** (Model – View – ViewModel):
 
 | Layer | Allowed to import | Must not import |
@@ -97,6 +106,48 @@ The project follows **MVVM** (Model – View – ViewModel):
 | View | viewmodels, customtkinter | models directly |
 
 The burn table reuses the same pattern as the main app — `BurnViewModel` is assembled by a factory function (`create_view_model`) and injected into the view with no direct service access from the UI layer.
+
+### Observer / auto-refresh
+
+Every ViewModel exposes `subscribe(callback)` / `unsubscribe(callback)` / `_notify()`. Views register `reload_treeview` in their constructor. After any successful CRUD operation the ViewModel calls `_notify()`, which calls every registered callback on the main thread — so the TreeView updates immediately without the view needing to know what changed.
+
+### Hybrid workspace
+
+```
+<exe-dir>/
+  shared/
+    materials.json   ← one file, shared by every user on the machine / network
+    todo.json        ← same
+  users/
+    alice/
+      settings.json  ← Alice's appearance, language
+      burn_table.xlsx← Alice's burn log
+    bob/
+      settings.json
+      burn_table.xlsx
+```
+
+The workspace root is always the directory that contains the executable.  
+In a frozen build this is `Path(sys.executable).parent`; in development it is the project root.
+
+### Real-time sync
+
+A `FileWatcher` daemon thread polls file modification times every 500 ms.
+
+```
+External write to shared/materials.json
+  → FileWatcher detects mtime change
+  → root.after(0, _on_materials_changed)   ← marshalled to main thread
+  → materials_frame.reload_treeview()
+  → add_material_frame.reload_treeview()
+```
+
+The same pattern applies to `todo.json` and `users/<name>/burn_table.xlsx`.  
+Callbacks always run on the tkinter main thread — no locking needed in the view layer.
+
+#### Network deployment
+
+Place `NCRenamer.exe` on a shared network drive. Every user who launches it from there automatically reads from the same `shared/` folder and writes to their own `users/<windows-login>/` sub-folder. Changes made by User A are visible on User B's screen within ~500 ms with no manual refresh.
 
 ---
 
@@ -146,25 +197,26 @@ Each NC file produced by the CAM system encodes the material on **line 4** in th
 
 NC Renamer applies three correction strategies in order:
 
-1. **CSV lookup** — the material key is normalised (spaces removed, uppercased) and looked up in `materials_new.csv`. If a match is found the line is rewritten with the canonical value.
-2. **Space inference** — if no CSV match exists but the key contains a numeric code immediately followed by an alphabetic suffix (e.g. `1.4301Brus`), a space is inserted automatically.
-3. **No-op** — if the line already matches the canonical pattern `(MA/\d\.\d{4}...)` it is left unchanged.
+1. **JSON lookup** — the material key is normalised (spaces removed, uppercased) and looked up in `shared/materials.json`. If a match is found the line is rewritten with the canonical value.
+2. **Space inference** — if no mapping exists but the key contains a numeric code immediately followed by an alphabetic suffix (e.g. `1.4301Brus`), a space is inserted automatically.
+3. **No-op** — if the line already matches the canonical pattern it is left unchanged.
 
 The file is only written to disk when a change is actually made.
 
 ---
 
-## Material mapping CSV
+## Material mappings
 
-The mapping lives at `CNCs/materials_new.csv` (tab-separated, no header):
+Mappings are stored in `shared/materials.json` (created automatically on first launch):
 
+```json
+[
+  ["1.4301BRUS-4.0", "1.4301 brus"],
+  ["1.0037S235JRG2", "1.0037 S235JRG2"]
+]
 ```
-incorrect_code<TAB>correct_code
-1.4301BRUS-4.0	1.4301 brus
-1.0037S235JRG2	1.0037 S235JRG2
-```
 
-On first launch the seed CSV is copied to the user's AppData directory so changes are not lost across updates. The built-in **Materials** screen lets you add or remove entries without editing the file directly.
+The built-in **Materials** screen lets you add, edit, or remove entries without touching the file directly. Changes are immediately visible to all running instances via the file watcher.
 
 ---
 
@@ -197,7 +249,7 @@ make test
 python3 -m pytest tests/
 ```
 
-521 tests — unit and integration — covering models, viewmodels, the NC processing pipeline, burn table validation (including cross-sheet duplicate detection), todo repository, and shared storage.
+832 tests — unit and integration — covering models, viewmodels, the NC processing pipeline, burn table validation (including cross-sheet duplicate detection), todo repository, shared storage, workspace path resolution, file-watcher detection, and multi-user sync.
 
 ### Code quality
 
@@ -222,7 +274,8 @@ make lint
 make build
 ```
 
-Uses PyInstaller via `NCRenamer.spec`. The resulting binary is written to `dist/`. The `laser.xls` burn table is placed next to the executable (not bundled inside it) so users can edit it freely.
+Uses PyInstaller via `NCRenamer.spec`. The resulting binary is written to `dist/`.  
+On first launch the workspace directories (`shared/`, `users/<name>/`) are created automatically next to the executable.
 
 ---
 
