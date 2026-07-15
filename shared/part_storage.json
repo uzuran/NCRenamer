@@ -1,0 +1,23 @@
+[
+  {
+    "id": "c430263b-b047-41c9-b90c-58bf30a70ee3",
+    "part_number": "test",
+    "location": "test",
+    "date_added": "2026-07-15",
+    "notes": "tewest"
+  },
+  {
+    "id": "7616ee4b-92dd-44ff-8960-bfc02ea748fd",
+    "part_number": "asd",
+    "location": "asd",
+    "date_added": "2026-07-15",
+    "notes": "asd"
+  },
+  {
+    "id": "62bc15ce-2423-420d-be54-dec54a48c043",
+    "part_number": "asdasdasd",
+    "location": "asdasdasd",
+    "date_added": "2026-07-15",
+    "notes": "asdasdasdasd"
+  }
+]

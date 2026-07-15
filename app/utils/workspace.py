@@ -69,6 +69,10 @@ class WorkspaceManager:
         """Path to the shared todo JSON (shared across all users)."""
         return self.shared_dir / "todo.json"
 
+    def part_storage_path(self) -> Path:
+        """Path to the shared part-storage JSON (shared across all users)."""
+        return self.shared_dir / "part_storage.json"
+
     # ── per-user paths ────────────────────────────────────────────────────────
 
     def user_settings_path(self, username: str) -> Path:

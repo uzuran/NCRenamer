@@ -7,6 +7,7 @@ import customtkinter as ctk
 from app.burn_table.main import create_view_model as create_burn_view_model
 from app.models.formatter_model import FormatterModel
 from app.models.material_repository import MaterialRepository
+from app.models.part_storage_repository import PartStorageRepository
 from app.models.settings_model import SettingsModel
 from app.models.todo_repository import TodoRepository
 from app.services.update_checker import check_for_updates
@@ -16,11 +17,13 @@ from app.utils.workspace import create_workspace
 from app.version import APP_NAME, APP_VERSION
 from app.viewmodels.main_view_model import MainViewModel
 from app.viewmodels.materials_view_model import MaterialsViewModel
+from app.viewmodels.part_storage_view_model import PartStorageViewModel
 from app.viewmodels.todo_view_model import TodoViewModel
 from app.views.add_material_frame import AddMaterialFrame
 from app.views.burn_table_frame import BurnTableFrame
 from app.views.main_frame import MainFrame
 from app.views.materials_frame import MaterialsFrame
+from app.views.part_storage_frame import PartStorageFrame
 from app.views.settings_frame import SettingsFrame
 from app.views.todo_frame import TodoFrame
 
@@ -62,7 +65,7 @@ class App(ctk.CTk):
         )
 
         self.title(f"{APP_NAME} v{APP_VERSION}")
-        self.geometry("350x600")
+        self.geometry("420x600")
 
         ctk.set_appearance_mode(
             self.settings_model.settings.get("appearance_mode", "System")
@@ -141,6 +144,20 @@ class App(ctk.CTk):
             texts=self.texts,
         )
 
+        self.part_storage_repo = PartStorageRepository(
+            path=self._workspace.part_storage_path()
+        )
+        self.part_storage_view_model = PartStorageViewModel(
+            repo=self.part_storage_repo,
+            texts=self.texts,
+        )
+        self.part_storage_frame = PartStorageFrame(
+            master=self,
+            view_model=self.part_storage_view_model,
+            app_instance=self,
+            texts=self.texts,
+        )
+
         self.show_main_content()
         self._init_burn_tables()
 
@@ -156,6 +173,10 @@ class App(ctk.CTk):
         self._file_watcher.watch(
             self._workspace.user_burn_table_path(self._username),
             self._on_burn_table_changed,
+        )
+        self._file_watcher.watch(
+            self._workspace.part_storage_path(),
+            self._on_part_storage_changed,
         )
         self._file_watcher.start()
         # Suppress the file-watcher callback for writes initiated by this
@@ -211,6 +232,9 @@ class App(ctk.CTk):
     def _on_burn_table_changed(self) -> None:
         self.burn_table_frame.reload_treeview()
 
+    def _on_part_storage_changed(self) -> None:
+        self.part_storage_frame.reload_treeview()
+
     def set_language(self, lang_code: str):
         if self.current_language_code != lang_code:
             self.current_language_code = lang_code
@@ -229,10 +253,12 @@ class App(ctk.CTk):
             self.add_material_frame.update_texts(self.texts)
             self.burn_table_frame.update_texts(self.texts)
             self.todo_frame.update_texts(self.texts)
+            self.part_storage_view_model.update_texts(self.texts)
+            self.part_storage_frame.update_texts(self.texts)
 
     def show_main_content(self):
         self._hide_all_frames()
-        self.geometry("350x600")
+        self.geometry("420x600")
         self.main_frame.pack(fill="both", expand=True)
 
     def show_burn_table_content(self):
@@ -260,6 +286,12 @@ class App(ctk.CTk):
         self.geometry("530x600")
         self.todo_frame.update_treeview()
         self.todo_frame.pack(fill="both", expand=True)
+
+    def show_part_storage_content(self):
+        self._hide_all_frames()
+        self.geometry("700x600")
+        self.part_storage_frame.update_treeview()
+        self.part_storage_frame.pack(fill="both", expand=True)
 
     def _is_inside_interactive(self, widget) -> bool:
         """Walk up the parent chain; return True if any ancestor is an interactive widget."""
@@ -343,6 +375,7 @@ class App(ctk.CTk):
             self.add_material_frame,
             self.burn_table_frame,
             self.todo_frame,
+            self.part_storage_frame,
         ):
             frame.pack_forget()
 
