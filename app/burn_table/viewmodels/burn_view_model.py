@@ -7,6 +7,7 @@ import dataclasses
 import json
 import os
 import sys
+import threading
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -123,6 +124,11 @@ class BurnViewModel:
         # Observer callbacks registered by views
         self._callbacks: list[Callable[[], None]] = []
 
+        # Optional callback fired immediately after any file write; used by the
+        # app to call FileWatcher.acknowledge_write() and suppress the redundant
+        # watcher callback that would otherwise fire 500 ms later.
+        self._on_file_written: Callable[[Path], None] | None = None
+
         # Popup warning to show after next notify (cleared by view after display)
         self._popup_message: str | None = None
 
@@ -158,6 +164,14 @@ class BurnViewModel:
     def update_texts(self, texts: dict) -> None:
         """Update the UI language; call after ``set_language()`` in the app."""
         self._texts = texts
+
+    def set_on_file_written(self, callback: Callable[[Path], None]) -> None:
+        """Register a callback invoked immediately after any file write.
+
+        Intended for use by the App to call ``FileWatcher.acknowledge_write()``
+        so the watcher does not treat local writes as external changes.
+        """
+        self._on_file_written = callback
 
     # ══════════════════════════════════════════════════════════════════
     # Read-only properties for the view
@@ -264,6 +278,7 @@ class BurnViewModel:
                 ok=False,
             )
         self._notify()
+        self._ack_write()
 
     def load_last_table(self) -> None:
         """Attempt to load the table saved in the settings file on startup.
@@ -397,12 +412,13 @@ class BurnViewModel:
         try:
             record_to_write = self._prepare_record_for_writing(self._pending_record)
             row_num = self._next_write_row
-            self._writer.write_record_at_row(self._table_path, row_num, record_to_write)
-            self._next_write_row += 1
-            # Insert a styled empty separator row after the single-record batch.
-            with contextlib.suppress(Exception):
-                self._writer.write_empty_row(self._table_path, self._next_write_row)
-            self._next_write_row += 1
+            sep_row = row_num + 1
+            # Write record + separator in one workbook open+save (was 2 opens).
+            self._writer.write_rows_batch(
+                self._table_path,
+                [(row_num, record_to_write), (sep_row, None)],
+            )
+            self._next_write_row += 2
             self._records.append(record_to_write)
             self._display_rows.append(record_to_write)
             self._display_rows.append(None)  # separator
@@ -420,6 +436,7 @@ class BurnViewModel:
                 self._texts.get("save_error", "Save error: {}").format(exc), ok=False
             )
         self._notify()
+        self._ack_write()
 
     def discard_pending_record(self) -> None:
         """Discard the parsed pending record without appending it."""
@@ -482,6 +499,7 @@ class BurnViewModel:
         cross_duplicates: list[str] = []
         product_group_written = False  # reset every batch call
         batch_written: list[BurnRecord] = []  # for _display_rows update
+        batch_file_entries: list[tuple[int, BurnRecord | None]] = []  # staged writes
 
         # Phase 1: parse all records first so we can sort them before writing.
         parsed: list[tuple[Path, BurnRecord]] = []
@@ -539,20 +557,21 @@ class BurnViewModel:
                 product_group_written = True
                 if date:
                     record_to_write = dataclasses.replace(record_to_write, date=date)
-            self._writer.write_record_at_row(
-                self._table_path, self._next_write_row, record_to_write
-            )
+            # Stage for the single batch write executed after the loop.
+            batch_file_entries.append((self._next_write_row, record_to_write))
             self._next_write_row += 1
             self._records.append(record_to_write)
             batch_written.append(record_to_write)
             self._status = self._detector.detect_from_records(len(self._records))
             added += 1
 
-        # Insert ONE styled separator row after the entire batch.
+        # Write all records + one separator in a SINGLE workbook open+save
+        # (previously: N opens for records + 1 open for separator = N+1 total).
         if added > 0:
-            with contextlib.suppress(Exception):
-                self._writer.write_empty_row(self._table_path, self._next_write_row)
+            batch_file_entries.append((self._next_write_row, None))  # separator
             self._next_write_row += 1
+            with contextlib.suppress(Exception):
+                self._writer.write_rows_batch(self._table_path, batch_file_entries)
             self._display_rows.extend(batch_written)
             self._display_rows.append(None)  # separator after batch
             self._status = self._detector.detect_from_records(len(self._display_rows))
@@ -581,6 +600,7 @@ class BurnViewModel:
                 )
             )
         self._notify()
+        self._ack_write()
 
     @staticmethod
     def find_sch_for_nc(nc_path: Path) -> Path | None:
@@ -648,18 +668,6 @@ class BurnViewModel:
             )
         self._notify()
 
-    def export_pdf(self, output_path: Path | None = None) -> None:
-        """Export the current table to PDF."""
-        if self._table_path is None:
-            self._set_message(
-                self._texts.get("load_table_first", "Load a table first."), ok=False
-            )
-            self._notify()
-            return
-        success, msg, _ = self._print_manager.export_pdf(self._table_path, output_path)
-        self._set_message(msg, ok=success)
-        self._notify()
-
     def clear_table(self) -> None:
         """Remove all data records from the current table file."""
         if self._table_path is None:
@@ -682,6 +690,7 @@ class BurnViewModel:
                 self._texts.get("clear_error", "Clear error: {}").format(exc), ok=False
             )
         self._notify()
+        self._ack_write()
 
     def update_record(self, index: int, record: BurnRecord) -> None:
         """Replace the record at *index* (0-based) with *record* and save."""
@@ -719,6 +728,7 @@ class BurnViewModel:
         self._next_write_row = ExcelWriter.DATA_START_ROW + len(self._display_rows)
         self._set_message(self._texts.get("record_updated", "Record updated."))
         self._notify()
+        self._ack_write()
 
     def delete_record(self, index: int) -> None:
         """Remove the record at *index* (0-based) from the table and save."""
@@ -759,6 +769,7 @@ class BurnViewModel:
                 break
         self._set_message(self._texts.get("record_deleted", "Record deleted."))
         self._notify()
+        self._ack_write()
 
     def clear_message(self) -> None:
         """Clear the current status message."""
@@ -824,6 +835,63 @@ class BurnViewModel:
         if new_date == record.date and new_fmt == record.sheet_format:
             return record
         return dataclasses.replace(record, date=new_date, sheet_format=new_fmt)
+
+    def reload_from_file_async(self, root) -> None:
+        """Reload table data from disk without blocking the UI.
+
+        Unlike :meth:`load_table`, this method never writes to the file
+        (no ``ensure_sheet_exists``, ``update_header``, or ``save_settings``),
+        so calling it from the file-watcher callback cannot create an infinite
+        write→detect→reload loop.
+
+        The Excel read runs in a daemon thread; the state update and subscriber
+        notification are scheduled on the tkinter main thread via
+        ``root.after(0, ...)``.  No-op when no table is loaded or the path no
+        longer exists on disk.
+        """
+        path = self._table_path
+        if path is None or not path.is_file():
+            return
+
+        def _load() -> None:
+            try:
+                display, last_row = self._reader.read_all_with_separators_and_last_row(path)
+                records = [r for r in display if r is not None]
+                if isinstance(last_row, int) and last_row >= ExcelWriter.DATA_START_ROW:
+                    next_row = last_row + 2
+                else:
+                    next_row = ExcelWriter.DATA_START_ROW + len(records)
+            except Exception:
+                return  # File may be mid-write; skip this poll tick silently.
+
+            def _apply() -> None:
+                self._display_rows = display
+                self._records = records
+                self._status = self._detector.detect_from_records(len(display))
+                self._next_write_row = next_row
+                self._date_written = len(records) > 0
+                self._last_sheet_format = ""
+                for rec in reversed(records):
+                    if rec.sheet_format and rec.sheet_format != "-----":
+                        self._last_sheet_format = rec.sheet_format
+                        break
+                self._notify()
+
+            with contextlib.suppress(Exception):
+                root.after(0, _apply)
+
+        threading.Thread(target=_load, daemon=True).start()
+
+    def _ack_write(self) -> None:
+        """Fire the on-file-written callback if registered.
+
+        Call this immediately after any operation that saves to
+        ``self._table_path`` so the FileWatcher can suppress the redundant
+        external-change notification it would otherwise fire 500 ms later.
+        """
+        if self._on_file_written is not None and self._table_path is not None:
+            with contextlib.suppress(Exception):
+                self._on_file_written(self._table_path)
 
     def _notify(self) -> None:
         """Invoke all registered observer callbacks."""

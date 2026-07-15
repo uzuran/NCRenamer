@@ -73,21 +73,3 @@ class TestPrintTable:
         assert "oops" in msg
 
 
-class TestExportPdf:
-    def test_defaults_to_pdf_extension(self):
-        mock_svc = MagicMock()
-        mock_svc.export_pdf.return_value = Path("/tmp/table.pdf")
-        pm = PrintManager(print_service=mock_svc)
-        ok, msg, path = pm.export_pdf(Path("/tmp/table.xlsx"))
-        assert ok is True
-        called_output = mock_svc.export_pdf.call_args[0][1]
-        assert called_output.suffix == ".pdf"
-
-    def test_failure_returns_false_and_message(self):
-        mock_svc = MagicMock()
-        mock_svc.export_pdf.side_effect = RuntimeError("libreoffice missing")
-        pm = PrintManager(print_service=mock_svc)
-        ok, msg, path = pm.export_pdf(Path("/tmp/table.xlsx"))
-        assert ok is False
-        assert path is None
-        assert "libreoffice missing" in msg

@@ -206,8 +206,8 @@ class TestProductGroupPerBatchRule:
     def test_first_record_has_product_group(self):
         vm = _empty_vm()
         written: list[BurnRecord] = []
-        vm._writer.write_record_at_row.side_effect = (
-            lambda path, row, rec: written.append(rec)
+        vm._writer.write_rows_batch.side_effect = (
+            lambda path, entries: [written.append(rec) for _, rec in entries if rec is not None]
         )
 
         with patch.object(
@@ -225,8 +225,8 @@ class TestProductGroupPerBatchRule:
     def test_subsequent_records_have_empty_product_group(self):
         vm = _empty_vm()
         written: list[BurnRecord] = []
-        vm._writer.write_record_at_row.side_effect = (
-            lambda path, row, rec: written.append(rec)
+        vm._writer.write_rows_batch.side_effect = (
+            lambda path, entries: [written.append(rec) for _, rec in entries if rec is not None]
         )
 
         with patch.object(
@@ -245,8 +245,8 @@ class TestProductGroupPerBatchRule:
     def test_new_batch_resets_flag(self):
         vm = _empty_vm()
         written: list[BurnRecord] = []
-        vm._writer.write_record_at_row.side_effect = (
-            lambda path, row, rec: written.append(rec)
+        vm._writer.write_rows_batch.side_effect = (
+            lambda path, entries: [written.append(rec) for _, rec in entries if rec is not None]
         )
 
         with patch.object(
@@ -380,7 +380,7 @@ class TestMessageAndStatus:
         )
         with patch.object(vm._recorder, "record_from_paths", return_value=_rec()):
             vm.load_and_append_batch([Path("/nc/X.NC")])
-        assert vm._writer.write_record_at_row.call_count == 0
+        assert vm._writer.write_rows_batch.call_count == 0
 
     def test_clear_popup(self):
         vm = BurnViewModel()
@@ -431,8 +431,8 @@ class TestBatchSortByProgramNumber:
     def test_uploaded_out_of_order_written_in_suffix_order(self):
         vm = _empty_vm()
         written: list[BurnRecord] = []
-        vm._writer.write_record_at_row.side_effect = (
-            lambda path, row, rec: written.append(rec)
+        vm._writer.write_rows_batch.side_effect = (
+            lambda path, entries: [written.append(rec) for _, rec in entries if rec is not None]
         )
 
         mapping = {"6678-80": "6678-80", "6678-78": "6678-78", "6678-79": "6678-79"}
@@ -452,8 +452,8 @@ class TestBatchSortByProgramNumber:
     def test_already_sorted_batch_unchanged(self):
         vm = _empty_vm()
         written: list[BurnRecord] = []
-        vm._writer.write_record_at_row.side_effect = (
-            lambda path, row, rec: written.append(rec)
+        vm._writer.write_rows_batch.side_effect = (
+            lambda path, entries: [written.append(rec) for _, rec in entries if rec is not None]
         )
 
         mapping = {"6678-78": "6678-78", "6678-79": "6678-79", "6678-80": "6678-80"}
@@ -473,8 +473,8 @@ class TestBatchSortByProgramNumber:
     def test_non_standard_program_sorts_before_numeric(self):
         vm = _empty_vm()
         written: list[BurnRecord] = []
-        vm._writer.write_record_at_row.side_effect = (
-            lambda path, row, rec: written.append(rec)
+        vm._writer.write_rows_batch.side_effect = (
+            lambda path, entries: [written.append(rec) for _, rec in entries if rec is not None]
         )
 
         mapping = {"6678-80": "6678-80", "NOFORMAT": "NOFORMAT"}
@@ -495,8 +495,8 @@ class TestBatchSortByProgramNumber:
         """First written record (by suffix order) gets the date, not the first uploaded."""
         vm = _empty_vm()
         written: list[BurnRecord] = []
-        vm._writer.write_record_at_row.side_effect = (
-            lambda path, row, rec: written.append(rec)
+        vm._writer.write_rows_batch.side_effect = (
+            lambda path, entries: [written.append(rec) for _, rec in entries if rec is not None]
         )
 
         mapping = {"6678-80": "6678-80", "6678-78": "6678-78"}

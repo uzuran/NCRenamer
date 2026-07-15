@@ -271,6 +271,106 @@ class ExcelWriter:
             ws.write(row_num - 1, col_idx, "", empty_style)  # 1-based → 0-based
         wb.save(str(path))
 
+    # ── batch write (record + separator rows in one open+save) ───────────────
+
+    def write_rows_batch(
+        self,
+        path: Path,
+        entries: list[tuple[int, "BurnRecord | None"]],
+    ) -> None:
+        """Write multiple rows in a single workbook open+save.
+
+        *entries* is a list of ``(row_num, record_or_None)`` pairs:
+        - ``BurnRecord`` → data row with values, borders, and centre alignment.
+        - ``None``       → styled empty separator row (borders + white fill,
+          no values).
+
+        Row numbers outside DATA_START_ROW..MAX_ROW are silently skipped.
+        Opening the workbook once for the entire batch is significantly faster
+        than calling write_record_at_row / write_empty_row per row, which each
+        incur a separate load+save cycle.
+        """
+        if not entries:
+            return
+        if path.suffix.lower() == ".xls":
+            self._write_rows_batch_xls(path, entries)
+        else:
+            self._write_rows_batch_xlsx(path, entries)
+
+    def _write_rows_batch_xlsx(
+        self,
+        path: Path,
+        entries: list[tuple[int, "BurnRecord | None"]],
+    ) -> None:
+        import openpyxl
+        from openpyxl.styles import PatternFill
+
+        from app.burn_table.services._xlsx_format import (
+            make_border,
+            make_center_alignment,
+        )
+
+        wb = openpyxl.load_workbook(path)
+        ws = wb.worksheets[self._sheet_index]
+        border = make_border()
+        center = make_center_alignment()
+        sep_fill = PatternFill("solid", fgColor="FFFFFF")
+
+        for row_num, record in entries:
+            if not (self.DATA_START_ROW <= row_num <= self.MAX_ROW):
+                continue
+            if record is None:
+                # Styled empty separator row
+                for col in range(1, 9):
+                    cell = ws.cell(row=row_num, column=col, value=None)
+                    cell.border = border
+                    cell.alignment = center
+                    cell.fill = sep_fill
+            else:
+                self._write_row_xlsx(ws, row_num, record)
+
+        wb.save(path)
+
+    def _write_rows_batch_xls(
+        self,
+        path: Path,
+        entries: list[tuple[int, "BurnRecord | None"]],
+    ) -> None:
+        try:
+            import xlrd
+            import xlwt
+            from xlutils.copy import copy as xl_copy
+        except ImportError as exc:
+            raise ImportError(
+                "xlrd and xlutils are required: pip install xlrd==1.2.0 xlutils"
+            ) from exc
+
+        rb = xlrd.open_workbook(str(path), formatting_info=True)
+        wb = xl_copy(rb)
+        ws = wb.get_sheet(self._sheet_index)
+
+        data_style = xlwt.easyxf(
+            "alignment: horiz centre, vert centre;"
+            "borders: left thin, right thin, top thin, bottom thin;"
+        )
+        empty_style = xlwt.easyxf(
+            "alignment: horiz centre, vert centre;"
+            "borders: left thin, right thin, top thin, bottom thin;"
+            "pattern: pattern solid, fore_colour white;"
+        )
+
+        for row_num, record in entries:
+            if not (self.DATA_START_ROW <= row_num <= self.MAX_ROW):
+                continue
+            row_idx = row_num - 1  # 1-based → 0-based
+            if record is None:
+                for col_idx in range(8):
+                    ws.write(row_idx, col_idx, "", empty_style)
+            else:
+                self._write_row_xls(ws, row_idx, record)
+
+        wb.save(str(path))
+
     # ── header migration ─────────────────────────────────────────────────────
 
     def update_header(self, path: Path) -> None:

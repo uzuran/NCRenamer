@@ -158,6 +158,12 @@ class App(ctk.CTk):
             self._on_burn_table_changed,
         )
         self._file_watcher.start()
+        # Suppress the file-watcher callback for writes initiated by this
+        # process.  Each ViewModel calls _ack_write() after every save, which
+        # updates the watcher's known mtime so the next poll does not mistake
+        # the local write for an external change.
+        self.vm_steel.set_on_file_written(self._file_watcher.acknowledge_write)
+        self.vm_aluminium.set_on_file_written(self._file_watcher.acknowledge_write)
         self.protocol("WM_DELETE_WINDOW", self._on_close)
 
         self._update_check_in_progress = False

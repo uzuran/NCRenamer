@@ -1,10 +1,9 @@
-"""PrintPreview — read-only table preview with print and PDF export."""
+"""PrintPreview — read-only table preview with print."""
 
 from __future__ import annotations
 
 import tkinter as tk
-from pathlib import Path
-from tkinter import filedialog, messagebox, ttk
+from tkinter import messagebox, ttk
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -19,7 +18,6 @@ class PrintPreview(tk.Toplevel):
     Contains:
         - A read-only PreviewTable (full A-J columns)
         - Print button
-        - Export PDF button
         - Close button
     """
 
@@ -69,10 +67,6 @@ class PrintPreview(tk.Toplevel):
             side="left", padx=4
         )
 
-        ttk.Button(
-            btn_frame, text="📄  Export PDF", width=16, command=self._on_export_pdf
-        ).pack(side="left", padx=4)
-
         ttk.Button(btn_frame, text="Zavřít", width=12, command=self.destroy).pack(
             side="right", padx=4
         )
@@ -91,23 +85,3 @@ class PrintPreview(tk.Toplevel):
         else:
             messagebox.showinfo("Tisk", "Tisková úloha odeslána.", parent=self)
 
-    def _on_export_pdf(self) -> None:
-        if not self._vm.table_path:
-            messagebox.showinfo("Info", "Není načtena žádná tabulka.", parent=self)
-            return
-
-        output_str = filedialog.asksaveasfilename(
-            title="Uložit PDF jako…",
-            defaultextension=".pdf",
-            filetypes=[("PDF soubory", "*.pdf")],
-            initialfile=self._vm.table_path.stem + ".pdf",
-            parent=self,
-        )
-        if not output_str:
-            return
-
-        self._vm.export_pdf(Path(output_str))
-        if self._vm.message_ok:
-            messagebox.showinfo("Export", self._vm.message, parent=self)
-        else:
-            messagebox.showerror("Chyba exportu", self._vm.message, parent=self)

@@ -61,7 +61,6 @@ class BurnDashboard(ttk.Frame):
             ("+  Nová tabulka", self._on_new_table),
             ("🗂  Načíst NC/SCH", self._on_load_nc_sch),
             ("🖨  Tisk", self._on_print),
-            ("📄  Export PDF", self._on_export_pdf),
             ("📊  Otevřít počítadlo", self._on_open_counter),
         ]
         for text, cmd in buttons:
@@ -257,23 +256,6 @@ class BurnDashboard(ttk.Frame):
             messagebox.showinfo("Info", "Nejprve načtěte tabulku.")
             return
         PrintPreview(self, self._vm)
-
-    def _on_export_pdf(self) -> None:
-        if not self._vm.table_path:
-            messagebox.showinfo("Info", "Nejprve načtěte tabulku.")
-            return
-        out_str = filedialog.asksaveasfilename(
-            title="Uložit PDF jako…",
-            defaultextension=".pdf",
-            filetypes=[("PDF soubory", "*.pdf")],
-            initialfile=(
-                self._vm.table_path.stem + ".pdf"
-                if self._vm.table_path
-                else "tabulka.pdf"
-            ),
-        )
-        if out_str:
-            self._vm.export_pdf(Path(out_str))
 
     def _on_open_counter(self) -> None:
         """Open (or focus) the CounterWindow."""

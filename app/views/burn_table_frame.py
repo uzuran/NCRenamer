@@ -606,11 +606,16 @@ class BurnTableFrame(ctk.CTkFrame):
     # ─── External refresh (file watcher) ─────────────────────────────────────
 
     def reload_treeview(self) -> None:
-        """Reload both sheets from disk — called when burn_table.xlsx changes externally."""
-        path = self.steel_tab.vm.table_path
-        if path is not None and path.is_file():
-            self.steel_tab.vm.load_table(path)
-            self.alu_tab.vm.load_table(path)
+        """Reload both sheets from disk without blocking the UI.
+
+        Called by the file watcher when burn_table.xlsx is modified externally.
+        Delegates to :meth:`BurnViewModel.reload_from_file_async` which reads
+        in a background thread and never writes to the file, preventing the
+        infinite write→detect→reload loop that :meth:`load_table` would cause.
+        """
+        root = self.winfo_toplevel()
+        self.steel_tab.vm.reload_from_file_async(root)
+        self.alu_tab.vm.reload_from_file_async(root)
 
     # ─── Language switch ─────────────────────────────────────────────────────
 

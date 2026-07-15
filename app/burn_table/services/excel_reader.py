@@ -47,9 +47,16 @@ class ExcelReader:
         wb = openpyxl.load_workbook(path, read_only=True, data_only=True)
         ws = wb.worksheets[self._sheet_index]
         last: int | None = None
-        for row_num in range(self.DATA_START_ROW, self.MAX_ROW + 1):
-            if ws.cell(row=row_num, column=2).value is not None:
-                last = row_num
+        # iter_rows reads the XML stream sequentially — ~20× faster than
+        # calling ws.cell(row, col) per cell in read-only mode.
+        for row in ws.iter_rows(
+            min_row=self.DATA_START_ROW,
+            max_row=self.MAX_ROW,
+            min_col=2,
+            max_col=2,
+        ):
+            if row[0].value is not None:
+                last = row[0].row
         wb.close()
         return last
 
@@ -92,6 +99,22 @@ class ExcelReader:
             return self._read_with_separators_xls(path)
         return self._read_with_separators_xlsx(path)
 
+    def read_all_with_separators_and_last_row(
+        self, path: Path
+    ) -> tuple[list[BurnRecord | None], int | None]:
+        """Single-pass read returning (display_rows, last_data_row).
+
+        Opens the workbook once and computes both values, avoiding the two
+        separate workbook opens that calling read_all_with_separators() and
+        find_last_data_row() independently would require.
+        """
+        if path.suffix.lower() == ".xls":
+            return (
+                self._read_with_separators_xls(path),
+                self._find_last_data_row_xls(path),
+            )
+        return self._read_with_separators_and_last_row_xlsx(path)
+
     # ── .xlsx ────────────────────────────────────────────────────────────────
 
     def _read_with_separators_xlsx(self, path: Path) -> list[BurnRecord | None]:
@@ -107,19 +130,62 @@ class ExcelReader:
 
         ws = wb.worksheets[self._sheet_index]
         result: list[BurnRecord | None] = []
-        pending_nones: int = 0  # blank rows since the last data row
-        for row_num in range(self.DATA_START_ROW, self.MAX_ROW + 1):
-            row = [ws.cell(row=row_num, column=col).value for col in range(1, 11)]
+        pending_nones: int = 0
+        for row in ws.iter_rows(
+            min_row=self.DATA_START_ROW,
+            max_row=self.MAX_ROW,
+            min_col=1,
+            max_col=10,
+            values_only=True,
+        ):
             if row[1] is None:
                 pending_nones += 1
             else:
                 for _ in range(pending_nones):
                     result.append(None)
                 pending_nones = 0
-                result.append(BurnRecord.from_row(row))
+                result.append(BurnRecord.from_row(list(row)))
         wb.close()
         # pending_nones at end are free space, not separators — not appended
         return result
+
+    def _read_with_separators_and_last_row_xlsx(
+        self, path: Path
+    ) -> tuple[list[BurnRecord | None], int | None]:
+        try:
+            import openpyxl
+        except ImportError as exc:
+            raise ImportError("openpyxl is required: pip install openpyxl") from exc
+
+        try:
+            wb = openpyxl.load_workbook(path, read_only=True, data_only=True)
+        except Exception as exc:
+            raise ValueError(f"Cannot open workbook '{path}': {exc}") from exc
+
+        ws = wb.worksheets[self._sheet_index]
+        result: list[BurnRecord | None] = []
+        pending_nones: int = 0
+        last_data_row: int | None = None
+
+        for row in ws.iter_rows(
+            min_row=self.DATA_START_ROW,
+            max_row=self.MAX_ROW,
+            min_col=1,
+            max_col=10,
+        ):
+            b_val = row[1].value  # column B = program_number
+            row_num = row[0].row  # actual Excel row number (handles sparse files)
+            if b_val is None:
+                pending_nones += 1
+            else:
+                last_data_row = row_num
+                for _ in range(pending_nones):
+                    result.append(None)
+                pending_nones = 0
+                result.append(BurnRecord.from_row([cell.value for cell in row]))
+
+        wb.close()
+        return result, last_data_row
 
     def _read_xlsx(self, path: Path) -> list[BurnRecord]:
         try:
@@ -134,11 +200,16 @@ class ExcelReader:
 
         ws = wb.worksheets[self._sheet_index]
         records: list[BurnRecord] = []
-        for row_num in range(self.DATA_START_ROW, self.MAX_ROW + 1):
-            row = [ws.cell(row=row_num, column=col).value for col in range(1, 11)]
+        for row in ws.iter_rows(
+            min_row=self.DATA_START_ROW,
+            max_row=self.MAX_ROW,
+            min_col=1,
+            max_col=10,
+            values_only=True,
+        ):
             if row[1] is None:  # column B (program_number) is the occupied-row marker
                 continue
-            records.append(BurnRecord.from_row(row))
+            records.append(BurnRecord.from_row(list(row)))
         wb.close()
         return records
 

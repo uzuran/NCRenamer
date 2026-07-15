@@ -54,8 +54,7 @@ def _load_single(vm: BurnViewModel, program_number: str) -> None:
     fake_record = BurnRecord(program_number=program_number)
     with (
         patch.object(vm._recorder, "record_from_paths", return_value=fake_record),
-        patch.object(vm._writer, "write_record_at_row", return_value=None),
-        patch.object(vm._writer, "write_empty_row", return_value=None),
+        patch.object(vm._writer, "write_rows_batch", return_value=None),
     ):
         vm.load_and_append_batch([Path(f"/nc/{program_number}.NC")])
 
@@ -116,8 +115,7 @@ class TestSameSheetDuplicateNoCallback:
             patch.object(
                 vm._recorder, "record_from_paths", side_effect=[fake_dup, fake_new]
             ),
-            patch.object(vm._writer, "write_record_at_row", return_value=None),
-            patch.object(vm._writer, "write_empty_row", return_value=None),
+            patch.object(vm._writer, "write_rows_batch", return_value=None),
         ):
             vm.load_and_append_batch(
                 [Path("/nc/6670-18.NC"), Path("/nc/9999-01.NC")]
@@ -183,8 +181,7 @@ class TestSameSheetDuplicateWithCallback:
         fake = BurnRecord(program_number="6670-18")
         with (
             patch.object(vm._recorder, "record_from_paths", side_effect=[fake, fake]),
-            patch.object(vm._writer, "write_record_at_row", return_value=None),
-            patch.object(vm._writer, "write_empty_row", return_value=None),
+            patch.object(vm._writer, "write_rows_batch", return_value=None),
         ):
             vm.load_and_append_batch(
                 [Path("/nc/6670-18.NC"), Path("/nc/6670-18b.NC")]
@@ -304,8 +301,7 @@ class TestMixedBatch:
         ]
         with (
             patch.object(vm._recorder, "record_from_paths", side_effect=records),
-            patch.object(vm._writer, "write_record_at_row", return_value=None),
-            patch.object(vm._writer, "write_empty_row", return_value=None),
+            patch.object(vm._writer, "write_rows_batch", return_value=None),
         ):
             vm.load_and_append_batch(
                 [Path("/nc/6670-18.NC"), Path("/nc/9999-01.NC")]
@@ -323,8 +319,7 @@ class TestMixedBatch:
         ]
         with (
             patch.object(vm._recorder, "record_from_paths", side_effect=records),
-            patch.object(vm._writer, "write_record_at_row", return_value=None),
-            patch.object(vm._writer, "write_empty_row", return_value=None),
+            patch.object(vm._writer, "write_rows_batch", return_value=None),
         ):
             vm.load_and_append_batch(
                 [Path("/nc/6670-18.NC"), Path("/nc/9999-01.NC")]
