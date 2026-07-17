@@ -411,6 +411,29 @@ class PartStorageFrame(ctk.CTkFrame):
                 except Exception:
                     pass
 
+    def _release_image_ref(self) -> None:
+        """Disconnect CTkLabel's internal tk.Label image ref before releasing old CTkImage.
+
+        CTkLabel's inner tk.Label holds the Tk *name string* of the current
+        PhotoImage (e.g. "pyimage3"), not the Python object.  When we set
+        self._thumbnail_ref = None the Python CTkImage may be garbage-collected,
+        and CTkImage.__del__() deletes that name from Tk's registry.  If the
+        tk.Label widget still has the now-invalid name configured, the next Tk
+        redraw (triggered by a frame switch, resize, or DPI change) silently
+        fails and the entire window goes black.  Calling this first tells Tk to
+        stop using the old name before the underlying resource is freed.
+        """
+        if not hasattr(self, "thumbnail_lbl"):
+            return
+        for _attr in ("_label", "_text_label"):
+            _inner = getattr(self.thumbnail_lbl, _attr, None)
+            if _inner is not None:
+                try:
+                    _inner.configure(image="")
+                    _inner.image = None
+                except Exception:
+                    pass
+
     def _update_thumbnail(self, part_id: str | None) -> None:
         """Show thumbnail for *part_id*.  Always runs on the main thread.
 
@@ -421,6 +444,7 @@ class PartStorageFrame(ctk.CTkFrame):
         # Cancel any in-flight worker by advancing the token.
         self._thumb_token = token = object()
         self._thumb_awaiting = False
+        self._release_image_ref()
         self._thumbnail_ref = None
 
         if not hasattr(self, "thumbnail_lbl"):
@@ -506,9 +530,10 @@ class PartStorageFrame(ctk.CTkFrame):
                 return
 
         # ── Step 3: update UI state on the main thread ────────────────────────
-        self._preview_cache.pop(part_id, None)      # evict stale cache entry
-        self._thumbnail_ref = None                   # release old CTkImage ref
-        self._thumb_token = token = object()         # new token for this paste
+        self._preview_cache.pop(part_id, None)       # evict stale cache entry
+        self._release_image_ref()                     # disconnect Tk ref before GC
+        self._thumbnail_ref = None                    # release old CTkImage ref
+        self._thumb_token = token = object()          # new token for this paste
         self._thumb_awaiting = True
         self.thumbnail_lbl.configure(image=None, text="…")
 
@@ -531,9 +556,11 @@ class PartStorageFrame(ctk.CTkFrame):
         # cancels any in-flight load for the newly selected part.
         self.after(
             200,
-            lambda pid=part_id: (
+            lambda pid=part_id, t=token: (
                 self._update_thumbnail(pid)
-                if self._editing_id == pid and pid not in self._preview_cache
+                if self._editing_id == pid
+                and pid not in self._preview_cache
+                and t is self._thumb_token
                 else None
             ),
         )
@@ -574,6 +601,8 @@ class PartStorageFrame(ctk.CTkFrame):
                 )
             else:
                 try:
+                    self._release_image_ref()
+                    self._thumbnail_ref = None
                     ctk_img = ctk.CTkImage(
                         light_image=pil_img,
                         dark_image=pil_img,

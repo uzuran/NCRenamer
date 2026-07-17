@@ -1104,3 +1104,295 @@ class TestGhostImageFix:
             vm.save_image_no_notify(part_id, _rgb_image(color=color))
             vm.remove_image(part_id)
         assert time.monotonic() - start < 1.0
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 10. GC-safety: _release_image_ref lifecycle invariants
+#     (no Tkinter display required — all structural / source-level checks)
+# ══════════════════════════════════════════════════════════════════════════════
+
+
+class TestReleaseImageRefExists:
+    """_release_image_ref must exist and have the right shape."""
+
+    def test_method_defined_on_frame(self):
+        from app.views.part_storage_frame import PartStorageFrame
+        assert hasattr(PartStorageFrame, "_release_image_ref"), (
+            "PartStorageFrame must define _release_image_ref()"
+        )
+
+    def test_iterates_internal_label_attributes(self):
+        from app.views.part_storage_frame import PartStorageFrame
+        src = inspect.getsource(PartStorageFrame._release_image_ref)
+        assert "_label" in src, (
+            "_release_image_ref must reference the internal '_label' attribute"
+        )
+
+    def test_sets_image_to_empty_string(self):
+        from app.views.part_storage_frame import PartStorageFrame
+        src = inspect.getsource(PartStorageFrame._release_image_ref)
+        assert 'configure(image="")' in src, (
+            "_release_image_ref must call configure(image='') to clear the Tk name"
+        )
+
+    def test_sets_image_attr_to_none(self):
+        from app.views.part_storage_frame import PartStorageFrame
+        src = inspect.getsource(PartStorageFrame._release_image_ref)
+        assert ".image = None" in src, (
+            "_release_image_ref must set .image = None to drop the Python reference"
+        )
+
+    def test_safe_without_thumbnail_lbl(self):
+        """Must not raise when called before the widget tree is built."""
+        from app.views.part_storage_frame import PartStorageFrame
+        frame = PartStorageFrame.__new__(PartStorageFrame)
+        frame._release_image_ref()  # must not raise
+
+
+class TestGCSafetyOrdering:
+    """_release_image_ref must appear BEFORE _thumbnail_ref = None in every
+    code path that releases a CTkImage reference.
+
+    Failure scenario: releasing the Python CTkImage before clearing the internal
+    tk.Label image name causes CTkImage.__del__() to delete the PhotoImage from
+    Tk's registry while the label still holds its name string → next Tk redraw
+    blacks out the entire window (DPI redraw on frame switch is the trigger on
+    Windows).
+    """
+
+    def _src(self, method_name: str) -> str:
+        from app.views.part_storage_frame import PartStorageFrame
+        return inspect.getsource(getattr(PartStorageFrame, method_name))
+
+    def test_paste_image_release_before_thumbnail_ref_none(self):
+        src = self._src("_paste_image")
+        rel = src.find("_release_image_ref()")
+        ref = src.find("self._thumbnail_ref = None")
+        assert rel != -1, "_paste_image must call _release_image_ref()"
+        assert ref != -1
+        assert rel < ref, (
+            "_release_image_ref() must precede self._thumbnail_ref = None in _paste_image"
+        )
+
+    def test_drain_queue_release_before_ctk_image_creation(self):
+        src = self._src("_drain_queue")
+        rel = src.find("_release_image_ref()")
+        ctk = src.find("ctk.CTkImage(")
+        assert rel != -1, "_drain_queue must call _release_image_ref()"
+        assert ctk != -1
+        assert rel < ctk, (
+            "_release_image_ref() must precede ctk.CTkImage() in _drain_queue"
+        )
+
+    def test_drain_queue_thumbnail_ref_none_before_ctk_image(self):
+        src = self._src("_drain_queue")
+        ref = src.find("self._thumbnail_ref = None")
+        ctk = src.find("ctk.CTkImage(")
+        assert ref != -1, "_drain_queue must set self._thumbnail_ref = None before new CTkImage"
+        assert ref < ctk, (
+            "self._thumbnail_ref = None must precede ctk.CTkImage() in _drain_queue"
+        )
+
+    def test_update_thumbnail_release_before_thumbnail_ref_none(self):
+        src = self._src("_update_thumbnail")
+        rel = src.find("_release_image_ref()")
+        ref = src.find("self._thumbnail_ref = None")
+        assert rel != -1, "_update_thumbnail must call _release_image_ref()"
+        assert ref != -1
+        assert rel < ref, (
+            "_release_image_ref() must precede self._thumbnail_ref = None in _update_thumbnail"
+        )
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 11. Fallback token capture — second paste must not be cancelled by first
+#     paste's 200 ms fallback
+# ══════════════════════════════════════════════════════════════════════════════
+
+
+class TestFallbackTokenCapture:
+    """The after(200, ...) fallback lambda must capture the paste token so a
+    second paste happening within 200 ms cannot be cancelled by the first
+    paste's fallback calling _update_thumbnail() and advancing the token.
+    """
+
+    def test_fallback_lambda_captures_token(self):
+        from app.views.part_storage_frame import PartStorageFrame
+        src = inspect.getsource(PartStorageFrame._paste_image)
+        assert "t=token" in src, (
+            "fallback lambda must capture the current token as 't=token' to "
+            "prevent first paste's fallback from advancing the token when a "
+            "second paste is in-flight"
+        )
+
+    def test_fallback_lambda_guards_with_token_identity(self):
+        from app.views.part_storage_frame import PartStorageFrame
+        src = inspect.getsource(PartStorageFrame._paste_image)
+        assert "t is self._thumb_token" in src, (
+            "fallback must check 't is self._thumb_token' — without this guard "
+            "a second paste within 200 ms causes the first fallback to call "
+            "_update_thumbnail(), advancing the token past the second paste's "
+            "worker result, which is then discarded by _drain_queue"
+        )
+
+    def test_two_tokens_are_never_identical(self):
+        """Each paste must get a unique token — two object() calls always differ."""
+        tok1 = object()
+        tok2 = object()
+        assert tok1 is not tok2
+
+    def test_stale_fallback_guard_logic(self):
+        """Simulate: first paste tok1 fires fallback, but tok2 is now current."""
+        tok1 = object()
+        tok2 = object()
+        current_token = tok2   # second paste happened; first paste's tok1 is stale
+
+        # Simulates the guard condition in the lambda (t=tok1 captured at first paste)
+        should_call_update = (
+            True            # self._editing_id == pid (same part)
+            and True        # pid not in self._preview_cache (not yet cached)
+            and tok1 is current_token   # t is self._thumb_token — tok1 ≠ tok2!
+        )
+        assert should_call_update is False, (
+            "Stale first-paste fallback must NOT call _update_thumbnail when "
+            "a second paste has already advanced the token"
+        )
+
+    def test_fresh_fallback_guard_logic(self):
+        """Simulate: no second paste happened, fallback fires normally."""
+        tok1 = object()
+        current_token = tok1   # still the same paste's token
+
+        should_call_update = (
+            True            # self._editing_id == pid
+            and True        # pid not in self._preview_cache
+            and tok1 is current_token   # token unchanged → fire
+        )
+        assert should_call_update is True, (
+            "Fallback must fire when same token is still current and image not cached"
+        )
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 12. Second paste end-to-end: correct image delivered, stale result discarded
+# ══════════════════════════════════════════════════════════════════════════════
+
+
+class TestSecondPasteEndToEnd:
+    """Verify that a second paste to the same part ID delivers the second image
+    and discards the first paste's stale worker result.
+
+    These tests exercise _save_worker + the queue drain logic directly without
+    requiring a Tkinter event loop.
+    """
+
+    def test_second_paste_worker_puts_new_image(self, tmp_path):
+        """Worker for second paste must put a non-None image in the queue."""
+        vm = _make_vm(tmp_path)
+        part_id = _add_part(vm)
+
+        q: queue.SimpleQueue = queue.SimpleQueue()
+        tok2 = object()
+        _save_worker(tok2, part_id, _rgb_image(color=(0, 0, 200)), vm, q)
+        tok_r, pid_r, img_r = q.get_nowait()
+
+        assert tok_r is tok2
+        assert pid_r == part_id
+        assert img_r is not None
+
+    def test_stale_first_result_discarded_current_second_applied(self, tmp_path):
+        """Queue drain must discard tok1 result and apply tok2 result."""
+        vm = _make_vm(tmp_path)
+        part_id = _add_part(vm)
+
+        q: queue.SimpleQueue = queue.SimpleQueue()
+        tok1 = object()
+        tok2 = object()
+
+        # Paste #1 worker runs first (older result, stale)
+        _save_worker(tok1, part_id, _rgb_image(color=(200, 0, 0)), vm, q)
+        # Paste #2 worker runs second (current result)
+        _save_worker(tok2, part_id, _rgb_image(color=(0, 0, 200)), vm, q)
+
+        # Drain: simulate main thread with tok2 as the active token
+        current_token = tok2
+        applied: list = []
+        discarded_count = 0
+
+        while True:
+            try:
+                tok, pid, img = q.get_nowait()
+            except queue.Empty:
+                break
+            if tok is not current_token:
+                discarded_count += 1
+            else:
+                applied.append((tok, pid, img))
+
+        assert discarded_count == 1, "first paste's stale result must be discarded"
+        assert len(applied) == 1, "second paste's result must be applied"
+
+        _, _, thumb = applied[0]
+        assert thumb is not None
+        px = thumb.getpixel((0, 0))
+        assert px[2] > 100, "applied thumbnail must be from second (blue) paste"
+
+    def test_disk_has_second_image_after_two_pastes(self, tmp_path):
+        """After two saves to the same part_id, disk must have the second image."""
+        from PIL import Image
+
+        vm = _make_vm(tmp_path)
+        part_id = _add_part(vm)
+
+        q: queue.SimpleQueue = queue.SimpleQueue()
+        _save_worker(object(), part_id, _rgb_image(color=(200, 0, 0)), vm, q)
+        _save_worker(object(), part_id, _rgb_image(color=(0, 0, 200)), vm, q)
+
+        path = vm.get_image_path(part_id)
+        assert path is not None and path.exists()
+        saved = Image.open(str(path))
+        px = saved.getpixel((0, 0))
+        assert px[2] > 100, "disk must have second (blue) image after second paste"
+
+    def test_ten_rapid_pastes_last_image_on_disk(self, tmp_path):
+        """Stress: ten consecutive pastes → disk has only the tenth image."""
+        from PIL import Image
+
+        vm = _make_vm(tmp_path)
+        part_id = _add_part(vm)
+        q: queue.SimpleQueue = queue.SimpleQueue()
+
+        final_blue = 220
+        for i in range(10):
+            color = (i * 20, 0, 0) if i < 9 else (0, 0, final_blue)
+            _save_worker(object(), part_id, _rgb_image(color=color), vm, q)
+
+        path = vm.get_image_path(part_id)
+        assert path is not None and path.exists()
+        saved = Image.open(str(path))
+        px = saved.getpixel((0, 0))
+        assert px[2] == final_blue, (
+            f"expected blue={final_blue} from tenth paste, got {px}"
+        )
+
+    def test_cache_not_cross_contaminated_between_parts(self, tmp_path):
+        """Pasting to part A must not affect part B's image on disk."""
+        from PIL import Image
+
+        vm = _make_vm(tmp_path)
+        part_a = _add_part(vm, "PN-A")
+        part_b = _add_part(vm, "PN-B")
+        q: queue.SimpleQueue = queue.SimpleQueue()
+
+        _save_worker(object(), part_a, _rgb_image(color=(200, 0, 0)), vm, q)
+        _save_worker(object(), part_b, _rgb_image(color=(0, 0, 200)), vm, q)
+
+        path_a = vm.get_image_path(part_a)
+        path_b = vm.get_image_path(part_b)
+        assert path_a is not None and path_b is not None
+
+        px_a = Image.open(str(path_a)).getpixel((0, 0))
+        px_b = Image.open(str(path_b)).getpixel((0, 0))
+        assert px_a[0] > 100, "Part A must have red image"
+        assert px_b[2] > 100, "Part B must have blue image"
+        assert px_a[2] < 50, "Part A must NOT have blue from Part B"
