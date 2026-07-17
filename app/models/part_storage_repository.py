@@ -124,13 +124,23 @@ class PartStorageRepository:
         return False
 
     def delete_part(self, part_id: str) -> bool:
-        """Delete a part record. Returns False if not found."""
+        """Delete a part record and its image file. Returns False if not found."""
+        img_path_str = ""
         with _file_lock(self._lock_path):
             data = self._read()
             new_data = [item for item in data if item["id"] != part_id]
             if len(new_data) == len(data):
                 return False
+            for item in data:
+                if item["id"] == part_id:
+                    img_path_str = item.get("image_path", "")
+                    break
             self._write_atomic(new_data)
+        if img_path_str:
+            try:
+                Path(img_path_str).unlink(missing_ok=True)
+            except Exception:
+                pass
         return True
 
     def search_by_part_number(self, query: str) -> list[dict]:
@@ -143,3 +153,65 @@ class PartStorageRepository:
         return [
             item for item in data if query in item.get("part_number", "").lower()
         ]
+
+    # ------------------------------------------------------------------
+    # Image operations
+    # ------------------------------------------------------------------
+
+    @property
+    def images_dir(self) -> Path:
+        """Directory where part images are stored."""
+        return self._path.parent / "part_storage_images"
+
+    def save_image_from_pil_image(self, part_id: str, pil_img) -> Path | None:
+        """Save *pil_img* to disk and record the path in JSON.
+
+        Called from a worker thread — MUST NOT touch Tkinter or call _notify().
+        Returns the saved Path on success, None on failure.
+        """
+        try:
+            img_dir = self.images_dir
+            img_dir.mkdir(parents=True, exist_ok=True)
+            dest = img_dir / f"{part_id}.png"
+            pil_img.save(str(dest), "PNG")
+        except Exception:
+            return None
+        with _file_lock(self._lock_path):
+            data = self._read()
+            for item in data:
+                if item["id"] == part_id:
+                    item["image_path"] = str(dest)
+                    self._write_atomic(data)
+                    return dest
+        return None
+
+    def get_image_path(self, part_id: str) -> Path | None:
+        """Return the image Path for *part_id*, or None if absent / file missing."""
+        with _file_lock(self._lock_path):
+            data = self._read()
+        for item in data:
+            if item["id"] == part_id:
+                p_str = item.get("image_path", "")
+                if p_str:
+                    p = Path(p_str)
+                    return p if p.exists() else None
+        return None
+
+    def remove_image(self, part_id: str) -> bool:
+        """Clear image_path in JSON and delete the image file. Returns False if none."""
+        img_str = ""
+        with _file_lock(self._lock_path):
+            data = self._read()
+            for item in data:
+                if item["id"] == part_id:
+                    img_str = item.pop("image_path", "")
+                    self._write_atomic(data)
+                    break
+            else:
+                return False
+        if img_str:
+            try:
+                Path(img_str).unlink(missing_ok=True)
+            except Exception:
+                pass
+        return True

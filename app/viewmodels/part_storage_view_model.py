@@ -121,3 +121,36 @@ class PartStorageViewModel:
             return False, self.texts.get("part_not_found", "Part not found.")
         self._notify()
         return True, self.texts.get("part_deleted", "Part deleted.")
+
+    # ------------------------------------------------------------------
+    # Image operations — safe to call from worker threads
+    # ------------------------------------------------------------------
+
+    def get_image_path(self, part_id: str):
+        """Return Path to the stored image, or None. Safe from any thread."""
+        if not part_id:
+            return None
+        return self.repo.get_image_path(part_id)
+
+    def save_image_no_notify(self, part_id: str, pil_img) -> bool:
+        """Persist *pil_img* for *part_id*.
+
+        Designed for background worker threads:
+        • calls repo (file I/O only)
+        • NEVER calls _notify()
+        • NEVER calls any Tkinter API
+        """
+        if not part_id:
+            return False
+        path = self.repo.save_image_from_pil_image(part_id, pil_img)
+        return path is not None
+
+    def remove_image(self, part_id: str) -> tuple[bool, str]:
+        """Delete the image for *part_id*. Notifies subscribers on success."""
+        if not part_id:
+            return False, self.texts.get("part_no_selected", "No part selected.")
+        ok = self.repo.remove_image(part_id)
+        if not ok:
+            return False, self.texts.get("part_no_image", "No image to remove.")
+        self._notify()
+        return True, self.texts.get("part_image_removed", "Image removed.")
