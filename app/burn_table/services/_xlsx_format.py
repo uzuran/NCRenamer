@@ -27,14 +27,14 @@ def apply_cell_style(cell, *, border, alignment) -> None:
 
 
 def apply_print_settings(ws) -> None:
-    """Configure landscape A4 layout, fit to width, print area A1:H40."""
+    """Configure landscape A4 layout, fit to one page, print area A1:H40."""
     ws.print_area = "A1:H40"
     ws.page_setup.orientation = "landscape"
     ws.page_setup.paperSize = 9  # 9 = A4 in openpyxl
     ws.page_setup.fitToWidth = 1
-    ws.page_setup.fitToHeight = 0  # 0 = unlimited pages tall (fit to width only)
+    ws.page_setup.fitToHeight = 1  # force exactly one page tall
     ws.sheet_properties.pageSetUpPr.fitToPage = True  # enables "fit to page" scaling
-    # Narrow margins so the 9-column table fits on one A4 sheet in landscape
+    # Narrow margins so the 8-column table fits on one A4 sheet in landscape
     ws.page_margins.left = 0.4
     ws.page_margins.right = 0.4
     ws.page_margins.top = 0.6

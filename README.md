@@ -1,7 +1,30 @@
 # NC Renamer
 
+**GitHub:** [https://github.com/uzuran/NCRenamer](https://github.com/uzuran/NCRenamer)
+
 A desktop utility that validates and corrects material codes embedded in CNC NC files,
-manages a laser burn table, and tracks work tasks — all from a single GUI with Czech/English support.
+manages a laser burn table, tracks work tasks, and stores leftover parts —
+all from a single GUI with Czech/English support.
+
+---
+
+## About
+
+NC Renamer was built for CNC laser cutting workshops that need a simple, reliable tool
+to keep NC program files consistent and to log every burn operation without relying on
+a heavy ERP or database system.
+
+Everything runs from a single executable placed on a shared network drive.
+No installation, no server, no configuration — just launch and work.
+
+| | |
+|---|---|
+| **Author** | Černopaščenko Arťom |
+| **Version** | 3.3.0 |
+| **License** | CC BY-NC-ND 4.0 |
+| **Repository** | [github.com/uzuran/NCRenamer](https://github.com/uzuran/NCRenamer) |
+| **Language** | Python 3.12 + CustomTkinter |
+| **Platform** | Windows (frozen) / Linux / macOS (from source) |
 
 ---
 
@@ -19,6 +42,12 @@ manages a laser burn table, and tracks work tasks — all from a single GUI with
 - **Duplicate detection with confirmation** — warns when a program already exists in the same sheet or the other sheet; lets the operator override and add it anyway
 - **Print support** — print selected rows directly from the table view
 - **Free-slot detection** — shows how many rows remain before the table is full
+
+### Leftover Parts Storage
+- **Add / edit / delete** leftover sheet parts with part number, storage location, and notes
+- **Image attach** — paste any image from clipboard (Ctrl+V); saved as PNG, shown as thumbnail; click to open in system viewer
+- **Search** by part number (live filter)
+- **Shared across users** — JSON-backed, same real-time sync as todos
 
 ### Todo List
 - **Add / edit / delete tasks** with a timestamp (date and time recorded on creation)
@@ -48,6 +77,7 @@ NCRenamer/
 │   │   ├── email_model.py              # Bug-report counter persistence
 │   │   ├── formatter_model.py          # NC file validation and rewriting
 │   │   ├── material_repository.py      # Material mapping JSON CRUD
+│   │   ├── part_storage_repository.py  # Leftover parts JSON CRUD + image storage
 │   │   ├── password_model.py           # Password verification
 │   │   ├── settings_model.py           # JSON settings persistence
 │   │   └── todo_repository.py          # Todo-item JSON CRUD
@@ -55,6 +85,7 @@ NCRenamer/
 │   │   ├── add_material_view_model.py
 │   │   ├── main_view_model.py
 │   │   ├── materials_view_model.py
+│   │   ├── part_storage_view_model.py
 │   │   ├── password_view_model.py
 │   │   ├── settings_view_model.py
 │   │   └── todo_view_model.py
@@ -63,6 +94,7 @@ NCRenamer/
 │   │   ├── materials_frame.py
 │   │   ├── add_material_frame.py
 │   │   ├── burn_table_frame.py
+│   │   ├── part_storage_frame.py
 │   │   ├── settings_frame.py
 │   │   └── todo_frame.py
 │   ├── burn_table/                 # Burn-table sub-application
@@ -281,9 +313,7 @@ On first launch the workspace directories (`shared/`, `users/<name>/`) are creat
 
 ## Version
 
-`2.3.0` — see [app/version.py](app/version.py)
-
-Author: Černopaščenko Arťom
+`3.3.0` — see [app/version.py](app/version.py)
 
 ---
 

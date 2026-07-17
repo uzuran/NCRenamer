@@ -111,33 +111,36 @@ class ProgramInfo:
     def program_time_formatted(self) -> str:
         """Format TT/ time code as HH:MM:SS.
 
-        'H21M51S'  → '00:21:51'
-        'H 7M28S'  → '00:07:28'
-        'H M48S'   → '00:00:48'  (zero minutes, 48 seconds)
-        '1H5M30S'  → '01:05:30'
+        'H21M51S'    → '00:21:51'
+        'H 7M28S'    → '00:07:28'
+        'H M48S'     → '00:00:48'  (zero minutes, 48 seconds)
+        '1H5M30S'    → '01:05:30'
+        '  H45M  S'  → '00:45:00'  (leading spaces, zero seconds)
+        '  H20M  S'  → '00:20:00'
         """
-        m = re.match(r"(\d*)H\s*(\d*)M\s*(\d+)S", self.program_time_raw)
+        m = re.match(r"\s*(\d*)H\s*(\d*)M\s*(\d*)S", self.program_time_raw)
         if not m:
             return self.program_time_raw
         hours = int(m.group(1)) if m.group(1) else 0
         minutes = int(m.group(2)) if m.group(2) else 0
-        seconds = int(m.group(3))
+        seconds = int(m.group(3)) if m.group(3) else 0
         return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
 
     @property
     def program_time_minutes(self) -> str:
         """Extract total minutes from raw time code as a string.
 
-        'H21M51S' -> '22'  (0 h x 60 + 21 m + round-up seconds)
-        'H M48S'  → '1'
-        '1H5M30S' → '66'
+        'H21M51S'   -> '22'  (0 h x 60 + 21 m + round-up seconds)
+        'H M48S'    → '1'
+        '1H5M30S'   → '66'
+        '  H45M  S' → '45'  (leading spaces, zero seconds)
         """
-        m = re.match(r"(\d*)H\s*(\d*)M\s*(\d+)S", self.program_time_raw)
+        m = re.match(r"\s*(\d*)H\s*(\d*)M\s*(\d*)S", self.program_time_raw)
         if not m:
             return ""
         hours = int(m.group(1)) if m.group(1) else 0
         minutes = int(m.group(2)) if m.group(2) else 0
-        seconds = int(m.group(3))
+        seconds = int(m.group(3)) if m.group(3) else 0
         total = hours * 60 + minutes + (1 if seconds >= 30 else 0)
         return str(total)
 

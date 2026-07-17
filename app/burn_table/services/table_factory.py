@@ -22,8 +22,13 @@ _ROW1_HEADERS = [
 # Character widths per column (A-H)
 _COL_WIDTHS = [15, 15, 30, 12, 15, 12, 20, 12]
 
-_HEADER_ROW_HEIGHT = 36  # pt - fits two-line text at size 9
-_DATA_ROW_HEIGHT = 18  # pt - compact data rows
+_HEADER_ROW_HEIGHT = 36  # pt — fits two-line text at size 9
+
+# Dynamic data-row height: A4 landscape printable height ÷ 40 rows.
+# A4 landscape: 210 mm tall; margins from apply_print_settings (top+bottom+header+footer).
+_A4_LANDSCAPE_H_PT = (210 / 25.4) * 72          # ≈ 595.3 pt
+_MARGIN_TOTAL_PT = (0.6 + 0.6 + 0.2 + 0.2) * 72  # 115.2 pt
+_DATA_ROW_HEIGHT = (_A4_LANDSCAPE_H_PT - _MARGIN_TOTAL_PT) / 40  # ≈ 12.0 pt
 
 
 class TableFactory:

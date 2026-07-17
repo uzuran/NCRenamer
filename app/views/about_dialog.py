@@ -9,6 +9,7 @@ import customtkinter as ctk
 from app.version import APP_NAME, APP_VERSION, AUTHOR
 
 _LICENSE_URL = "https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode"
+_GITHUB_URL = "https://github.com/uzuran/NCRenamer"
 
 _SECTIONS = [
     (
@@ -109,7 +110,18 @@ class AboutDialog(ctk.CTkToplevel):
             font=ctk.CTkFont(size=11, weight="bold"),
             text_color=("#1a6b3c", "#4caf7d"),
             anchor="center",
-        ).pack(fill="x", padx=20, pady=(4, 12))
+        ).pack(fill="x", padx=20, pady=(4, 6))
+
+        ctk.CTkButton(
+            self,
+            text=_GITHUB_URL,
+            font=ctk.CTkFont(size=11, underline=True),
+            fg_color="transparent",
+            text_color=("#0066cc", "#5aacff"),
+            hover_color=("#e8f0fe", "#1a2d4a"),
+            anchor="center",
+            command=lambda: webbrowser.open(_GITHUB_URL),
+        ).pack(fill="x", padx=20, pady=(0, 12))
 
         # ── Divider ───────────────────────────────────────────────────────────
         ctk.CTkFrame(self, height=1, fg_color="gray40").pack(

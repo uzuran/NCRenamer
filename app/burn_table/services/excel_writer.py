@@ -460,6 +460,11 @@ class ExcelWriter:
                 cell.border = border
                 cell.alignment = center
 
+        from app.burn_table.services.table_factory import _DATA_ROW_HEIGHT
+
+        for row_num in range(2, self.MAX_ROW + 1):
+            ws.row_dimensions[row_num].height = _DATA_ROW_HEIGHT
+
         apply_print_settings(ws)
         wb.save(path)
 
