@@ -87,12 +87,11 @@ check:
 # ─── Build ───────────────────────────────────────────────────────────────────
 # Uses Windows Python via powershell.exe so the output is a .exe, not a Linux
 # binary.  Works from both WSL and a Windows terminal (PowerShell / CMD).
-# laser.xls is not bundled inside the exe — it lives next to it so users can
-# edit it freely.
+# laser.xls is embedded inside the EXE via the spec datas list and extracted
+# automatically by bootstrap.py on first launch — no manual copy needed.
 
 build:
 	powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "python -m PyInstaller NCRenamer.spec --clean --noconfirm"
-	powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "New-Item -Force -ItemType Directory 'dist\CNCs' | Out-Null; Copy-Item 'CNCs\laser.xls' 'dist\CNCs\laser.xls' -Force"
 
 # ─── Dependencies ───────────────────────────────────────────────────────────
 

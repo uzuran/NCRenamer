@@ -120,5 +120,7 @@ credentials.json
 resources/email_counter.json
 resources/app_settings.json
 
-# User-local materials CSV (copied/modified at runtime under AppData)
-# The default seed file CNCs/materials_new.csv IS tracked as source of truth
+# CNCs folder — files are embedded inside the EXE and extracted on first launch.
+# Do not commit this folder; keep the source files (laser.xls, materials_new.csv)
+# only in the PyInstaller spec datas list.
+CNCs/

@@ -1,6 +1,8 @@
 import os
+import sys
 import threading
 import webbrowser
+from pathlib import Path
 
 import customtkinter as ctk
 
@@ -33,6 +35,11 @@ class App(ctk.CTk):
 
     def __init__(self):
         super().__init__()
+
+        # ── Extract embedded CNCs assets on first launch (frozen EXE only) ────
+        if getattr(sys, "frozen", False):
+            from app.utils.bootstrap import bootstrap_cncs
+            bootstrap_cncs(Path(sys.executable).parent)
 
         # ── Workspace (must happen first — all paths derive from it) ──────────
         self._workspace, self._username = create_workspace()
