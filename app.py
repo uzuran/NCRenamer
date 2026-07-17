@@ -358,6 +358,7 @@ class App(ctk.CTk):
             self.burn_table_frame.steel_tab.tree,
             self.burn_table_frame.alu_tab.tree,
             self.todo_frame.tree,
+            self.part_storage_frame.tree,
         ):
             selected = tree.selection()
             if selected:
