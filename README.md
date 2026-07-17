@@ -61,6 +61,8 @@ No installation, no server, no configuration — just launch and work.
 - **Network deployment** — place the executable on a shared network drive; every machine that launches it shares the same `shared/` directory and gets its own `users/<name>/` folder automatically
 
 ### General
+- **Startup splash screen** — borderless loading screen with progress bar shown while the app initialises; disappears automatically when ready
+- **About dialog** — shows version, author, license, and a clickable GitHub link
 - **Bug report email** — one-click mailto with an auto-incremented subject line; counter is password-protected and persists between sessions
 - **Light / Dark mode toggle** — stored in user settings
 - **Czech / English UI** — switchable at runtime without restart
@@ -96,7 +98,9 @@ NCRenamer/
 │   │   ├── burn_table_frame.py
 │   │   ├── part_storage_frame.py
 │   │   ├── settings_frame.py
-│   │   └── todo_frame.py
+│   │   ├── todo_frame.py
+│   │   ├── about_dialog.py             # About dialog with GitHub link
+│   │   └── splash_screen.py            # Borderless loading screen on startup
 │   ├── burn_table/                 # Burn-table sub-application
 │   │   ├── models/                     # BurnRecord, TableStatus
 │   │   ├── services/                   # ExcelReader, ExcelWriter, XmlParser, …
@@ -108,6 +112,7 @@ NCRenamer/
 │   ├── translations/
 │   │   └── translations.py             # Czech / English string dictionaries
 │   └── utils/
+│       ├── bootstrap.py                # Extracts embedded CNCs assets on first launch
 │       ├── file_watcher.py             # Polling file-watcher for real-time sync
 │       ├── resource_path.py            # PyInstaller-aware asset resolution
 │       ├── shared_storage.py           # exe_dir() + file_lock() shared by repositories
@@ -306,8 +311,11 @@ make lint
 make build
 ```
 
-Uses PyInstaller via `NCRenamer.spec`. The resulting binary is written to `dist/`.  
-On first launch the workspace directories (`shared/`, `users/<name>/`) are created automatically next to the executable.
+Uses PyInstaller via `NCRenamer.spec`. The resulting binary is written to `dist/`.
+
+`laser.xls` is embedded inside the EXE and extracted automatically by `bootstrap.py` on first launch into `<exe-dir>/CNCs/laser.xls`. Existing files are never overwritten, so user data is preserved across upgrades.
+
+On first launch the workspace directories (`shared/`, `users/<name>/`) are also created automatically next to the executable.
 
 ---
 

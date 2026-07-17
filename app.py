@@ -27,6 +27,7 @@ from app.views.main_frame import MainFrame
 from app.views.materials_frame import MaterialsFrame
 from app.views.part_storage_frame import PartStorageFrame
 from app.views.settings_frame import SettingsFrame
+from app.views.splash_screen import SplashScreen
 from app.views.todo_frame import TodoFrame
 
 
@@ -35,16 +36,34 @@ class App(ctk.CTk):
 
     def __init__(self):
         super().__init__()
+        self.withdraw()                       # invisible until _initialize finishes
+        self._splash = SplashScreen(self)
+        # Schedule all real work to run AFTER mainloop() starts.
+        # This lets the event loop begin immediately so the splash is live
+        # and the OS sees a responsive process with a real window.
+        self.after(50, self._initialize)
+
+    def _initialize(self) -> None:
+        """Full startup sequence — called from inside the event loop via after().
+
+        Running here (not in __init__) guarantees mainloop() has started before
+        any blocking I/O or widget construction happens, which is what prevents
+        the "process visible but no window" problem on Windows.
+        """
+        splash = self._splash
 
         # ── Extract embedded CNCs assets on first launch (frozen EXE only) ────
+        splash.set_status("Initializing…")
         if getattr(sys, "frozen", False):
             from app.utils.bootstrap import bootstrap_cncs
             bootstrap_cncs(Path(sys.executable).parent)
 
         # ── Workspace (must happen first — all paths derive from it) ──────────
+        splash.set_status("Loading workspace…")
         self._workspace, self._username = create_workspace()
 
         # ── Shared repositories (same file for every Windows login) ───────────
+        splash.set_status("Loading data…")
         self.material_repo = MaterialRepository(
             path=self._workspace.materials_path()
         )
@@ -54,6 +73,7 @@ class App(ctk.CTk):
         self.formatter_model = FormatterModel(self.material_repo)
 
         # ── Per-user settings ─────────────────────────────────────────────────
+        splash.set_status("Loading settings…")
         self.settings_model = SettingsModel(
             path=str(self._workspace.user_settings_path(self._username))
         )
@@ -82,6 +102,8 @@ class App(ctk.CTk):
         if folder and not os.path.exists(folder):
             os.makedirs(folder, exist_ok=True)
 
+        # ── Build UI frames ───────────────────────────────────────────────────
+        splash.set_status("Building interface…")
         self.main_frame = MainFrame(
             master=self,
             texts=self.texts,
@@ -165,9 +187,13 @@ class App(ctk.CTk):
             texts=self.texts,
         )
 
+        # ── Load burn table (Excel I/O — slowest step) ───────────────────────
+        splash.set_status("Loading burn table…")
         self.show_main_content()
         self._init_burn_tables()
 
+        # ── File watcher ──────────────────────────────────────────────────────
+        splash.set_status("Starting services…")
         self._file_watcher = FileWatcher(self)
         self._file_watcher.watch(
             self._workspace.materials_path(),
@@ -195,6 +221,11 @@ class App(ctk.CTk):
         self.protocol("WM_DELETE_WINDOW", self._on_close)
 
         self._update_check_in_progress = False
+
+        # ── Done — close splash and reveal main window ────────────────────────
+        splash.destroy()
+        self._splash = None
+        self.deiconify()
 
         # Global deselect: bind_all fires for every widget in the app regardless
         # of whether CTk frames propagate the event up to the root window.
